@@ -1,0 +1,10 @@
+[
+  {
+    "id": "e866800b-0b07-4a70-a4d4-2cb48e98f601",
+    "name": "Ayoub Khayoussef",
+    "email": "test@gmail.com",
+    "password": "$2a$10$Z1zDrCHCfU.dSkjqGZ6eW.7j0/3JUpBDqbmr//y8GiRVByT1z64/e",
+    "active": true,
+    "createdAt": "2026-09-27T12:43:22.771Z"
+  }
+]

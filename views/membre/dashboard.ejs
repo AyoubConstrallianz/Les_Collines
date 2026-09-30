@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mon Espace — Les Collines des Sports</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --lime:#c8f700; --black:#080808; --dark:#111; --card:#161616; --border:#222; --white:#fff; --muted:#666; --font-h:'Barlow Condensed',sans-serif; --font-b:'Barlow',sans-serif; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--black); color: var(--white); font-family: var(--font-b); min-height: 100vh; }
+    a { text-decoration: none; color: inherit; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--black); } ::-webkit-scrollbar-thumb { background: var(--lime); border-radius: 3px; }
+
+    /* ── Header ── */
+    .header { position: sticky; top: 0; z-index: 30; background: rgba(8,8,8,.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .header-logo { font-family: var(--font-h); font-size: 1.3rem; font-weight: 900; color: var(--lime); text-transform: uppercase; letter-spacing: .02em; }
+    .header-badge { font-family: var(--font-h); font-size: .6rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 1px; }
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .member-chip { display: flex; align-items: center; gap: .6rem; background: var(--dark); border: 1px solid var(--border); border-radius: 20px; padding: .35rem .9rem; }
+    .member-avatar { width: 28px; height: 28px; background: var(--lime); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-h); font-size: .85rem; font-weight: 900; color: var(--black); flex-shrink: 0; }
+    .member-name { font-family: var(--font-h); font-size: .8rem; font-weight: 600; letter-spacing: .05em; }
+    .btn-logout { display: flex; align-items: center; gap: .4rem; background: none; border: 1px solid var(--border); color: var(--muted); font-family: var(--font-h); font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: .4rem .9rem; border-radius: 4px; cursor: pointer; text-decoration: none; transition: all .2s; }
+    .btn-logout:hover { border-color: rgba(255,60,60,.4); color: #ff6060; }
+    .btn-logout svg { width: 13px; height: 13px; }
+
+    /* ── Main ── */
+    .main { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .welcome { margin-bottom: 3rem; }
+    .welcome-label { font-family: var(--font-h); font-size: .7rem; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--lime); margin-bottom: .5rem; }
+    .welcome-title { font-family: var(--font-h); font-size: clamp(2rem,5vw,3.5rem); font-weight: 900; text-transform: uppercase; line-height: 1; }
+    .welcome-title span { color: var(--lime); }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 2.5rem; overflow-x: auto; }
+    .tab { font-family: var(--font-h); font-size: .85rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: .9rem 1.8rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all .25s; background: none; border-left: none; border-right: none; border-top: none; white-space: nowrap; }
+    .tab:hover { color: var(--white); }
+    .tab.active { color: var(--lime); border-bottom-color: var(--lime); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; background: rgba(200,247,0,.12); color: var(--lime); font-size: .65rem; border-radius: 50%; margin-left: .4rem; }
+
+    /* ── Panels ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; text-align: center; color: var(--muted); gap: 1rem; }
+    .empty-state svg { width: 48px; height: 48px; opacity: .3; }
+    .empty-state p { font-family: var(--font-h); font-size: 1rem; letter-spacing: .1em; text-transform: uppercase; }
+
+    /* ── Category filter ── */
+    .cat-filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.8rem; }
+    .cat-btn { font-family: var(--font-h); font-size: .7rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: .35rem .9rem; background: var(--card); border: 1px solid var(--border); border-radius: 2px; cursor: pointer; transition: all .2s; }
+    .cat-btn:hover { color: var(--white); border-color: #444; }
+    .cat-btn.active { background: var(--lime); color: var(--black); border-color: var(--lime); }
+
+    /* ── Video grid ── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+
+    /* ── Video card ── */
+    .video-card { background: var(--dark); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; transition: all .25s; cursor: pointer; display: block; }
+    .video-card:hover { border-color: rgba(200,247,0,.3); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+    .video-thumb { position: relative; aspect-ratio: 16/9; background: var(--card); overflow: hidden; }
+    .video-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .video-thumb-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #111 0%, #1a1a1a 100%); }
+    .video-thumb-placeholder svg { width: 48px; height: 48px; color: var(--lime); opacity: .3; }
+    .play-btn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.3); opacity: 0; transition: opacity .25s; }
+    .video-card:hover .play-btn { opacity: 1; }
+    .play-circle { width: 56px; height: 56px; background: var(--lime); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .play-circle svg { width: 22px; height: 22px; color: var(--black); margin-left: 3px; }
+    .video-cat-badge { position: absolute; top: .6rem; left: .6rem; font-family: var(--font-h); font-size: .6rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; background: rgba(8,8,8,.85); color: var(--lime); padding: .25rem .7rem; border-radius: 2px; }
+    .card-body { padding: 1.2rem; }
+    .card-title { font-family: var(--font-h); font-size: 1.05rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .4rem; color: var(--white); }
+    .card-desc { font-size: .85rem; color: var(--muted); line-height: 1.5; }
+    .card-meta { display: flex; align-items: center; justify-content: space-between; margin-top: .8rem; font-size: .75rem; color: var(--muted); }
+    .card-date { font-family: var(--font-h); letter-spacing: .08em; }
+
+    /* ── Programme card ── */
+    .prog-card { background: var(--dark); border: 1px solid var(--border); border-radius: 6px; padding: 1.4rem 1.5rem; display: flex; align-items: center; gap: 1.2rem; transition: all .25s; }
+    .prog-card:hover { border-color: rgba(200,247,0,.3); transform: translateX(4px); }
+    .prog-icon { width: 52px; height: 52px; background: rgba(200,247,0,.08); border: 1px solid rgba(200,247,0,.12); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .prog-icon svg { width: 26px; height: 26px; color: var(--lime); }
+    .prog-info { flex: 1; min-width: 0; }
+    .prog-title { font-family: var(--font-h); font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .3rem; }
+    .prog-desc { font-size: .82rem; color: var(--muted); line-height: 1.4; margin-bottom: .4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .prog-cat { display: inline-block; font-family: var(--font-h); font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--lime); background: rgba(200,247,0,.08); padding: .2rem .6rem; border-radius: 2px; }
+    .prog-actions { display: flex; flex-direction: column; gap: .4rem; flex-shrink: 0; }
+    .btn-view { display: inline-flex; align-items: center; gap: .4rem; font-family: var(--font-h); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: .45rem .9rem; border-radius: 4px; cursor: pointer; transition: all .2s; white-space: nowrap; text-decoration: none; }
+    .btn-view.primary { background: var(--lime); color: var(--black); }
+    .btn-view.primary:hover { opacity: .85; }
+    .btn-view.outline { background: none; color: var(--white); border: 1px solid var(--border); }
+    .btn-view.outline:hover { border-color: var(--lime); color: var(--lime); }
+    .btn-view svg { width: 13px; height: 13px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .header { padding: 0 1rem; }
+      .member-name { display: none; }
+      .main { padding: 2rem 1rem 4rem; }
+      .grid { grid-template-columns: 1fr; }
+      .prog-card { flex-direction: column; align-items: flex-start; }
+      .prog-actions { flex-direction: row; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div>
+      <div class="header-logo">Les Collines</div>
+      <div class="header-badge">Espace Adhérents</div>
+    </div>
+    <div class="header-right">
+      <div class="member-chip">
+        <div class="member-avatar"><%= member.name.charAt(0).toUpperCase() %></div>
+        <span class="member-name"><%= member.name %></span>
+      </div>
+      <a href="/membre/logout" class="btn-logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Déconnexion
+      </a>
+    </div>
+  </header>
+
+  <!-- ── Main ── -->
+  <main class="main">
+    <div class="welcome">
+      <div class="welcome-label">Bienvenue</div>
+      <h1 class="welcome-title">Bonjour, <span><%= member.name.split(' ')[0] %></span></h1>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" role="tablist">
+      <button class="tab active" role="tab" aria-selected="true" data-tab="videos">
+        Vidéos <span class="tab-count"><%= videos.length %></span>
+      </button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="programmes">
+        Programmes <span class="tab-count"><%= programs.length %></span>
+      </button>
+    </div>
+
+    <!-- ── Panel Vidéos ── -->
+    <div class="panel active" id="tab-videos">
+      <% if (videos.length === 0) { %>
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+          <p>Aucune vidéo disponible pour le moment</p>
+        </div>
+      <% } else { %>
+        <%
+          const vCategories = [...new Set(videos.map(v => v.category))];
+        %>
+        <div class="cat-filters" id="vCatFilters">
+          <button class="cat-btn active" data-cat="all">Tout voir</button>
+          <% vCategories.forEach(cat => { %><button class="cat-btn" data-cat="<%= cat %>"><%= cat %></button><% }) %>
+        </div>
+        <div class="grid" id="videoGrid">
+          <% videos.forEach(video => { %>
+            <a href="/membre/video/<%= video.id %>" class="video-card" data-cat="<%= video.category %>">
+              <div class="video-thumb">
+                <% if (video.youtubeId) { %>
+                  <img src="https://img.youtube.com/vi/<%= video.youtubeId %>/hqdefault.jpg" alt="<%= video.title %>" loading="lazy" />
+                <% } else { %>
+                  <div class="video-thumb-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                  </div>
+                <% } %>
+                <div class="play-btn" aria-hidden="true">
+                  <div class="play-circle">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                </div>
+                <div class="video-cat-badge"><%= video.category %></div>
+              </div>
+              <div class="card-body">
+                <div class="card-title"><%= video.title %></div>
+                <% if (video.description) { %><div class="card-desc"><%= video.description %></div><% } %>
+                <div class="card-meta">
+                  <span class="card-date"><%= new Date(video.createdAt).toLocaleDateString('fr-FR') %></span>
+                  <span style="color:var(--lime);font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Regarder →</span>
+                </div>
+              </div>
+            </a>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- ── Panel Programmes ── -->
+    <div class="panel" id="tab-programmes">
+      <% if (programs.length === 0) { %>
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <p>Aucun programme disponible pour le moment</p>
+        </div>
+      <% } else { %>
+        <%
+          const pCategories = [...new Set(programs.map(p => p.category))];
+        %>
+        <div class="cat-filters" id="pCatFilters">
+          <button class="cat-btn active" data-cat="all">Tout voir</button>
+          <% pCategories.forEach(cat => { %><button class="cat-btn" data-cat="<%= cat %>"><%= cat %></button><% }) %>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1rem;" id="progGrid">
+          <% programs.forEach(prog => { %>
+            <div class="prog-card" data-cat="<%= prog.category %>">
+              <div class="prog-icon">
+                <% if (prog.fileExt === '.pdf') { %>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <% } else { %>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <% } %>
+              </div>
+              <div class="prog-info">
+                <div class="prog-title"><%= prog.title %></div>
+                <% if (prog.description) { %><div class="prog-desc"><%= prog.description %></div><% } %>
+                <span class="prog-cat"><%= prog.category %></span>
+              </div>
+              <div class="prog-actions">
+                <a href="/membre/programme/<%= prog.id %>" class="btn-view primary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Voir
+                </a>
+                <a href="<%= prog.file %>" download class="btn-view outline">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Télécharger
+                </a>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <script>
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active'); tab.setAttribute('aria-selected','true');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Category filter — videos
+    function setupFilter(filterContainerId, gridId, selector) {
+      const container = document.getElementById(filterContainerId);
+      const grid = document.getElementById(gridId);
+      if (!container || !grid) return;
+      container.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          container.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const cat = btn.dataset.cat;
+          grid.querySelectorAll(selector).forEach(card => {
+            card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+          });
+        });
+      });
+    }
+    setupFilter('vCatFilters', 'videoGrid', '.video-card');
+    setupFilter('pCatFilters', 'progGrid', '.prog-card');
+  </script>
+</body>
+</html>

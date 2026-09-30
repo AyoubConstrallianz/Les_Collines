@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adhérents — Admin Les Collines</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --lime:#c8f700; --black:#080808; --dark:#111; --card:#161616; --border:#222; --white:#fff; --muted:#888; --red:#ff4444; --green:#22c55e; }
+    body { background: var(--black); color: var(--white); font-family: 'Barlow', sans-serif; min-height: 100vh; display: flex; }
+
+    /* Sidebar */
+    .sidebar { width: 240px; flex-shrink: 0; background: var(--dark); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 30; }
+    .sidebar-logo { padding: 1.8rem 1.5rem; border-bottom: 1px solid var(--border); }
+    .sidebar-logo .brand { font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; font-weight: 900; color: var(--lime); text-transform: uppercase; }
+    .sidebar-logo .sub { font-size: .65rem; color: var(--muted); letter-spacing: .15em; text-transform: uppercase; margin-top: 2px; }
+    .sidebar-nav { padding: 1.2rem 0; flex: 1; }
+    .nav-section { padding: .5rem 1.5rem .3rem; font-size: .6rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+    .nav-item { display: flex; align-items: center; gap: .75rem; padding: .7rem 1.5rem; font-size: .85rem; font-weight: 500; color: var(--muted); text-decoration: none; transition: all .2s; }
+    .nav-item:hover { color: var(--white); background: rgba(255,255,255,.04); }
+    .nav-item.active { color: var(--lime); background: rgba(200,247,0,.06); border-right: 2px solid var(--lime); }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .sidebar-footer { padding: 1.2rem 1.5rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: .6rem; }
+    .btn-logout { display: flex; align-items: center; gap: .6rem; background: none; border: 1px solid var(--border); color: var(--muted); font-size: .8rem; padding: .6rem 1rem; border-radius: 4px; cursor: pointer; text-decoration: none; transition: all .2s; }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+    .btn-logout svg { width: 14px; height: 14px; }
+
+    /* Main */
+    .main { margin-left: 240px; flex: 1; padding: 2.5rem; }
+    .page-header { margin-bottom: 2.5rem; }
+    .page-header h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 900; text-transform: uppercase; }
+    .page-header p { color: var(--muted); font-size: .9rem; margin-top: .3rem; }
+
+    /* Toast */
+    .toast { display: flex; align-items: center; gap: .75rem; padding: .9rem 1.2rem; border-radius: 4px; margin-bottom: 1.8rem; font-size: .9rem; }
+    .toast.success { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: #4ade80; }
+    .toast.error   { background: rgba(255,68,68,.1); border: 1px solid rgba(255,68,68,.3); color: #ff7070; }
+    .toast svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* Grid */
+    .two-col { display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; align-items: start; }
+    .card { background: var(--dark); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .card-header { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .75rem; }
+    .card-icon { width: 36px; height: 36px; background: rgba(200,247,0,.08); border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .card-icon svg { width: 18px; height: 18px; color: var(--lime); }
+    .card-title { font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    .card-body { padding: 1.5rem; }
+
+    /* Form */
+    .form-group { margin-bottom: 1.1rem; }
+    label { display: block; font-size: .7rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: .4rem; }
+    input[type="text"], input[type="email"], input[type="password"] { width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--white); padding: .7rem .9rem; font-family: 'Barlow', sans-serif; font-size: .9rem; border-radius: 4px; transition: border-color .2s; outline: none; }
+    input:focus { border-color: var(--lime); }
+    .btn-save { display: inline-flex; align-items: center; gap: .5rem; background: var(--lime); color: var(--black); font-family: 'Barlow Condensed', sans-serif; font-size: .85rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: .65rem 1.4rem; border: none; border-radius: 4px; cursor: pointer; transition: opacity .2s; margin-top: 1rem; }
+    .btn-save:hover { opacity: .85; }
+    .btn-save svg { width: 15px; height: 15px; }
+
+    /* Table */
+    .members-table { width: 100%; border-collapse: collapse; }
+    .members-table th { font-family: 'Barlow Condensed', sans-serif; font-size: .7rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); text-align: left; padding: .8rem 1rem; border-bottom: 1px solid var(--border); background: var(--card); }
+    .members-table td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: .9rem; vertical-align: middle; }
+    .members-table tr:last-child td { border-bottom: none; }
+    .members-table tr:hover td { background: rgba(255,255,255,.02); }
+    .member-name-cell { font-weight: 600; }
+    .member-email-cell { color: var(--muted); font-size: .85rem; }
+    .member-date-cell { color: var(--muted); font-size: .8rem; font-family: 'Barlow Condensed', sans-serif; letter-spacing: .05em; }
+    .status-badge { display: inline-block; font-family: 'Barlow Condensed', sans-serif; font-size: .65rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: .25rem .7rem; border-radius: 20px; }
+    .status-badge.active   { background: rgba(34,197,94,.15); color: #4ade80; }
+    .status-badge.inactive { background: rgba(255,68,68,.1); color: #ff7070; }
+    .action-btns { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .btn-sm { display: inline-flex; align-items: center; gap: .3rem; font-family: 'Barlow Condensed', sans-serif; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: .35rem .7rem; border-radius: 4px; cursor: pointer; transition: all .2s; border: none; }
+    .btn-sm.toggle  { background: rgba(255,255,255,.05); color: var(--muted); border: 1px solid var(--border); }
+    .btn-sm.toggle:hover  { border-color: var(--lime); color: var(--lime); }
+    .btn-sm.danger  { background: rgba(255,68,68,.1); color: var(--red); border: 1px solid rgba(255,68,68,.2); }
+    .btn-sm.danger:hover  { background: rgba(255,68,68,.2); }
+    .btn-sm svg { width: 12px; height: 12px; }
+    .empty { text-align: center; padding: 3rem; color: var(--muted); font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; letter-spacing: .1em; text-transform: uppercase; }
+
+    /* Modal reset */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 50; align-items: center; justify-content: center; padding: 2rem; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--dark); border: 1px solid var(--border); border-radius: 8px; padding: 2rem; width: 100%; max-width: 380px; }
+    .modal h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1.2rem; }
+    .modal-actions { display: flex; gap: .6rem; margin-top: 1rem; }
+
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } .sidebar { display: none; } .main { margin-left: 0; } }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="brand">Les Collines</div><div class="sub">Administration</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Site</div>
+      <a href="/admin/dashboard" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Paramètres site
+      </a>
+      <div class="nav-section">Espace Adhérents</div>
+      <a href="/admin/adherents" class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Adhérents
+      </a>
+      <a href="/admin/contenu" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        Vidéos & Programmes
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/" target="_blank" class="btn-logout" style="border-color:rgba(200,247,0,.2);color:var(--lime);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Voir le site
+      </a>
+      <a href="/admin/logout" class="btn-logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Déconnexion
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="page-header">
+      <h1>Gestion des adhérents</h1>
+      <p>Créez les comptes d'accès pour vos membres inscrits.</p>
+    </div>
+
+    <% if (success) { %>
+      <div class="toast success">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>
+          <% if (success === 'created') { %>Adhérent créé avec succès.
+          <% } else if (success === 'deleted') { %>Adhérent supprimé.
+          <% } else if (success === 'toggled') { %>Statut modifié.
+          <% } else if (success === 'password') { %>Mot de passe réinitialisé.
+          <% } else { %>Modification enregistrée.<% } %>
+        </span>
+      </div>
+    <% } %>
+    <% if (error) { %>
+      <div class="toast error">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <% if (error === 'email_exists') { %>Un compte avec cet email existe déjà.
+        <% } else { %>Une erreur s'est produite.<% } %>
+      </div>
+    <% } %>
+
+    <div class="two-col">
+      <!-- Create form -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+          <div class="card-title">Nouvel adhérent</div>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="/admin/adherents/create">
+            <div class="form-group">
+              <label for="name">Nom complet</label>
+              <input type="text" id="name" name="name" required placeholder="Prénom Nom" />
+            </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required placeholder="email@exemple.com" />
+            </div>
+            <div class="form-group">
+              <label for="password">Mot de passe</label>
+              <input type="password" id="password" name="password" required placeholder="Min. 6 caractères" minlength="6" />
+            </div>
+            <button type="submit" class="btn-save">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Créer le compte
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Members list -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+          <div class="card-title">Liste des adhérents (<%= members.length %>)</div>
+        </div>
+        <% if (members.length === 0) { %>
+          <div class="empty">Aucun adhérent enregistré</div>
+        <% } else { %>
+          <div style="overflow-x:auto;">
+            <table class="members-table">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Email</th>
+                  <th>Créé le</th>
+                  <th>Statut</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% members.forEach(m => { %>
+                <tr>
+                  <td class="member-name-cell"><%= m.name %></td>
+                  <td class="member-email-cell"><%= m.email %></td>
+                  <td class="member-date-cell"><%= new Date(m.createdAt).toLocaleDateString('fr-FR') %></td>
+                  <td><span class="status-badge <%= m.active ? 'active' : 'inactive' %>"><%= m.active ? 'Actif' : 'Inactif' %></span></td>
+                  <td>
+                    <div class="action-btns">
+                      <form method="POST" action="/admin/adherents/toggle/<%= m.id %>">
+                        <button type="submit" class="btn-sm toggle">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 11-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                          <%= m.active ? 'Désactiver' : 'Activer' %>
+                        </button>
+                      </form>
+                      <button type="button" class="btn-sm toggle" onclick="openReset('<%= m.id %>', '<%= m.name %>')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                        MDP
+                      </button>
+                      <form method="POST" action="/admin/adherents/delete/<%= m.id %>" onsubmit="return confirm('Supprimer cet adhérent ?')">
+                        <button type="submit" class="btn-sm danger">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                          Suppr.
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal reset password -->
+  <div class="modal-overlay" id="resetModal">
+    <div class="modal">
+      <h3>Réinitialiser le mot de passe</h3>
+      <form method="POST" id="resetForm">
+        <div class="form-group">
+          <label>Adhérent</label>
+          <input type="text" id="resetName" disabled style="opacity:.5;" />
+        </div>
+        <div class="form-group">
+          <label for="newPassword">Nouveau mot de passe</label>
+          <input type="password" id="newPassword" name="newPassword" required placeholder="Min. 6 caractères" minlength="6" />
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn-save" style="margin-top:0;">Enregistrer</button>
+          <button type="button" onclick="closeReset()" style="background:none;border:1px solid var(--border);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.65rem 1.2rem;border-radius:4px;cursor:pointer;">Annuler</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openReset(id, name) {
+      document.getElementById('resetName').value = name;
+      document.getElementById('resetForm').action = '/admin/adherents/reset-pass/' + id;
+      document.getElementById('newPassword').value = '';
+      document.getElementById('resetModal').classList.add('open');
+    }
+    function closeReset() { document.getElementById('resetModal').classList.remove('open'); }
+    document.getElementById('resetModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeReset(); });
+  </script>
+</body>
+</html>

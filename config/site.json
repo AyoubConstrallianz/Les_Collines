@@ -1,0 +1,47 @@
+{
+  "name": "Les Collines des Sports",
+  "tagline": "Fitness & Arts Martiaux",
+  "logo": "/uploads/logo.png",
+  "phones": [
+    "06 61 09 27 66",
+    "06 62 02 87 33"
+  ],
+  "email": "lescollines.fitness@gmail.com",
+  "address": "Résidence Les Collines, Sidi Maarouf, Casablanca, Maroc",
+  "social": {
+    "instagram": "lescollines.fitness",
+    "snapchat": "lescollinesfitn",
+    "tiktok": "@lescollines.fitness"
+  },
+  "services": [
+    "Cours collectifs",
+    "Coaching personnalisé",
+    "Suivi nutritionnel",
+    "Espaces détente",
+    "Compétition & stages"
+  ],
+  "sports": {
+    "martial": [
+      "MMA",
+      "Aïkido",
+      "Karaté",
+      "Taekwondo",
+      "Boxe",
+      "Kick-Boxing",
+      "Aerobic",
+      "Kendo"
+    ],
+    "fitness": [
+      "Musculation",
+      "Cardio",
+      "Spinning",
+      "Cross Training",
+      "Préparation Physique"
+    ],
+    "wellbeing": [
+      "Stretching",
+      "Mobilité",
+      "Relaxation"
+    ]
+  }
+}

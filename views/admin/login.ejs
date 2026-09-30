@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Les Collines des Sports</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --lime:#c8f700; --black:#080808; --dark:#111; --card:#161616; --border:#222; --white:#fff; --muted:#888; }
+    body { background: var(--black); color: var(--white); font-family: 'Barlow', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .login-box { width: 100%; max-width: 420px; }
+    .login-logo { text-align: center; margin-bottom: 2.5rem; }
+    .login-logo .brand { font-family: 'Barlow Condensed', sans-serif; font-size: 2.5rem; font-weight: 900; color: var(--lime); text-transform: uppercase; }
+    .login-logo .sub { font-family: 'Barlow Condensed', sans-serif; font-size: 0.7rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+    .login-card { background: var(--dark); border: 1px solid var(--border); border-radius: 6px; padding: 2.5rem; }
+    .login-title { font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.8rem; text-align: center; }
+    .form-group { margin-bottom: 1.2rem; }
+    label { display: block; font-size: .75rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: .5rem; }
+    input[type="text"], input[type="password"] {
+      width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--white);
+      padding: .75rem 1rem; font-family: 'Barlow', sans-serif; font-size: .95rem; border-radius: 4px;
+      transition: border-color .2s; outline: none;
+    }
+    input:focus { border-color: var(--lime); }
+    .error { background: rgba(255,60,60,.1); border: 1px solid rgba(255,60,60,.3); color: #ff6060; font-size: .85rem; padding: .75rem 1rem; border-radius: 4px; margin-bottom: 1.2rem; }
+    .btn-login { width: 100%; background: var(--lime); color: var(--black); font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: .9rem; border: none; border-radius: 4px; cursor: pointer; transition: opacity .2s; margin-top: .4rem; }
+    .btn-login:hover { opacity: .85; }
+    .back-link { display: block; text-align: center; margin-top: 1.5rem; font-size: .8rem; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .back-link:hover { color: var(--lime); }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="brand">Les Collines</div>
+      <div class="sub">Espace Administration</div>
+    </div>
+    <div class="login-card">
+      <div class="login-title">Connexion Admin</div>
+      <% if (error) { %>
+        <div class="error"><%= error %></div>
+      <% } %>
+      <form method="POST" action="/admin/login">
+        <div class="form-group">
+          <label for="username">Utilisateur</label>
+          <input type="text" id="username" name="username" autocomplete="username" required autofocus />
+        </div>
+        <div class="form-group">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn-login">Se connecter</button>
+      </form>
+    </div>
+    <a href="/" class="back-link">← Retour au site public</a>
+  </div>
+</body>
+</html>

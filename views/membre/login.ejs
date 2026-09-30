@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Espace Adhérents — Les Collines des Sports</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --lime:#c8f700; --black:#080808; --dark:#111; --card:#161616; --border:#222; --white:#fff; --muted:#888; }
+    body { background: var(--black); color: var(--white); font-family: 'Barlow', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
+    .bg-grid { position: fixed; inset: 0; background-image: linear-gradient(rgba(200,247,0,.03) 1px, transparent 1px), linear-gradient(90deg,rgba(200,247,0,.03) 1px, transparent 1px); background-size: 60px 60px; pointer-events: none; }
+    .bg-glow { position: fixed; top: -20%; left: 50%; transform: translateX(-50%); width: 600px; height: 400px; background: radial-gradient(ellipse, rgba(200,247,0,.06) 0%, transparent 70%); pointer-events: none; }
+    .login-box { position: relative; width: 100%; max-width: 420px; }
+    .back-link { display: inline-flex; align-items: center; gap: .5rem; color: var(--muted); font-family: 'Barlow Condensed', sans-serif; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; margin-bottom: 2rem; transition: color .2s; }
+    .back-link:hover { color: var(--lime); }
+    .back-link svg { width: 14px; height: 14px; }
+    .login-logo { text-align: center; margin-bottom: 2.5rem; }
+    .login-logo .brand { font-family: 'Barlow Condensed', sans-serif; font-size: 2.8rem; font-weight: 900; color: var(--lime); text-transform: uppercase; line-height: 1; }
+    .login-logo .sub { font-family: 'Barlow Condensed', sans-serif; font-size: .7rem; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+    .badge { display: inline-block; background: rgba(200,247,0,.1); border: 1px solid rgba(200,247,0,.25); color: var(--lime); font-family: 'Barlow Condensed', sans-serif; font-size: .65rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; padding: .3rem .9rem; border-radius: 2px; margin-top: .5rem; }
+    .login-card { background: var(--dark); border: 1px solid var(--border); border-radius: 8px; padding: 2.5rem; }
+    .login-title { font-family: 'Barlow Condensed', sans-serif; font-size: 1.3rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.8rem; text-align: center; color: var(--white); }
+    .form-group { margin-bottom: 1.2rem; }
+    label { display: block; font-size: .7rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: .4rem; }
+    input { width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--white); padding: .75rem 1rem; font-family: 'Barlow', sans-serif; font-size: .95rem; border-radius: 4px; transition: border-color .2s; outline: none; }
+    input:focus { border-color: var(--lime); }
+    .error { display: flex; align-items: center; gap: .6rem; background: rgba(255,60,60,.08); border: 1px solid rgba(255,60,60,.25); color: #ff7070; font-size: .85rem; padding: .75rem 1rem; border-radius: 4px; margin-bottom: 1.2rem; }
+    .error svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .btn-login { width: 100%; background: var(--lime); color: var(--black); font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: .9rem; border: none; border-radius: 4px; cursor: pointer; transition: opacity .2s; margin-top: .4rem; }
+    .btn-login:hover { opacity: .85; }
+    .login-footer { text-align: center; margin-top: 1.5rem; font-size: .8rem; color: var(--muted); }
+    .login-footer a { color: var(--lime); text-decoration: none; }
+    .login-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <div class="login-box">
+    <a href="/" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Retour au site
+    </a>
+
+    <div class="login-logo">
+      <div class="brand">Les Collines</div>
+      <div class="sub">Fitness &amp; Arts Martiaux</div>
+      <div class="badge">Espace Adhérents</div>
+    </div>
+
+    <div class="login-card">
+      <div class="login-title">Connexion</div>
+
+      <% if (error) { %>
+        <div class="error">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <%= error %>
+        </div>
+      <% } %>
+
+      <form method="POST" action="/membre/login">
+        <div class="form-group">
+          <label for="email">Adresse email</label>
+          <input type="email" id="email" name="email" autocomplete="email" required autofocus placeholder="votre@email.com" />
+        </div>
+        <div class="form-group">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="••••••••" />
+        </div>
+        <button type="submit" class="btn-login">Accéder à mon espace</button>
+      </form>
+    </div>
+
+    <div class="login-footer">
+      Pas encore inscrit ? Contactez-nous au <a href="tel:+212661092766">06 61 09 27 66</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<%- include('partials/head') %>
+
+<!-- ── NAVBAR ── -->
+<nav class="navbar" id="navbar" role="navigation" aria-label="Navigation principale">
+  <a href="#accueil" class="nav-logo" aria-label="<%= site.name %> — Accueil">
+    <% if (site.logo) { %>
+      <img src="<%= site.logo %>" alt="Logo <%= site.name %>" class="nav-logo-img" />
+    <% } else { %>
+      <span class="nav-logo-assoc">Association Sportive</span>
+      <span class="nav-logo-brand">Les Collines</span>
+      <span class="nav-logo-sub"><%= site.tagline %></span>
+    <% } %>
+  </a>
+  <ul class="nav-links" role="list">
+    <li><a href="#sports">Disciplines</a></li>
+    <li><a href="#pourquoi">Pourquoi nous</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="/membre/login" class="nav-membre">Espace Adhérents</a></li>
+    <li><a href="tel:<%= site.phones[0].replace(/\s/g,'') %>" class="nav-cta">Réserver</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ── MOBILE MENU ── -->
+<div class="mobile-menu" id="mobileMenu" role="menu">
+  <a href="#sports" role="menuitem">Disciplines</a>
+  <a href="#pourquoi" role="menuitem">Pourquoi nous</a>
+  <a href="#contact" role="menuitem">Contact</a>
+  <a href="/membre/login" role="menuitem">Espace Adhérents</a>
+  <a href="tel:<%= site.phones[0].replace(/\s/g,'') %>" class="nav-cta" role="menuitem">Réserver</a>
+</div>
+
+<!-- ── HERO ── -->
+<section class="hero" id="accueil" aria-label="Accueil">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="hero-badge">Association Sportive · Sidi Maarouf, Casablanca</div>
+    <h1 class="hero-title">
+      Les<br /><span>Collines</span><br />des Sports
+    </h1>
+    <p class="hero-subtitle"><%= site.tagline %></p>
+    <div class="hero-tags" aria-label="Services">
+      <% site.services.forEach(s => { %>
+        <span class="hero-tag"><%= s %></span>
+      <% }) %>
+    </div>
+    <div class="hero-actions">
+      <a href="tel:<%= site.phones[0].replace(/\s/g,'') %>" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.1 2.18 2 2 0 012.1 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        Nous Contacter
+      </a>
+      <a href="#sports" class="btn-outline">
+        Nos Disciplines
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true">
+    <div class="hero-scroll-line"></div>
+    <span>Défiler</span>
+  </div>
+</section>
+
+<!-- ── PHONE BAR ── -->
+<div class="phone-bar" aria-label="Téléphone">
+  <div class="phone-bar-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.1 2.18 2 2 0 012.1 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+  </div>
+  <div class="phone-bar-text">
+    <span class="phone-bar-label">WhatsApp &amp; Tél — Infos &amp; Inscriptions</span>
+    <div class="phone-bar-numbers">
+      <% site.phones.forEach((p, i) => { %>
+        <a href="tel:<%= p.replace(/\s/g,'') %>" style="color:inherit;"><%= p %></a>
+        <% if (i < site.phones.length - 1) { %><span class="phone-bar-sep">·</span><% } %>
+      <% }) %>
+    </div>
+  </div>
+</div>
+
+<!-- ── TICKER ── -->
+<div class="services-strip" aria-hidden="true">
+  <div class="services-track" id="ticker">
+    <% const all = [...site.services, 'Arts Martiaux', 'Fitness & Performance', 'Bien-Être']; %>
+    <% [...all, ...all].forEach(s => { %>
+      <span class="service-item"><span class="service-dot"></span><%= s %></span>
+    <% }) %>
+  </div>
+</div>
+
+<!-- ── SPORTS ── -->
+<section class="sports-wrapper" id="sports" aria-label="Nos disciplines">
+  <div class="sports-header reveal">
+    <p class="section-label">Nos disciplines</p>
+    <h2 class="section-title">Choisissez<br /><span>votre sport</span></h2>
+    <div class="divider" style="margin:1.2rem auto 0;"></div>
+  </div>
+
+  <div class="sports-tabs" role="tablist">
+    <button class="sports-tab active" role="tab" aria-selected="true" data-tab="martial">Arts Martiaux</button>
+    <button class="sports-tab" role="tab" aria-selected="false" data-tab="fitness">Fitness &amp; Performance</button>
+    <button class="sports-tab" role="tab" aria-selected="false" data-tab="wellbeing">Bien-Être</button>
+  </div>
+
+  <div class="sports-panels">
+    <%
+      const sportImages = {
+        'MMA':                  '/images/sports/mma.png',
+        'Aïkido':               '/images/sports/aikido.png',
+        'Karaté':               '/images/sports/karate.png',
+        'Taekwondo':            '/images/sports/taekwondo.png',
+        'Boxe':                 '/images/sports/boxe.png',
+        'Kick-Boxing':          '/images/sports/kick-boxing.png',
+        'Aerobic':              '/images/sports/aerobic.png',
+        'Kendo':                '/images/sports/kendo.png',
+        'Musculation':          '/images/sports/musculation.png',
+        'Cardio':               '/images/sports/cardio.png',
+        'Spinning':             '/images/sports/spinning.png',
+        'Cross Training':       '/images/sports/cross-training.png',
+        'Préparation Physique': '/images/sports/preparation-physique.png',
+        'Stretching':           '/images/sports/stretching.png',
+        'Mobilité':             '/images/sports/mobilite.png',
+        'Relaxation':           '/images/sports/relaxation.png'
+      };
+    %>
+    <% [['martial','panel-martial'],['fitness','panel-fitness'],['wellbeing','panel-wellbeing']].forEach(([key, id]) => { %>
+      <div class="sports-panel <%= key === 'martial' ? 'active' : '' %>" id="<%= id %>" role="tabpanel">
+        <% (site.sports[key] || []).forEach(sport => { %>
+          <div class="sport-card" tabindex="0">
+            <div class="sport-icon" aria-hidden="true">
+              <% if (sportImages[sport]) { %>
+                <img src="<%= sportImages[sport] %>" alt="<%= sport %>" class="sport-img" />
+              <% } else { %>
+                🏅
+              <% } %>
+            </div>
+            <div class="sport-name"><%= sport %></div>
+          </div>
+        <% }) %>
+      </div>
+    <% }) %>
+  </div>
+</section>
+
+<!-- ── WHY US ── -->
+<section class="section" id="pourquoi" aria-label="Pourquoi nous">
+  <div class="reveal">
+    <p class="section-label">Pourquoi nous</p>
+    <h2 class="section-title">Une salle<br /><span>d'exception</span></h2>
+    <div class="divider"></div>
+    <p class="section-desc">À Résidence Les Collines, Sidi Maarouf — une association sportive complète qui réunit arts martiaux, fitness et bien-être sous un même toit.</p>
+  </div>
+  <div class="why-grid">
+    <div class="why-card reveal">
+      <div class="why-number"><%= (site.sports.martial||[]).length + (site.sports.fitness||[]).length + (site.sports.wellbeing||[]).length %></div>
+      <div class="why-title">Disciplines</div>
+      <div class="why-desc">Arts martiaux, fitness et bien-être réunis pour une offre complète.</div>
+    </div>
+    <div class="why-card reveal">
+      <div class="why-number">3</div>
+      <div class="why-title">Pôles sportifs</div>
+      <div class="why-desc">Arts Martiaux · Fitness &amp; Performance · Bien-Être — pour tous les niveaux.</div>
+    </div>
+    <div class="why-card reveal">
+      <div class="why-number">1</div>
+      <div class="why-title">Adresse</div>
+      <div class="why-desc">Au cœur de Sidi Maarouf, Casablanca — facilement accessible.</div>
+    </div>
+    <div class="why-card reveal">
+      <div class="why-number">+</div>
+      <div class="why-title">Coaching & Nutrition</div>
+      <div class="why-desc">Coaching personnalisé et suivi nutritionnel pour atteindre vos objectifs.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTACT ── -->
+<div class="contact-wrapper" id="contact" aria-label="Contact">
+  <div class="contact-grid">
+    <!-- Infos -->
+    <div class="reveal">
+      <p class="section-label">Nous contacter</p>
+      <h2 class="section-title">Venez<br /><span>nous voir</span></h2>
+      <div class="divider"></div>
+
+      <div class="contact-info-row">
+        <div class="contact-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.1 2.18 2 2 0 012.1 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        </div>
+        <div>
+          <div class="contact-info-label">Téléphone &amp; WhatsApp</div>
+          <div class="contact-info-val">
+            <% site.phones.forEach(p => { %>
+              <a href="tel:<%= p.replace(/\s/g,'') %>"><%= p %></a><br />
+            <% }) %>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-info-row">
+        <div class="contact-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div>
+          <div class="contact-info-label">Email</div>
+          <div class="contact-info-val"><a href="mailto:<%= site.email %>"><%= site.email %></a></div>
+        </div>
+      </div>
+
+      <div class="contact-info-row">
+        <div class="contact-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div>
+          <div class="contact-info-label">Adresse</div>
+          <div class="contact-info-val"><%= site.address %></div>
+        </div>
+      </div>
+
+      <!-- Réseaux sociaux -->
+      <div class="social-links">
+        <% if (site.social.instagram) { %>
+        <a href="https://instagram.com/<%= site.social.instagram %>" target="_blank" rel="noopener noreferrer" class="social-link">
+          <div class="social-logo instagram" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+          </div>
+          <div><div class="social-name">Instagram</div><div class="social-handle">@<%= site.social.instagram %></div></div>
+        </a>
+        <% } %>
+        <% if (site.social.snapchat) { %>
+        <a href="https://snapchat.com/add/<%= site.social.snapchat %>" target="_blank" rel="noopener noreferrer" class="social-link">
+          <div class="social-logo snapchat" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="#000"><path d="M12.166 2C9.703 2 7.012 3.456 6.045 6.144c-.338.929-.28 1.954-.257 2.98a.39.39 0 01-.144.31c-.254.18-.742.31-1.155.155-.12-.046-.248-.046-.37-.01a.64.64 0 00-.434.594c.015.35.31.628.66.688.543.09.896.343 1.04.653.13.28.028.557-.322.854-1.2 1.025-1.433 2.012-.758 2.805.27.316.683.524 1.177.586.072.01.135.047.18.102.045.054.065.12.057.187-.11.88-.487 1.464-1.085 1.698-.32.124-.504.367-.456.628.077.422.76.716 1.775.786.27.018.458.085.545.196.117.147.01.394-.118.704-.14.34-.29.722-.216 1.064.164.738.994 1.014 1.738 1.014.337 0 .672-.055.97-.164.636-.234 1.23-.351 1.764-.351.525 0 1.12.117 1.775.35.305.112.638.166.98.166.844 0 1.697-.36 1.793-1.01.073-.342-.076-.723-.216-1.065-.128-.31-.235-.556-.118-.703.086-.11.276-.178.544-.196 1.015-.07 1.698-.364 1.776-.787.048-.26-.136-.503-.457-.627-.597-.234-.974-.818-1.085-1.698a.237.237 0 01.057-.187.24.24 0 01.18-.102c.494-.062.907-.27 1.177-.586.675-.793.441-1.78-.759-2.805-.35-.297-.45-.573-.32-.854.142-.31.496-.563 1.04-.653.35-.06.645-.338.66-.688a.64.64 0 00-.435-.594.753.753 0 00-.37.01c-.412.155-.9.025-1.155-.154a.39.39 0 01-.144-.31c.022-1.027.08-2.052-.257-2.981C17.021 3.386 14.34 2 12.166 2z"/></svg>
+          </div>
+          <div><div class="social-name">Snapchat</div><div class="social-handle"><%= site.social.snapchat %></div></div>
+        </a>
+        <% } %>
+        <% if (site.social.tiktok) { %>
+        <a href="https://tiktok.com/<%= site.social.tiktok.startsWith('@') ? site.social.tiktok : '@'+site.social.tiktok %>" target="_blank" rel="noopener noreferrer" class="social-link">
+          <div class="social-logo tiktok" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="white"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.71a8.17 8.17 0 004.78 1.52V6.78a4.83 4.83 0 01-1.01-.09z"/></svg>
+          </div>
+          <div><div class="social-name">TikTok</div><div class="social-handle"><%= site.social.tiktok %></div></div>
+        </a>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- CTA + Map -->
+    <div class="reveal">
+      <div class="contact-cta-box">
+        <p class="section-label" style="text-align:center;">Prêt à commencer ?</p>
+        <h3 class="contact-cta-title">Rejoignez-nous<br /><span>aujourd'hui</span></h3>
+        <p class="contact-cta-desc">Contactez-nous par téléphone ou WhatsApp pour toute information sur les inscriptions, les horaires et les tarifs.</p>
+        <% site.phones.forEach(p => { %>
+          <a href="tel:<%= p.replace(/\s/g,'') %>" class="btn-primary" style="width:100%;justify-content:center;margin-bottom:.8rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.1 2.18 2 2 0 012.1 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            <%= p %>
+          </a>
+        <% }) %>
+        <a href="mailto:<%= site.email %>" class="btn-outline" style="width:100%;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Écrire un email
+        </a>
+      </div>
+
+      <div class="map-placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span>Résidence Les Collines, Sidi Maarouf</span>
+        <a href="https://maps.google.com/?q=Residence+Les+Collines+Sidi+Maarouf+Casablanca" target="_blank" rel="noopener noreferrer">
+          Voir sur Google Maps
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
