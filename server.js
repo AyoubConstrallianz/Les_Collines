@@ -36,15 +36,19 @@ app.use((req, res) => {
   res.status(404).render('404', {});
 });
 
-// ── Start ──
-app.listen(PORT, () => {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║   Les Collines des Sports — Serveur    ║');
-  console.log('╚════════════════════════════════════════╝');
-  console.log(`\n  Site public : http://localhost:${PORT}`);
-  console.log(`  Admin       : http://localhost:${PORT}/admin`);
-  console.log(`  Adhérents   : http://localhost:${PORT}/membre/login`);
-  console.log(`\n  Identifiants admin par défaut :`);
-  console.log(`    Utilisateur : ${process.env.ADMIN_USER || 'admin'}`);
-  console.log(`    Mot de passe : (voir fichier .env)\n`);
-});
+// ── Start (local) / Export (Vercel) ──
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log('\n╔════════════════════════════════════════╗');
+    console.log('║   Les Collines des Sports — Serveur    ║');
+    console.log('╚════════════════════════════════════════╝');
+    console.log(`\n  Site public : http://localhost:${PORT}`);
+    console.log(`  Admin       : http://localhost:${PORT}/admin`);
+    console.log(`  Adhérents   : http://localhost:${PORT}/membre/login`);
+    console.log(`\n  Identifiants admin par défaut :`);
+    console.log(`    Utilisateur : ${process.env.ADMIN_USER || 'admin'}`);
+    console.log(`    Mot de passe : (voir fichier .env)\n`);
+  });
+}
+
+module.exports = app;
