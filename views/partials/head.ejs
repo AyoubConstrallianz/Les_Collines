@@ -3,31 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= site.name %> — <%= site.tagline %> | Sidi Maarouf, Casablanca</title>
-  <meta name="description" content="Association Sportive <%= site.name %> — Fitness, Arts Martiaux & Bien-Être à Résidence Les Collines, Sidi Maarouf, Casablanca. MMA, Karaté, Boxe, Musculation, Cardio et plus." />
-  <meta name="keywords" content="salle de sport Casablanca, arts martiaux Sidi Maarouf, fitness Casablanca, MMA Maroc, musculation Sidi Maarouf, Les Collines des Sports, boxe Casablanca, karate Casablanca, coaching sportif" />
+  <title>Salle de Sport Casablanca Sidi Maarouf | <%= site.name %> — MMA, Boxe, Musculation, Fitness</title>
+  <meta name="description" content="Salle de sport et arts martiaux a Sidi Maarouf, Casablanca. MMA, Boxe, Karate, Taekwondo, Kick-Boxing, Musculation, Cardio, Cross Training, Spinning. Coaching personnalise. Association Sportive Les Collines des Sports — Residence Les Collines." />
+  <meta name="keywords" content="salle de sport Casablanca, salle de sport Sidi Maarouf, arts martiaux Casablanca, arts martiaux Sidi Maarouf, MMA Casablanca, boxe Casablanca, karate Casablanca, taekwondo Casablanca, kick boxing Casablanca, musculation Casablanca, musculation Sidi Maarouf, fitness Casablanca, fitness Sidi Maarouf, cross training Casablanca, spinning Casablanca, cardio Casablanca, salle musculation Casablanca, club sport Casablanca, gym Casablanca, gym Sidi Maarouf, coaching sportif Casablanca, preparation physique Casablanca, aikido Casablanca, kendo Casablanca, stretching Casablanca, bien-etre Casablanca, Les Collines des Sports, association sportive Casablanca, Residence Les Collines Sidi Maarouf" />
   <meta name="author" content="<%= site.name %>" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://lescollinesfitness.com/" />
+  <link rel="alternate" hreflang="fr-MA" href="https://lescollinesfitness.com/" />
+  <link rel="alternate" hreflang="fr" href="https://lescollinesfitness.com/" />
+  <link rel="alternate" hreflang="x-default" href="https://lescollinesfitness.com/" />
 
   <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="<%= site.name %> — <%= site.tagline %>" />
-  <meta property="og:description" content="Association Sportive à Sidi Maarouf, Casablanca. Arts Martiaux, Fitness & Bien-Être — MMA, Karaté, Boxe, Musculation et plus." />
+  <meta property="og:title" content="Salle de Sport Casablanca Sidi Maarouf — MMA, Boxe, Musculation, Fitness" />
+  <meta property="og:description" content="La meilleure salle de sport a Sidi Maarouf, Casablanca. +16 disciplines : MMA, Boxe, Karate, Musculation, Cardio, Cross Training. Coaching personnalise et suivi nutritionnel." />
   <meta property="og:url" content="https://lescollinesfitness.com/" />
   <meta property="og:image" content="https://lescollinesfitness.com/images/logo.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Les Collines des Sports — Salle de sport a Sidi Maarouf Casablanca" />
   <meta property="og:site_name" content="<%= site.name %>" />
   <meta property="og:locale" content="fr_MA" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="<%= site.name %> — <%= site.tagline %>" />
-  <meta name="twitter:description" content="Association Sportive à Sidi Maarouf, Casablanca. Arts Martiaux, Fitness & Bien-Être." />
+  <meta name="twitter:title" content="Salle de Sport Casablanca Sidi Maarouf | Les Collines des Sports" />
+  <meta name="twitter:description" content="+16 disciplines : MMA, Boxe, Karate, Musculation, Cardio, Spinning, Cross Training a Sidi Maarouf, Casablanca." />
   <meta name="twitter:image" content="https://lescollinesfitness.com/images/logo.png" />
 
   <!-- Geo / Local SEO -->
   <meta name="geo.region" content="MA-CAS" />
-  <meta name="geo.placename" content="Casablanca" />
+  <meta name="geo.placename" content="Sidi Maarouf, Casablanca" />
   <meta name="geo.position" content="33.5354;-7.6536" />
   <meta name="ICBM" content="33.5354, -7.6536" />
 
@@ -35,25 +41,30 @@
   <link rel="icon" type="image/png" href="/images/logo.png" />
   <link rel="apple-touch-icon" href="/images/logo.png" />
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#e63946" />
+  <meta name="theme-color" content="#c8f700" />
 
-  <!-- Structured Data JSON-LD -->
+  <!-- Structured Data JSON-LD : SportsActivityLocation -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SportsActivityLocation",
     "name": "<%= site.name %>",
-    "description": "Association Sportive — Fitness, Arts Martiaux & Bien-Être à Sidi Maarouf, Casablanca",
+    "alternateName": "Les Collines Fitness",
+    "description": "Salle de sport et association sportive a Sidi Maarouf, Casablanca. Plus de 16 disciplines : MMA, Boxe, Karate, Taekwondo, Kick-Boxing, Musculation, Cardio, Cross Training, Spinning, Stretching. Coaching personnalise et suivi nutritionnel.",
     "url": "https://lescollinesfitness.com",
     "logo": "https://lescollinesfitness.com/images/logo.png",
     "image": "https://lescollinesfitness.com/images/logo.png",
-    "telephone": ["<%= site.phones[0] %>", "<%= site.phones[1] %>"],
+    "telephone": "<%= site.phones[0] %>",
     "email": "<%= site.email %>",
+    "priceRange": "$$",
+    "currenciesAccepted": "MAD",
+    "paymentAccepted": "Cash, Card",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "Résidence Les Collines",
+      "streetAddress": "Residence Les Collines, Sidi Maarouf",
       "addressLocality": "Casablanca",
       "addressRegion": "Casablanca-Settat",
+      "postalCode": "20190",
       "addressCountry": "MA"
     },
     "geo": {
@@ -61,16 +72,109 @@
       "latitude": 33.5354,
       "longitude": -7.6536
     },
+    "areaServed": [
+      { "@type": "City", "name": "Casablanca" },
+      { "@type": "Place", "name": "Sidi Maarouf, Casablanca" },
+      { "@type": "Place", "name": "Californie, Casablanca" },
+      { "@type": "Place", "name": "Ain Chock, Casablanca" },
+      { "@type": "Place", "name": "Lissasfa, Casablanca" },
+      { "@type": "Place", "name": "Dar Bouazza" }
+    ],
     "sameAs": [
       "https://instagram.com/<%= site.social.instagram %>",
-      "https://tiktok.com/<%= site.social.tiktok %>"
+      "https://tiktok.com/<%= site.social.tiktok %>",
+      "https://snapchat.com/add/<%= site.social.snapchat %>"
     ],
-    "openingHoursSpecification": {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
-      "opens": "07:00",
-      "closes": "22:00"
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+        "opens": "07:00",
+        "closes": "22:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "08:00",
+        "closes": "20:00"
+      }
+    ],
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Disciplines sportives",
+      "itemListElement": [
+        <% const allSports = [...(site.sports.martial||[]), ...(site.sports.fitness||[]), ...(site.sports.wellbeing||[])]; %>
+        <% allSports.forEach((s, i) => { %>
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "<%= s %> a Casablanca" } }<%= i < allSports.length - 1 ? ',' : '' %>
+        <% }) %>
+      ]
     }
+  }
+  </script>
+
+  <!-- Structured Data JSON-LD : Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "<%= site.name %>",
+    "url": "https://lescollinesfitness.com",
+    "logo": "https://lescollinesfitness.com/images/logo.png",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "<%= site.phones[0] %>",
+      "contactType": "customer service",
+      "areaServed": "MA",
+      "availableLanguage": ["French", "Arabic"]
+    }
+  }
+  </script>
+
+  <!-- Structured Data JSON-LD : BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://lescollinesfitness.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Disciplines", "item": "https://lescollinesfitness.com/#sports" },
+      { "@type": "ListItem", "position": 3, "name": "Contact", "item": "https://lescollinesfitness.com/#contact" }
+    ]
+  }
+  </script>
+
+  <!-- Structured Data JSON-LD : FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Ou se trouve la salle de sport Les Collines des Sports a Casablanca ?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Les Collines des Sports se situe a la Residence Les Collines, Sidi Maarouf, Casablanca. Facilement accessible depuis Californie, Ain Chock, Lissasfa et Dar Bouazza." }
+      },
+      {
+        "@type": "Question",
+        "name": "Quels sports sont disponibles a Les Collines des Sports ?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Plus de 16 disciplines : MMA, Boxe, Karate, Taekwondo, Kick-Boxing, Aikido, Kendo, Musculation, Cardio, Spinning, Cross Training, Preparation Physique, Stretching, Mobilite, Relaxation et Aerobic." }
+      },
+      {
+        "@type": "Question",
+        "name": "Quels sont les horaires de la salle de sport a Sidi Maarouf ?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Du lundi au vendredi de 7h a 22h, et le samedi de 8h a 20h." }
+      },
+      {
+        "@type": "Question",
+        "name": "Comment s'inscrire a Les Collines des Sports Casablanca ?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Contactez-nous par telephone ou WhatsApp au 06 61 09 27 66 ou au 06 62 02 87 33. Vous pouvez aussi nous envoyer un email a lescollines.fitness@gmail.com." }
+      },
+      {
+        "@type": "Question",
+        "name": "Y a-t-il du coaching personnalise a la salle de sport Les Collines ?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Oui, nous proposons du coaching personnalise et un suivi nutritionnel adapte a vos objectifs, que ce soit pour la perte de poids, la prise de masse ou la preparation physique." }
+      }
+    ]
   }
   </script>
 

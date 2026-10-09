@@ -15,8 +15,9 @@
     <li><a href="#sports">Disciplines</a></li>
     <li><a href="#pourquoi">Pourquoi nous</a></li>
     <li><a href="#contact">Contact</a></li>
-    <li><a href="/membre/login" class="nav-membre">Espace Adhérents</a></li>
-    <li><a href="tel:<%= site.phones[0].replace(/\s/g,'') %>" class="nav-cta">Réserver</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="/membre/login" class="nav-membre">Espace Adherents</a></li>
+    <li><a href="tel:<%= site.phones[0].replace(/\s/g,'') %>" class="nav-cta">Reserver</a></li>
   </ul>
   <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
     <span></span><span></span><span></span>
@@ -28,8 +29,9 @@
   <a href="#sports" role="menuitem">Disciplines</a>
   <a href="#pourquoi" role="menuitem">Pourquoi nous</a>
   <a href="#contact" role="menuitem">Contact</a>
-  <a href="/membre/login" role="menuitem">Espace Adhérents</a>
-  <a href="tel:<%= site.phones[0].replace(/\s/g,'') %>" class="nav-cta" role="menuitem">Réserver</a>
+  <a href="#faq" role="menuitem">FAQ</a>
+  <a href="/membre/login" role="menuitem">Espace Adherents</a>
+  <a href="tel:<%= site.phones[0].replace(/\s/g,'') %>" class="nav-cta" role="menuitem">Reserver</a>
 </div>
 
 <!-- ── HERO ── -->
@@ -41,7 +43,7 @@
     <h1 class="hero-title">
       Les<br /><span>Collines</span><br />des Sports
     </h1>
-    <p class="hero-subtitle"><%= site.tagline %></p>
+    <p class="hero-subtitle">Salle de Sport &amp; Arts Martiaux &mdash; Sidi Maarouf, Casablanca</p>
     <div class="hero-tags" aria-label="Services">
       <% site.services.forEach(s => { %>
         <span class="hero-tag"><%= s %></span>
@@ -93,8 +95,9 @@
 <!-- ── SPORTS ── -->
 <section class="sports-wrapper" id="sports" aria-label="Nos disciplines">
   <div class="sports-header reveal">
-    <p class="section-label">Nos disciplines</p>
-    <h2 class="section-title">Choisissez<br /><span>votre sport</span></h2>
+    <p class="section-label">Nos disciplines a Casablanca</p>
+    <h2 class="section-title">+16 sports<br /><span>a Sidi Maarouf</span></h2>
+    <p class="section-desc" style="text-align:center;margin:1rem auto 0;max-width:640px;">Notre salle de sport a Sidi Maarouf, Casablanca propose plus de 16 disciplines : arts martiaux (MMA, Boxe, Karate, Taekwondo, Kick-Boxing, Aikido, Kendo), fitness (Musculation, Cardio, Spinning, Cross Training) et bien-etre (Stretching, Mobilite, Relaxation).</p>
     <div class="divider" style="margin:1.2rem auto 0;"></div>
   </div>
 
@@ -131,7 +134,7 @@
           <div class="sport-card" tabindex="0">
             <div class="sport-icon" aria-hidden="true">
               <% if (sportImages[sport]) { %>
-                <img src="<%= sportImages[sport] %>" alt="<%= sport %>" class="sport-img" />
+                <img src="<%= sportImages[sport] %>" alt="<%= sport %> a Casablanca Sidi Maarouf — Les Collines des Sports" class="sport-img" loading="lazy" />
               <% } else { %>
                 🏅
               <% } %>
@@ -147,31 +150,31 @@
 <!-- ── WHY US ── -->
 <section class="section" id="pourquoi" aria-label="Pourquoi nous">
   <div class="reveal">
-    <p class="section-label">Pourquoi nous</p>
-    <h2 class="section-title">Une salle<br /><span>d'exception</span></h2>
+    <p class="section-label">Pourquoi nous choisir</p>
+    <h2 class="section-title">La meilleure salle<br /><span>de Sidi Maarouf</span></h2>
     <div class="divider"></div>
-    <p class="section-desc">À Résidence Les Collines, Sidi Maarouf — une association sportive complète qui réunit arts martiaux, fitness et bien-être sous un même toit.</p>
+    <p class="section-desc">A la Residence Les Collines, Sidi Maarouf, Casablanca &mdash; la salle de sport la plus complete du quartier. Arts martiaux, fitness et bien-etre sous un meme toit. Accessible depuis Californie, Ain Chock, Lissasfa et Dar Bouazza.</p>
   </div>
   <div class="why-grid">
     <div class="why-card reveal">
       <div class="why-number"><%= (site.sports.martial||[]).length + (site.sports.fitness||[]).length + (site.sports.wellbeing||[]).length %></div>
       <div class="why-title">Disciplines</div>
-      <div class="why-desc">Arts martiaux, fitness et bien-être réunis pour une offre complète.</div>
+      <div class="why-desc">MMA, Boxe, Karate, Musculation, Cardio et plus &mdash; tout dans une seule salle a Casablanca.</div>
     </div>
     <div class="why-card reveal">
       <div class="why-number">3</div>
       <div class="why-title">Pôles sportifs</div>
-      <div class="why-desc">Arts Martiaux · Fitness &amp; Performance · Bien-Être — pour tous les niveaux.</div>
+      <div class="why-desc">Arts Martiaux, Fitness &amp; Performance, Bien-Etre &mdash; pour debutants et confirmes a Casablanca.</div>
     </div>
     <div class="why-card reveal">
       <div class="why-number">1</div>
       <div class="why-title">Adresse</div>
-      <div class="why-desc">Au cœur de Sidi Maarouf, Casablanca — facilement accessible.</div>
+      <div class="why-desc">Au coeur de Sidi Maarouf, Casablanca &mdash; proche de Californie, Ain Chock et Dar Bouazza.</div>
     </div>
     <div class="why-card reveal">
       <div class="why-number">+</div>
       <div class="why-title">Coaching & Nutrition</div>
-      <div class="why-desc">Coaching personnalisé et suivi nutritionnel pour atteindre vos objectifs.</div>
+      <div class="why-desc">Coaching sportif personnalise et suivi nutritionnel a Casablanca pour atteindre vos objectifs.</div>
     </div>
   </div>
 </section>
@@ -266,15 +269,51 @@
         </a>
       </div>
 
-      <div class="map-placeholder">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <span>Résidence Les Collines, Sidi Maarouf</span>
-        <a href="https://maps.google.com/?q=Residence+Les+Collines+Sidi+Maarouf+Casablanca" target="_blank" rel="noopener noreferrer">
-          Voir sur Google Maps
-        </a>
+      <div class="map-embed" style="border-radius:4px;overflow:hidden;border:1px solid var(--border);margin-top:1.5rem;">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3325.5!2d-7.6536!3d33.5354!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sResidence+Les+Collines+Sidi+Maarouf+Casablanca!5e0!3m2!1sfr!2sma!4v1"
+          width="100%" height="250" style="border:0;" allowfullscreen="" loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Salle de sport Les Collines des Sports — Sidi Maarouf, Casablanca sur Google Maps">
+        </iframe>
       </div>
     </div>
   </div>
 </div>
+
+<!-- ── FAQ SEO ── -->
+<section class="section" id="faq" aria-label="Questions frequentes">
+  <div class="reveal">
+    <p class="section-label">Questions frequentes</p>
+    <h2 class="section-title">Tout savoir sur<br /><span>notre salle</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="faq-list">
+    <details class="faq-item reveal">
+      <summary class="faq-question">Ou se trouve la salle de sport Les Collines des Sports a Casablanca ?</summary>
+      <p class="faq-answer">Notre salle de sport se situe a la <strong>Residence Les Collines, Sidi Maarouf, Casablanca</strong>. Nous sommes facilement accessibles depuis les quartiers de Californie, Ain Chock, Lissasfa, Dar Bouazza et tout Casablanca.</p>
+    </details>
+    <details class="faq-item reveal">
+      <summary class="faq-question">Quels sports et disciplines proposez-vous a Sidi Maarouf ?</summary>
+      <p class="faq-answer">Nous proposons <strong>plus de 16 disciplines</strong> reparties en 3 poles : <strong>Arts Martiaux</strong> (MMA, Boxe, Karate, Taekwondo, Kick-Boxing, Aikido, Kendo, Aerobic), <strong>Fitness &amp; Performance</strong> (Musculation, Cardio, Spinning, Cross Training, Preparation Physique) et <strong>Bien-Etre</strong> (Stretching, Mobilite, Relaxation).</p>
+    </details>
+    <details class="faq-item reveal">
+      <summary class="faq-question">Quels sont les horaires de la salle de sport a Casablanca ?</summary>
+      <p class="faq-answer">Notre salle de sport a Sidi Maarouf est ouverte du <strong>lundi au vendredi de 7h a 22h</strong> et le <strong>samedi de 8h a 20h</strong>. Contactez-nous pour plus d'informations.</p>
+    </details>
+    <details class="faq-item reveal">
+      <summary class="faq-question">Comment s'inscrire a Les Collines des Sports ?</summary>
+      <p class="faq-answer">Pour vous inscrire, appelez-nous ou envoyez un WhatsApp au <strong>06 61 09 27 66</strong> ou <strong>06 62 02 87 33</strong>. Vous pouvez aussi nous ecrire a <strong>lescollines.fitness@gmail.com</strong>. Venez directement a la salle pour decouvrir nos installations !</p>
+    </details>
+    <details class="faq-item reveal">
+      <summary class="faq-question">Proposez-vous du coaching personnalise et du suivi nutritionnel ?</summary>
+      <p class="faq-answer">Oui ! Nous proposons du <strong>coaching sportif personnalise</strong> et un <strong>suivi nutritionnel</strong> adapte a vos objectifs : perte de poids, prise de masse, preparation physique, remise en forme. Nos coachs certifies vous accompagnent a chaque etape.</p>
+    </details>
+    <details class="faq-item reveal">
+      <summary class="faq-question">La salle est-elle adaptee aux debutants ?</summary>
+      <p class="faq-answer">Absolument ! Nos cours a Casablanca sont accessibles <strong>a tous les niveaux</strong>, des debutants complets aux sportifs confirmes. Nos coachs adaptent les exercices a votre niveau et vous accompagnent dans votre progression.</p>
+    </details>
+  </div>
+</section>
 
 <%- include('partials/footer') %>
