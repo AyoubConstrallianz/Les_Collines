@@ -1,0 +1,21 @@
+{
+  "name": "Les Collines des Sports",
+  "short_name": "Les Collines",
+  "description": "Association Sportive — Fitness, Arts Martiaux & Bien-Etre a Sidi Maarouf, Casablanca",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#e63946",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

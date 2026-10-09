@@ -4,7 +4,76 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= site.name %> — <%= site.tagline %> | Sidi Maarouf, Casablanca</title>
-  <meta name="description" content="Association Sportive <%= site.name %> — Fitness, Arts Martiaux & Bien-Être à Résidence Les Collines, Sidi Maarouf, Casablanca." />
+  <meta name="description" content="Association Sportive <%= site.name %> — Fitness, Arts Martiaux & Bien-Être à Résidence Les Collines, Sidi Maarouf, Casablanca. MMA, Karaté, Boxe, Musculation, Cardio et plus." />
+  <meta name="keywords" content="salle de sport Casablanca, arts martiaux Sidi Maarouf, fitness Casablanca, MMA Maroc, musculation Sidi Maarouf, Les Collines des Sports, boxe Casablanca, karate Casablanca, coaching sportif" />
+  <meta name="author" content="<%= site.name %>" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://lescollinesfitness.com/" />
+
+  <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="<%= site.name %> — <%= site.tagline %>" />
+  <meta property="og:description" content="Association Sportive à Sidi Maarouf, Casablanca. Arts Martiaux, Fitness & Bien-Être — MMA, Karaté, Boxe, Musculation et plus." />
+  <meta property="og:url" content="https://lescollinesfitness.com/" />
+  <meta property="og:image" content="https://lescollinesfitness.com/images/logo.png" />
+  <meta property="og:site_name" content="<%= site.name %>" />
+  <meta property="og:locale" content="fr_MA" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="<%= site.name %> — <%= site.tagline %>" />
+  <meta name="twitter:description" content="Association Sportive à Sidi Maarouf, Casablanca. Arts Martiaux, Fitness & Bien-Être." />
+  <meta name="twitter:image" content="https://lescollinesfitness.com/images/logo.png" />
+
+  <!-- Geo / Local SEO -->
+  <meta name="geo.region" content="MA-CAS" />
+  <meta name="geo.placename" content="Casablanca" />
+  <meta name="geo.position" content="33.5354;-7.6536" />
+  <meta name="ICBM" content="33.5354, -7.6536" />
+
+  <!-- Favicon & Manifest -->
+  <link rel="icon" type="image/png" href="/images/logo.png" />
+  <link rel="apple-touch-icon" href="/images/logo.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#e63946" />
+
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SportsActivityLocation",
+    "name": "<%= site.name %>",
+    "description": "Association Sportive — Fitness, Arts Martiaux & Bien-Être à Sidi Maarouf, Casablanca",
+    "url": "https://lescollinesfitness.com",
+    "logo": "https://lescollinesfitness.com/images/logo.png",
+    "image": "https://lescollinesfitness.com/images/logo.png",
+    "telephone": ["<%= site.phones[0] %>", "<%= site.phones[1] %>"],
+    "email": "<%= site.email %>",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Résidence Les Collines",
+      "addressLocality": "Casablanca",
+      "addressRegion": "Casablanca-Settat",
+      "addressCountry": "MA"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 33.5354,
+      "longitude": -7.6536
+    },
+    "sameAs": [
+      "https://instagram.com/<%= site.social.instagram %>",
+      "https://tiktok.com/<%= site.social.tiktok %>"
+    ],
+    "openingHoursSpecification": {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+      "opens": "07:00",
+      "closes": "22:00"
+    }
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
