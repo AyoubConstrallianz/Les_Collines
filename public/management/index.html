@@ -288,6 +288,14 @@ tr:hover td{background:var(--blue-light)}
 .autocomplete-dropdown.open{display:block}
 .autocomplete-item{padding:8px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
 .autocomplete-item:last-child{border-bottom:none}
+.recap-table th,.recap-table td{padding:7px 10px;text-align:end;white-space:nowrap}
+.recap-table th:first-child,.recap-table td:first-child{text-align:start;position:sticky;inset-inline-start:0;background:var(--bg2);z-index:1}
+.recap-table th:first-child{background:var(--bg3)}
+.recap-table .rc-ca{font-weight:600;display:block}
+.recap-table .rc-adh{font-size:10px;color:var(--text3)}
+.recap-table .rc-zero{color:var(--text3)}
+.recap-table tr.rc-tot td{font-weight:700;background:var(--bg3);border-top:2px solid var(--border)}
+.recap-table td.rc-col-tot{background:var(--bg3)}
 .paie-choix-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .paie-choix{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px;text-align:start;font:inherit;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);cursor:pointer;transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease)}
 .paie-choix svg{color:var(--blue)}
@@ -1320,6 +1328,17 @@ tr:hover td{background:var(--blue-light)}
           <div class="card"><div class="ct" data-i18n="stats.clients_sport">Clients par sport</div><div id="st-sports"></div></div>
           <div class="card"><div class="ct" data-i18n="stats.recettes_mois">Recettes par mois</div><div id="st-mois"></div></div>
         </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.5rem">
+            <div class="ct" style="margin-bottom:0" data-i18n="stats.recap_title">CA par sport et par mois</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <select id="recap-annee" onchange="loadRecapSports()" style="width:auto"></select>
+              <button class="btn btn-sm" onclick="exportRecapSports()" data-i18n="stats.recap_export">Exporter (CSV)</button>
+            </div>
+          </div>
+          <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="stats.recap_note">CA encaissé dans le mois. Adhérents = clients couverts ce mois-là (mensualité, trimestre, année ou inscription). Un paiement multi-sports est réparti selon les tarifs.</p>
+          <div style="overflow-x:auto"><table id="recap-table" class="recap-table"></table></div>
+        </div>
         <div class="card"><div class="ct" data-i18n="stats.retards">Clients en retard de paiement</div><div id="st-retards"></div></div>
       </div>
 
@@ -1859,6 +1878,13 @@ const I18N = {
     'stats.clients_sport':'Clients par sport',
     'stats.recettes_mois':'Recettes par mois',
     'stats.retards':     'Clients en retard de paiement',
+    'stats.recap_title': 'CA par sport et par mois',
+    'stats.recap_export':'Exporter (CSV)',
+    'stats.recap_note':  'CA encaissé dans le mois. Adhérents = clients couverts ce mois-là (mensualité, trimestre, année ou inscription). Un paiement multi-sports est réparti selon les tarifs.',
+    'stats.recap_sport': 'Sport',
+    'stats.recap_total': 'Total',
+    'stats.recap_autres':'Autres recettes (assurance, équipement…)',
+    'stats.recap_adh':   'adh.',
     // Salaires
     'salaires.title':    'Salaires',
     'salaires.subtitle': 'Gestion de la paie mensuelle des employés',
@@ -2341,6 +2367,13 @@ const I18N = {
     'stats.clients_sport':'الزبناء حسب الرياضة',
     'stats.recettes_mois':'الإيرادات حسب الشهر',
     'stats.retards':    'الزبناء المتأخرون في الدفع',
+    'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
+    'stats.recap_export':'تصدير (CSV)',
+    'stats.recap_note': 'المبالغ المحصلة خلال الشهر. المنخرطون = الزبائن المغطون ذلك الشهر (شهري، فصلي، سنوي أو تسجيل). الدفعة متعددة الرياضات توزع حسب الأسعار.',
+    'stats.recap_sport':'الرياضة',
+    'stats.recap_total':'المجموع',
+    'stats.recap_autres':'مداخيل أخرى (تأمين، معدات…)',
+    'stats.recap_adh':  'منخرط',
     // Salaires
     'salaires.title':   'الرواتب',
     'salaires.subtitle':'إدارة الرواتب الشهرية للموظفين',
@@ -4732,6 +4765,133 @@ async function loadStats() {
     retards.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span><strong>${c.prenom} ${c.nom}</strong> — ${spts}</span>${badge}</div>`);
   });
   document.getElementById('st-retards').innerHTML = retards.length ? retards.join('') : `<div class="al al-s">${t('select.no_late')}</div>`;
+
+  loadRecapSports();
+}
+
+// ── Récapitulatif CA / adhérents par sport et par mois ──────
+// Supabase renvoie 1000 lignes max par requête : on pagine
+async function fetchAllRows(build, pageSize = 1000) {
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await build().range(from, from + pageSize - 1);
+    if (error) return { data: rows, error };
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) return { data: rows };
+  }
+}
+
+const RECAP_TYPES_SPORT = ['Mensualité','Trimestriel','Annuel','Inscription'];
+let _recapData = null;
+
+async function loadRecapSports() {
+  const sel = document.getElementById('recap-annee');
+  const curYear = new Date().getFullYear();
+  const year = parseInt(sel.value) || curYear;
+
+  // Année précédente incluse : un trimestre / une année payé(e) avant janvier couvre encore des mois
+  const [{ data: paie }, { data: clients }, { data: sports }, { data: annees }] = await Promise.all([
+    fetchAllRows(() => sb.from('paiements').select('client_id,montant,date_paiement,type')
+      .gte('date_paiement', `${year-1}-01-01`).lte('date_paiement', `${year}-12-31`).order('id')),
+    sb.from('clients').select('id,sports,sport'),
+    sb.from('sports').select('nom,tarif_mensuel,tarif_inscription').order('nom'),
+    sb.from('paiements').select('date_paiement').order('date_paiement', { ascending: true }).limit(1)
+  ]);
+
+  // Sélecteur d'années : de la 1re année de paiement à l'année en cours
+  const firstYear = parseInt(annees?.[0]?.date_paiement?.substr(0,4)) || curYear;
+  sel.innerHTML = Array.from({ length: Math.max(curYear - firstYear + 1, 1) }, (_, i) => curYear - i)
+    .map(y => `<option value="${y}" ${y===year?'selected':''}>${y}</option>`).join('');
+
+  const tarifs = {};
+  (sports||[]).forEach(s => { tarifs[s.nom] = s; });
+  const clientSports = {};
+  (clients||[]).forEach(c => { clientSports[c.id] = c.sports || (c.sport ? [c.sport] : []); });
+
+  const mois = Array.from({ length: 12 }, (_, i) => `${year}-${String(i+1).padStart(2,'0')}`);
+  const AUTRES = '__autres__';
+  const ca = {};   // ca[sport][mois] = montant
+  const adh = {};  // adh[sport][mois] = Set(client_id)
+  const adhTotal = {}; // adhTotal[mois] = Set(client_id), tous sports confondus
+  const add = (obj, k, m, v) => { (obj[k] ??= {}); obj[k][m] = (obj[k][m] || 0) + v; };
+  const addSet = (obj, k, m, id) => { (obj[k] ??= {}); (obj[k][m] ??= new Set()).add(id); };
+
+  (paie||[]).forEach(p => {
+    const m = p.date_paiement?.substr(0,7);
+    const montant = parseFloat(p.montant || 0);
+    const spts = (clientSports[p.client_id] || []).filter(Boolean);
+    const isSport = RECAP_TYPES_SPORT.includes(p.type) && spts.length;
+
+    // CA : mois d'encaissement, réparti entre les sports du client au prorata des tarifs
+    if (m && m.startsWith(String(year))) {
+      if (!isSport) add(ca, AUTRES, m, montant);
+      else {
+        const key = p.type === 'Inscription' ? 'tarif_inscription' : 'tarif_mensuel';
+        const poids = spts.map(s => parseFloat(tarifs[s]?.[key]) || 0);
+        const somme = poids.reduce((a, b) => a + b, 0);
+        spts.forEach((s, i) => add(ca, s, m, somme ? montant * poids[i] / somme : montant / spts.length));
+      }
+    }
+
+    // Adhérents : mois couverts par le paiement (ou mois de l'inscription)
+    if (isSport && p.client_id) {
+      const couverts = p.type === 'Inscription' ? [m] : moisCouvertsKeys(p.date_paiement, p.type);
+      couverts.filter(k => k?.startsWith(String(year))).forEach(k => {
+        spts.forEach(s => addSet(adh, s, k, p.client_id));
+        (adhTotal[k] ??= new Set()).add(p.client_id);
+      });
+    }
+  });
+
+  const sportRows = [...new Set([...(sports||[]).map(s => s.nom), ...Object.keys(ca), ...Object.keys(adh)])]
+    .filter(s => s !== AUTRES);
+  _recapData = { year, mois, sportRows, ca, adh, adhTotal, AUTRES };
+  renderRecapSports();
+}
+
+function renderRecapSports() {
+  const { mois, sportRows, ca, adh, adhTotal, AUTRES } = _recapData;
+  const noms = LANG === 'ar' ? MOIS_AR : MOIS_FR;
+  const sumCa = (k) => mois.reduce((a, m) => a + (ca[k]?.[m] || 0), 0);
+  const uniq = (sets) => new Set(sets.flatMap(s => s ? [...s] : [])).size;
+  const cell = (v, n, cls='') => `<td class="${cls}">${v
+    ? `<span class="rc-ca">${fmt(Math.round(v))}</span>` : `<span class="rc-ca rc-zero">—</span>`}${n !== null
+    ? `<span class="rc-adh">${n} ${t('stats.recap_adh')}</span>` : ''}</td>`;
+
+  const rows = sportRows
+    .filter(s => sumCa(s) || mois.some(m => adh[s]?.[m]?.size))
+    .map(s => `<tr><td><strong>${s}</strong></td>`
+      + mois.map(m => cell(ca[s]?.[m] || 0, adh[s]?.[m]?.size || 0)).join('')
+      + cell(sumCa(s), uniq(mois.map(m => adh[s]?.[m])), 'rc-col-tot') + '</tr>');
+
+  if (sumCa(AUTRES)) rows.push(`<tr><td>${t('stats.recap_autres')}</td>`
+    + mois.map(m => cell(ca[AUTRES]?.[m] || 0, null)).join('') + cell(sumCa(AUTRES), null, 'rc-col-tot') + '</tr>');
+
+  const totMois = m => [...sportRows, AUTRES].reduce((a, s) => a + (ca[s]?.[m] || 0), 0);
+  const totAll = mois.reduce((a, m) => a + totMois(m), 0);
+  const totRow = `<tr class="rc-tot"><td>${t('stats.recap_total')}</td>`
+    + mois.map(m => cell(totMois(m), adhTotal[m]?.size || 0)).join('')
+    + cell(totAll, uniq(mois.map(m => adhTotal[m])), 'rc-col-tot') + '</tr>';
+
+  document.getElementById('recap-table').innerHTML = rows.length
+    ? `<thead><tr><th>${t('stats.recap_sport')}</th>${mois.map((m, i) => `<th>${noms[i]}</th>`).join('')}<th>${t('stats.recap_total')}</th></tr></thead><tbody>${rows.join('')}${totRow}</tbody>`
+    : `<tbody><tr class="empty-row"><td>${t('msg.no_data')}</td></tr></tbody>`;
+}
+
+function exportRecapSports() {
+  if (!_recapData) return;
+  const { year, mois, sportRows, ca, adh, adhTotal, AUTRES } = _recapData;
+  const r = v => Math.round(v || 0);
+  const lines = [['Sport', ...mois.flatMap(m => [`${m} CA (DH)`, `${m} adhérents`])]];
+  sportRows.forEach(s => lines.push([s, ...mois.flatMap(m => [r(ca[s]?.[m]), adh[s]?.[m]?.size || 0])]));
+  lines.push(['Autres recettes', ...mois.flatMap(m => [r(ca[AUTRES]?.[m]), ''])]);
+  lines.push(['Total', ...mois.flatMap(m => [r([...sportRows, AUTRES].reduce((a, s) => a + (ca[s]?.[m] || 0), 0)), adhTotal[m]?.size || 0])]);
+  const csv = '﻿' + lines.map(l => l.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `ca-par-sport-${year}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // ════════════════════════════════════════════════════════════
