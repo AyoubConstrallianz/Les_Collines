@@ -2146,6 +2146,7 @@ const I18N = {
     'paie.total_a_encaisser':'Total à encaisser',
     'doublons.btn':      'Doublons',
     'fiche.encaissements':'Encaissements',
+    'fiche.voir':        'Voir la fiche et toutes les transactions',
     'fiche.nouvel_encaissement':'Encaissement',
     'fiche.total_encaisse':'Total encaissé',
     'fiche.total_annee': 'Encaissé en',
@@ -2716,6 +2717,7 @@ const I18N = {
     'paie.total_a_encaisser':'المجموع المستحق',
     'doublons.btn':     'المكررات',
     'fiche.encaissements':'المداخيل',
+    'fiche.voir':       'عرض الملف وجميع العمليات',
     'fiche.nouvel_encaissement':'تحصيل',
     'fiche.total_encaisse':'مجموع المحصل',
     'fiche.total_annee':'المحصل في',
@@ -4282,6 +4284,19 @@ async function insererTransaction(lignes) {
   return { error, ids: (data || []).map(r => r.id) };
 }
 
+// Ouvre la fiche d'un client à partir de son id (même s'il n'est pas dans la liste affichée/filtrée)
+async function ouvrirFicheClient(id, event) {
+  if (event && (event.target.closest('button') || event.target.closest('.btn'))) return;
+  let idx = CLIENTS_CACHE.findIndex(c => c.id === id);
+  if (idx < 0) {
+    const { data, error } = await sb.from('clients').select('*').eq('id', id).single();
+    if (error || !data) { showToast(error?.message || '—', 'e'); return; }
+    CLIENTS_CACHE.push(data);
+    idx = CLIENTS_CACHE.length - 1;
+  }
+  showClientFiche(idx);
+}
+
 async function showClientFiche(idx, event) {
   // Ne pas ouvrir si clic sur un bouton
   if (event && (event.target.closest('button') || event.target.closest('.btn'))) return;
@@ -5190,7 +5205,7 @@ async function loadImpayes() {
       const statutLbl = c.statut === 'Actif' ? (LANG==='ar'?'نشط':'Actif')
                       : c.statut === 'Inactif' ? (LANG==='ar'?'غير نشط':'Inactif')
                       : (LANG==='ar'?'موقوف':'Suspendu');
-      return `<tr class="impayes-row">
+      return `<tr class="impayes-row" style="cursor:pointer" title="${t('fiche.voir')}" onclick="ouvrirFicheClient('${c.id}', event)">
         <td>
           <strong>${c.prenom} ${c.nom}</strong>
           <span class="badge ${c.statut==='Actif'?'b-g':'b-d'}" style="font-size:10px;margin-left:5px">${statutLbl}</span>
@@ -5245,7 +5260,7 @@ async function loadAssuranceAlertes() {
   const canWrite = PERMS.paiements?.ecrire;
   document.getElementById('assur-tb').innerHTML = liste.map(({ client: c, ...e }) => {
     const spts = c.sports || (c.sport ? [c.sport] : []);
-    return `<tr>
+    return `<tr style="cursor:pointer" title="${t('fiche.voir')}" onclick="ouvrirFicheClient('${c.id}', event)">
       <td><strong>${c.prenom} ${c.nom}</strong></td>
       <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>') || '—'}</td>
       <td>${spts.map(s => `<span class="badge b-i" style="font-size:10px;margin-right:2px">${s}</span>`).join('') || '—'}</td>
