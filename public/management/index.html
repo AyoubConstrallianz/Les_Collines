@@ -924,7 +924,7 @@ tr:hover td{background:var(--blue-light)}
             <input id="sp-q" placeholder="Rechercher..." oninput="loadPaiements()" style="max-width:240px">
             <select id="sp-mois" onchange="loadPaiements()"><option value="" data-i18n="msg.all_months">Tous les mois</option></select>
           </div>
-          <table><thead><tr><th data-i18n="common.date">Date</th><th data-i18n="paie.client">Client</th><th data-i18n="paie.montant">Montant</th><th data-i18n="paie.type">Type</th><th data-i18n="paie.mois_couverts">Mois couverts</th><th data-i18n="paie.mode">Mode</th><th data-i18n="paie.note">Note</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="paiements-tb"></tbody></table>
+          <table><thead><tr><th data-i18n="common.date">Date</th><th data-i18n="paie.client">Client</th><th data-i18n="planning.sport">Sport</th><th data-i18n="paie.montant">Montant</th><th data-i18n="paie.type">Type</th><th data-i18n="paie.mois_couverts">Mois couverts</th><th data-i18n="paie.mode">Mode</th><th data-i18n="paie.note">Note</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="paiements-tb"></tbody></table>
         </div>
       </div>
 
@@ -5396,12 +5396,13 @@ async function loadPaiements() {
   const q    = document.getElementById('sp-q')?.value.toLowerCase()||'';
   const mois = document.getElementById('sp-mois')?.value||'';
   // Charger TOUS les paiements (sans filtre mois) pour le dropdown et les résumés
-  const { data: allData } = await sb.from('paiements').select('*,clients(prenom,nom)').order('date_paiement',{ascending:false}).order('created_at',{ascending:false});
+  const { data: allData } = await sb.from('paiements').select('*,clients(prenom,nom,sports,sport)').order('date_paiement',{ascending:false}).order('created_at',{ascending:false});
 
   // Filtre mois + recherche appliqués côté client
   const list = (allData||[]).filter(p => {
     const matchMois = !mois || p.date_paiement?.startsWith(mois);
-    const matchQ = !q || (p.clients?.prenom+' '+p.clients?.nom).toLowerCase().includes(q);
+    const spts = p.clients?.sports || (p.clients?.sport ? [p.clients.sport] : []);
+    const matchQ = !q || (p.clients?.prenom+' '+p.clients?.nom+' '+spts.join(' ')).toLowerCase().includes(q);
     return matchMois && matchQ;
   });
 
@@ -5449,6 +5450,7 @@ async function loadPaiements() {
         return `<tr>
         <td>${p.date_paiement}</td>
         <td>${p.clients?.prenom||''} ${p.clients?.nom||''}</td>
+        <td>${(p.clients?.sports || (p.clients?.sport ? [p.clients.sport] : [])).map(sp => `<span class="badge b-gray" style="font-size:10px;margin:1px">${sp}</span>`).join('') || '—'}</td>
         <td style="font-weight:600;color:var(--green);white-space:nowrap">${fmt(total)}${detail}</td>
         <td>${badges}</td>
         <td style="color:var(--blue);font-size:12px">${mcCell}</td>
@@ -5456,7 +5458,7 @@ async function loadPaiements() {
         <td style="color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis">${notes}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecu(${idsAttr(g)})">${t('recu.btn')}</button> ${canEdit?`<button class="btn btn-sm" onclick="modifierTransaction(${idsAttr(g)})">${t('common.modifier')}</button>`:''} ${canDel?`<button class="btn btn-sm btn-d" onclick="delTransaction(${idsAttr(g)})">${t('msg.suppr')}</button>`:''}</td></tr>`;
       }).join('')
-    : `<tr class="empty-row"><td colspan="8">${t('msg.no_payment')}</td></tr>`;
+    : `<tr class="empty-row"><td colspan="9">${t('msg.no_payment')}</td></tr>`;
 
   const btnNewPaie = document.getElementById('btn-new-paie');
   if (btnNewPaie) btnNewPaie.style.display = PERMS.paiements?.ecrire ? '' : 'none';
