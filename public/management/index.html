@@ -289,6 +289,10 @@ tr:hover td{background:var(--blue-light)}
 .autocomplete-dropdown.open{display:block}
 .autocomplete-item{padding:8px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
 .autocomplete-item:last-child{border-bottom:none}
+.fiche-enc-table{font-size:12px}
+.fiche-enc-table th{padding:7px 10px;position:sticky;top:0;z-index:1}
+.fiche-enc-table td{padding:7px 10px;vertical-align:top}
+.fiche-enc-table td:nth-child(3){min-width:230px}
 .recap-table th,.recap-table td{padding:7px 10px;text-align:end;white-space:nowrap}
 .recap-table th:first-child,.recap-table td:first-child{text-align:start;position:sticky;inset-inline-start:0;background:var(--bg2);z-index:1}
 .recap-table th:first-child{background:var(--bg3)}
@@ -1923,6 +1927,14 @@ const I18N = {
     'stats.recap_title': 'CA par sport et par mois',
     'recu.title':        'Reçu de paiement',
     'doublons.btn':      'Doublons',
+    'fiche.encaissements':'Encaissements',
+    'fiche.nouvel_encaissement':'Encaissement',
+    'fiche.total_encaisse':'Total encaissé',
+    'fiche.total_annee': 'Encaissé en',
+    'fiche.nb_encaissements':'Nombre d\'encaissements',
+    'fiche.n_recu':      'N° reçu',
+    'fiche.libelle':     'Libellé',
+    'fiche.doublon_mois':'Mois payé deux fois',
     'doublons.title':    'Clients en double',
     'doublons.intro':    'Fiches ayant le même prénom et nom (sans tenir compte des accents, majuscules ni de l\'ordre prénom / nom). Choisissez la fiche à conserver : les paiements des autres y seront rattachés, les sports réunis et les champs vides complétés, puis les autres fiches supprimées.',
     'doublons.alert_title':'Ce client existe peut-être déjà',
@@ -2439,6 +2451,14 @@ const I18N = {
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
     'recu.title':       'وصل الأداء',
     'doublons.btn':     'المكررات',
+    'fiche.encaissements':'المداخيل',
+    'fiche.nouvel_encaissement':'تحصيل',
+    'fiche.total_encaisse':'مجموع المحصل',
+    'fiche.total_annee':'المحصل في',
+    'fiche.nb_encaissements':'عدد العمليات',
+    'fiche.n_recu':     'رقم الوصل',
+    'fiche.libelle':    'البيان',
+    'fiche.doublon_mois':'شهر مدفوع مرتين',
     'doublons.title':   'زبائن مكررون',
     'doublons.intro':   'ملفات تحمل نفس الاسم والنسب (بدون اعتبار الحروف المشكولة أو الكبيرة أو ترتيب الاسم والنسب). اختر الملف الذي تريد الاحتفاظ به : تُنقل إليه دفعات الملفات الأخرى، وتُجمع الرياضات وتُكمل الحقول الفارغة، ثم تُحذف الملفات الأخرى.',
     'doublons.alert_title':'قد يكون هذا الزبون موجوداً',
@@ -3886,63 +3906,13 @@ async function showClientFiche(idx, event) {
     cinHtml += '</div></div>';
   }
 
-  // Historique paiements
-  let paieHtml = '';
-  // Détecter les mois payés en double
+  // Encaissements du client (libellé, n° de reçu, actions)
   const moisCount = {};
   (paies||[]).forEach(p => {
     moisCouvertsKeys(p.date_paiement, p.type).forEach(k => { moisCount[k] = (moisCount[k] || 0) + 1; });
   });
   const moisDoublons = new Set(Object.keys(moisCount).filter(k => moisCount[k] > 1));
-  if (paies && paies.length) {
-    // Séparer : 3 derniers mois vs le reste
-    const limit3m = new Date(); limit3m.setMonth(limit3m.getMonth() - 3);
-    const limit3mStr = limit3m.toISOString().split('T')[0];
-    const recent = paies.filter(p => p.date_paiement >= limit3mStr);
-    const older  = paies.filter(p => p.date_paiement < limit3mStr);
-
-    const renderRow = (p) => {
-      const keys = moisCouvertsKeys(p.date_paiement, p.type);
-      const noms = LANG === 'ar' ? MOIS_AR : MOIS_FR;
-      let mcHtml = '—';
-      if (keys.length && p.date_paiement) {
-        const months = keys.length;
-        const d = new Date(p.date_paiement);
-        const fin = new Date(d); fin.setMonth(fin.getMonth() + months); fin.setDate(fin.getDate() - 1);
-        const fD = v => String(v.getDate()).padStart(2,'0')+'/'+String(v.getMonth()+1).padStart(2,'0')+'/'+v.getFullYear();
-        const hasDoublon = keys.some(k => moisDoublons.has(k));
-        const moisNames = keys.map(k => { const [y,m]=k.split('-').map(Number); return noms[m-1]+' '+y; }).join(', ');
-        if (hasDoublon) mcHtml = `<span style="color:var(--red);font-weight:600" title="Double paiement !"><span style="font-size:10px">${fD(d)} → ${fD(fin)}</span><br>${moisNames} ⚠</span>`;
-        else mcHtml = `<span style="color:var(--blue)"><span style="font-size:10px">${fD(d)} → ${fD(fin)}</span><br>${moisNames}</span>`;
-      }
-      return `<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:4px 8px">${p.date_paiement||'—'}</td>
-        <td style="padding:4px 8px"><span class="badge b-i" style="font-size:10px">${p.type||'—'}</span></td>
-        <td style="padding:4px 8px;text-align:right;font-weight:500;color:var(--green)">${fmt(p.montant)}</td>
-        <td style="padding:4px 8px">${p.mode||'—'}</td>
-        <td style="padding:4px 8px;font-size:11px">${mcHtml}</td>
-      </tr>`;
-    };
-
-    const thead = `<table style="width:100%;font-size:12px;border-collapse:collapse">
-      <thead><tr style="background:var(--bg3)">
-        <th style="padding:5px 8px;text-align:left">${t('common.date')}</th>
-        <th style="padding:5px 8px;text-align:left">${t('paie.type')}</th>
-        <th style="padding:5px 8px;text-align:right">${t('paie.montant')}</th>
-        <th style="padding:5px 8px;text-align:left">${t('paie.mode')}</th>
-        <th style="padding:5px 8px;text-align:left">${t('paie.mois_couverts')}</th>
-      </tr></thead><tbody>`;
-
-    paieHtml = `<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:var(--text2)">${t('clients.fiche_historique_recent')}</div><span style="font-size:11px;color:var(--text3)">${recent.length} ${t('paie.paiements')}</span></div>`
-      + thead + recent.map(renderRow).join('') + '</tbody></table>';
-
-    if (older.length) {
-      paieHtml += `<div style="text-align:center;margin-top:8px"><button type="button" class="btn btn-sm" style="font-size:11px;padding:5px 16px" onclick="const el=document.getElementById('fiche-older-paies');el.style.display=el.style.display==='none'?'block':'none';this.textContent=el.style.display==='none'?'${t('clients.voir_plus')} (${older.length})':'${t('clients.voir_moins')}'">${t('clients.voir_plus')} (${older.length})</button></div>`
-        + `<div id="fiche-older-paies" style="display:none;margin-top:8px"><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px">${t('clients.fiche_historique_ancien')}</div>`
-        + thead + older.map(renderRow).join('') + '</tbody></table></div>';
-    }
-    paieHtml += '</div>';
-  }
+  const paieHtml = renderEncaissementsClient(c, sports, paies || [], moisDoublons, idx);
 
   // Infos ligne
   const infoLine = (label, val) => val ? `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">${label}</span><span style="font-weight:500">${val}</span></div>` : '';
@@ -3980,6 +3950,92 @@ async function showClientFiche(idx, event) {
   };
   document.getElementById('fiche-btn-carte').onclick = () => generateCarteAdherent(c, sports, mensuel);
   document.getElementById('client-fiche-modal').classList.add('open');
+}
+
+// Libellé lisible d'un encaissement : « Mensualité Karaté — Octobre 2026 »
+function libelleEncaissement(p, sports) {
+  const noms = LANG === 'ar' ? MOIS_AR : MOIS_LONG_FR;
+  const typeLbl = ({ 'Mensualité': t('paie.t_mensualite'), 'Trimestriel': t('paie.t_trimestriel'), 'Annuel': t('paie.t_annuel'),
+    'Inscription': t('paie.frais_inscr'), 'Assurance': t('paie.frais_assur'), 'Équipement': t('paie.t_equipement') })[p.type] || p.type || '—';
+  const keys = moisCouvertsKeys(p.date_paiement, p.type);
+  const mois = k => { const [y, m] = k.split('-').map(Number); return noms[m - 1] + ' ' + y; };
+  let lib = typeLbl;
+  if (keys.length) {
+    lib += (sports.length ? ' ' + sports.join(', ') : '') + ' — '
+      + (keys.length === 1 ? mois(keys[0]) : `${mois(keys[0])} → ${mois(keys[keys.length - 1])}`);
+  } else if (p.type === 'Inscription' && sports.length) {
+    lib += ' — ' + sports.join(', ');
+  } else if (p.type === 'Assurance' && p.date_paiement) {
+    lib += ' ' + saisonDe(p.date_paiement).label;
+  }
+  return lib;
+}
+
+function renderEncaissementsClient(c, sports, paies, moisDoublons, idx) {
+  const canWrite = PERMS.paiements?.ecrire, canDel = PERMS.paiements?.supprimer;
+  const annee = String(new Date().getFullYear());
+  const total = paies.reduce((a, p) => a + parseFloat(p.montant || 0), 0);
+  const totalAn = paies.filter(p => p.date_paiement?.startsWith(annee)).reduce((a, p) => a + parseFloat(p.montant || 0), 0);
+  const fD = s => s ? s.split('-').reverse().join('/') : '—';
+  const modeTr = { 'Espèces': t('paie.m_especes'), 'Virement': t('paie.m_virement'), 'Chèque': t('paie.m_cheque') };
+
+  const stat = (label, val) => `<div style="flex:1;min-width:110px;padding:8px 12px;background:var(--bg3);border-radius:var(--r)">
+      <div style="font-size:11px;color:var(--text3)">${label}</div><div style="font-weight:700;font-size:15px">${val}</div></div>`;
+
+  const row = p => {
+    const doublon = moisCouvertsKeys(p.date_paiement, p.type).some(k => moisDoublons.has(k));
+    return `<tr>
+      <td style="white-space:nowrap">${fD(p.date_paiement)}</td>
+      <td style="white-space:nowrap;font-size:11px;color:var(--text2)">${p.numero_recu || '—'}</td>
+      <td>
+        <div style="font-weight:500;${doublon ? 'color:var(--red)' : ''}">${libelleEncaissement(p, sports)}${doublon ? ` <span title="${t('fiche.doublon_mois')}">⚠</span>` : ''}</div>
+        ${p.note && p.note !== "Frais d'inscription" ? `<div style="font-size:11px;color:var(--text3)">${p.note}</div>` : ''}
+      </td>
+      <td style="text-align:end;white-space:nowrap;font-weight:600;color:var(--green)">${fmt(p.montant)}</td>
+      <td style="white-space:nowrap">${modeTr[p.mode] || p.mode || '—'}</td>
+      <td style="white-space:nowrap;text-align:end">
+        <button class="btn btn-sm" onclick="ouvrirRecu('${p.id}')">${t('recu.btn')}</button>
+        ${canDel ? `<button class="btn btn-sm btn-d" onclick="delPaiementFiche('${p.id}', ${idx})">${t('msg.suppr')}</button>` : ''}
+      </td>
+    </tr>`;
+  };
+
+  return `<div style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <div style="font-size:13px;font-weight:700">${t('fiche.encaissements')}</div>
+      ${canWrite ? `<button class="btn btn-sm btn-p" onclick="encaisserDepuisFiche(${idx})">+ ${t('fiche.nouvel_encaissement')}</button>` : ''}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      ${stat(t('fiche.total_encaisse'), fmt(total))}
+      ${stat(`${t('fiche.total_annee')} ${annee}`, fmt(totalAn))}
+      ${stat(t('fiche.nb_encaissements'), paies.length)}
+    </div>
+    ${paies.length ? `<div style="overflow-x:auto;max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">
+      <table class="fiche-enc-table">
+        <thead><tr><th>${t('common.date')}</th><th>${t('fiche.n_recu')}</th><th>${t('fiche.libelle')}</th><th style="text-align:end">${t('paie.montant')}</th><th>${t('paie.mode')}</th><th></th></tr></thead>
+        <tbody>${paies.map(row).join('')}</tbody>
+      </table></div>`
+      : `<div style="color:var(--text3);font-size:13px;padding:10px 0">${t('msg.no_payment')}</div>`}
+  </div>`;
+}
+
+async function encaisserDepuisFiche(idx) {
+  const c = CLIENTS_CACHE[idx];
+  if (!c) return;
+  document.getElementById('client-fiche-modal').classList.remove('open');
+  await loadClientsForSelect('p-client');
+  openPaiementForm();
+  selectClient(_clientsForSelect.find(x => x.id === c.id) || c);
+}
+
+async function delPaiementFiche(id, idx) {
+  if (!confirm(t('paie.delete_confirm'))) return;
+  const { error } = await sb.from('paiements').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE', 'paiements', `id:${id}`);
+  showClientFiche(idx);
+  if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
+  loadImpayes();
 }
 
 // ── Génération carte adhérent (bilingue FR/AR) ──
