@@ -749,7 +749,7 @@ tr:hover td{background:var(--blue-light)}
               </div>
             </div>
           </div>
-          <div class="fr"><div class="fg"><label data-i18n="clients.prenom">Prénom</label><input id="c-prenom" placeholder="Prénom"></div><div class="fg"><label data-i18n="clients.nom">Nom</label><input id="c-nom" placeholder="Nom"></div></div>
+          <div class="fr"><div class="fg"><label data-i18n="clients.prenom">Prénom</label><input id="c-prenom" placeholder="Prénom" onblur="this.value=formatPrenom(this.value)"></div><div class="fg"><label data-i18n="clients.nom">Nom</label><input id="c-nom" placeholder="Nom" onblur="this.value=formatNom(this.value)"></div></div>
           <div class="fr"><div class="fg"><label data-i18n="clients.tel">Téléphone</label><input id="c-tel" placeholder="06 00 00 00 00"></div><div class="fg"><label><span data-i18n="clients.tel2">Téléphone 2</span> <span style="color:var(--text3);font-weight:400" data-i18n="clients.optionnel">(facultatif)</span></label><input id="c-tel2" placeholder="06 00 00 00 00"></div></div>
           <div class="fr"><div class="fg"><label data-i18n="clients.cin">CIN</label><input id="c-cin" placeholder="AB123456"></div><div class="fg"><label data-i18n="clients.email">E-mail</label><input id="c-email" type="email" placeholder="exemple@email.com"></div></div>
           <div class="fr"><div class="fg"><label data-i18n="clients.dob">Date de naissance</label><input id="c-dob" type="date"></div><div class="fg"><label data-i18n="clients.sexe">Sexe</label><select id="c-sexe"><option value="Homme" data-i18n="clients.homme">Homme</option><option value="Femme" data-i18n="clients.femme">Femme</option></select></div></div>
@@ -4014,8 +4014,8 @@ async function saveClient() {
   const id      = document.getElementById('c-id').value;
   const sports  = getSelectedSports();
   const obj = {
-    prenom:           document.getElementById('c-prenom').value.trim(),
-    nom:              document.getElementById('c-nom').value.trim(),
+    prenom:           formatPrenom(document.getElementById('c-prenom').value),
+    nom:              formatNom(document.getElementById('c-nom').value),
     telephone:        document.getElementById('c-tel').value.trim(),
     ...((document.getElementById('c-tel2').value.trim() || window._clientEditTel2Connu)
       ? { telephone2: document.getElementById('c-tel2').value.trim() || null } : {}),
@@ -4631,6 +4631,15 @@ function resetClientForm() {
   document.getElementById('c-cin-recto-preview').innerHTML = '';
   document.getElementById('c-cin-verso-preview').innerHTML = '';
   loadSportsCheckboxes([]);
+}
+
+// ── Format des noms : Prénom « Mohamed Taha » (majuscule à chaque mot, y compris après - et '), NOM « ELAZIZI » ──
+function formatPrenom(v) {
+  return String(v || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr')
+    .replace(/(^|[\s\-'’])(\p{L})/gu, (_, sep, l) => sep + l.toLocaleUpperCase('fr'));
+}
+function formatNom(v) {
+  return String(v || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('fr');
 }
 
 // ════════════════════════════════════════════════════════════
