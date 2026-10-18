@@ -743,6 +743,7 @@ tr:hover td{background:var(--blue-light)}
         <div class="card">
           <div class="toolbar">
             <button class="btn btn-p" onclick="openClientForm()" style="white-space:nowrap" id="btn-new-client"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="clients.new">Nouveau client</span></button>
+            <button class="btn" onclick="openDoublons()" style="white-space:nowrap;display:none" id="btn-doublons"><span data-i18n="doublons.btn">Doublons</span> <span class="badge b-w" id="doublons-count">0</span></button>
             <input id="sc-q" placeholder="Rechercher..." oninput="loadClients()" style="flex:1;max-width:260px">
             <select id="sc-sport" onchange="loadClients()"><option value="" data-i18n="select.all_sports">Tous les sports</option></select>
             <select id="sc-stat" onchange="loadClients()"><option value="" data-i18n="clients.tous_statuts">Tous statuts</option><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option></select>
@@ -1089,6 +1090,29 @@ tr:hover td{background:var(--blue-light)}
 
       <!-- MODAL note absence -->
       <!-- MODAL inscription auto -->
+      <div class="mo" id="doublon-alert-modal">
+        <div class="mo-box" style="max-width:560px">
+          <div class="mo-title" data-i18n="doublons.alert_title">Ce client existe peut-être déjà</div>
+          <div class="al al-i" style="margin-bottom:1rem" id="doublon-alert-msg"></div>
+          <div id="doublon-alert-list"></div>
+          <div class="mo-footer">
+            <button class="btn" onclick="fermerAlerteDoublon()" data-i18n="common.annuler">Annuler</button>
+            <button class="btn btn-p" id="btn-doublon-forcer" onclick="forcerSaveClient()" data-i18n="doublons.creer_quand_meme">Créer quand même</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mo" id="doublons-modal">
+        <div class="mo-box" style="max-width:820px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <div class="mo-title" style="margin-bottom:0" data-i18n="doublons.title">Clients en double</div>
+            <button class="btn btn-sm" onclick="document.getElementById('doublons-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:1rem" data-i18n="doublons.intro">Fiches ayant le même prénom et nom (sans tenir compte des accents, majuscules ni de l'ordre prénom / nom). Choisissez la fiche à conserver : les paiements des autres y seront rattachés, les sports réunis et les champs vides complétés, puis les autres fiches supprimées.</p>
+          <div id="doublons-list"></div>
+        </div>
+      </div>
+
       <div class="mo" id="recu-modal">
         <div class="mo-box" style="max-width:640px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -1898,6 +1922,23 @@ const I18N = {
     'stats.retards':     'Clients en retard de paiement',
     'stats.recap_title': 'CA par sport et par mois',
     'recu.title':        'Reçu de paiement',
+    'doublons.btn':      'Doublons',
+    'doublons.title':    'Clients en double',
+    'doublons.intro':    'Fiches ayant le même prénom et nom (sans tenir compte des accents, majuscules ni de l\'ordre prénom / nom). Choisissez la fiche à conserver : les paiements des autres y seront rattachés, les sports réunis et les champs vides complétés, puis les autres fiches supprimées.',
+    'doublons.alert_title':'Ce client existe peut-être déjà',
+    'doublons.alert_msg':'%n fiche(s) portent déjà le nom « %s ».',
+    'doublons.utiliser': 'Utiliser cette fiche',
+    'doublons.creer_quand_meme':'Créer quand même',
+    'doublons.enreg_quand_meme':'Enregistrer quand même',
+    'doublons.conserver':'Conserver',
+    'doublons.fusionner':'Fusionner ce groupe',
+    'doublons.confirm':  'Fusionner %n fiche(s) dans « %s » ? Les autres fiches seront supprimées. Cette action est définitive.',
+    'doublons.fusionnes':'Fiches fusionnées',
+    'doublons.aucun':    'Aucun doublon détecté.',
+    'doublons.no_perm':  'Seul un utilisateur ayant le droit de supprimer des clients peut fusionner.',
+    'doublons.sql_missing':'La fonction de fusion n\'existe pas encore dans Supabase. Exécutez le script supabase/06_fusion_clients.sql.',
+    'doublons.paiements':'paiement(s)',
+    'doublons.inscrit':  'inscrit le',
     'recu.btn':          'Reçu',
     'recu.telecharger':  'Télécharger PDF',
     'recu.imprimer':     'Imprimer',
@@ -2397,6 +2438,23 @@ const I18N = {
     'stats.retards':    'الزبناء المتأخرون في الدفع',
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
     'recu.title':       'وصل الأداء',
+    'doublons.btn':     'المكررات',
+    'doublons.title':   'زبائن مكررون',
+    'doublons.intro':   'ملفات تحمل نفس الاسم والنسب (بدون اعتبار الحروف المشكولة أو الكبيرة أو ترتيب الاسم والنسب). اختر الملف الذي تريد الاحتفاظ به : تُنقل إليه دفعات الملفات الأخرى، وتُجمع الرياضات وتُكمل الحقول الفارغة، ثم تُحذف الملفات الأخرى.',
+    'doublons.alert_title':'قد يكون هذا الزبون موجوداً',
+    'doublons.alert_msg':'يوجد %n ملف(ات) بالاسم « %s ».',
+    'doublons.utiliser':'استعمال هذا الملف',
+    'doublons.creer_quand_meme':'إنشاء رغم ذلك',
+    'doublons.enreg_quand_meme':'حفظ رغم ذلك',
+    'doublons.conserver':'الاحتفاظ',
+    'doublons.fusionner':'دمج هذه المجموعة',
+    'doublons.confirm': 'دمج %n ملف(ات) في « %s » ؟ ستُحذف الملفات الأخرى نهائياً.',
+    'doublons.fusionnes':'تم دمج الملفات',
+    'doublons.aucun':   'لا توجد ملفات مكررة.',
+    'doublons.no_perm': 'الدمج متاح فقط لمن لديه صلاحية حذف الزبائن.',
+    'doublons.sql_missing':'دالة الدمج غير موجودة بعد في Supabase. نفّذ السكريبت supabase/06_fusion_clients.sql.',
+    'doublons.paiements':'دفعة',
+    'doublons.inscrit': 'مسجل في',
     'recu.btn':         'وصل',
     'recu.telecharger': 'تحميل PDF',
     'recu.imprimer':    'طباعة',
@@ -3600,6 +3658,7 @@ async function loadClients() {
   let query = sb.from('clients').select('*').order('created_at',{ascending:false});
   if (stat) query = query.eq('statut', stat);
   const { data } = await query;
+  if (!stat) majBadgeDoublons(data||[]);
 
   // Calcul tarifs depuis cache sports
   const sportMap = {};
@@ -3680,6 +3739,19 @@ async function saveClient() {
   };
   if (!obj.prenom || !obj.nom) { showToast(t('clients.name_required'),'e'); return; }
   if (!sports.length) { showToast(t('clients.sport_required'),'e'); return; }
+
+  // Doublon prénom + nom ? (sauf si l'utilisateur a choisi « créer quand même »)
+  if (!window._ignorerDoublon) {
+    const { data: tous } = await fetchAllRows(() => sb.from('clients').select('*').order('id'));
+    const cle = cleNomClient(obj.prenom, obj.nom);
+    const actuel = id && (tous||[]).find(c => c.id === id);
+    // En modification, on ne prévient que si le nom change
+    if (!actuel || cleNomClient(actuel.prenom, actuel.nom) !== cle) {
+      const matches = (tous||[]).filter(c => c.id !== id && cleNomClient(c.prenom, c.nom) === cle);
+      if (matches.length) { afficherAlerteDoublon(obj, matches, !!id); return; }
+    }
+  }
+  window._ignorerDoublon = false;
 
   const { data: saved, error } = id
     ? await sb.from('clients').update(obj).eq('id', id).select().single()
@@ -4158,6 +4230,157 @@ function resetClientForm() {
   document.getElementById('c-cin-recto-preview').innerHTML = '';
   document.getElementById('c-cin-verso-preview').innerHTML = '';
   loadSportsCheckboxes([]);
+}
+
+// ════════════════════════════════════════════════════════════
+// DOUBLONS (même prénom + nom)
+// ════════════════════════════════════════════════════════════
+// Clé de comparaison : sans accents, minuscules, ponctuation ignorée, ordre prénom/nom indifférent
+function cleNomClient(prenom, nom) {
+  return `${prenom||''} ${nom||''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, ' ').trim().split(' ').filter(Boolean).sort().join(' ');
+}
+
+function groupesDoublons(clients) {
+  const g = {};
+  clients.forEach(c => { const k = cleNomClient(c.prenom, c.nom); if (k) (g[k] ??= []).push(c); });
+  return Object.values(g).filter(l => l.length > 1);
+}
+
+function majBadgeDoublons(clients) {
+  const n = groupesDoublons(clients).length;
+  const btn = document.getElementById('btn-doublons');
+  if (!btn) return;
+  btn.style.display = n ? '' : 'none';
+  document.getElementById('doublons-count').textContent = n;
+}
+
+const _ligneClientDoublon = c => {
+  const spts = c.sports || (c.sport ? [c.sport] : []);
+  return [c.telephone, c.cin, spts.join(', '), c.date_inscription ? `${t('doublons.inscrit')} ${c.date_inscription}` : '']
+    .filter(Boolean).join(' · ') || '—';
+};
+
+function afficherAlerteDoublon(obj, matches, enEdition) {
+  window._doublonMatches = matches;
+  document.getElementById('doublon-alert-msg').textContent = t('doublons.alert_msg')
+    .replace('%n', matches.length).replace('%s', `${obj.prenom} ${obj.nom}`);
+  document.getElementById('doublon-alert-list').innerHTML = matches.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px">
+      ${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 34)}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${c.prenom} ${c.nom} <span class="badge ${c.statut==='Actif'?'b-g':'b-d'}" style="font-size:10px">${_statutLabel(c.statut)}</span></div>
+        <div style="font-size:11px;color:var(--text2)">${_ligneClientDoublon(c)}</div>
+      </div>
+      <button class="btn btn-sm btn-p" onclick="utiliserClientExistant(${i})">${t('doublons.utiliser')}</button>
+    </div>`).join('');
+  document.getElementById('btn-doublon-forcer').textContent = t(enEdition ? 'doublons.enreg_quand_meme' : 'doublons.creer_quand_meme');
+  document.getElementById('doublon-alert-modal').classList.add('open');
+}
+
+function fermerAlerteDoublon() {
+  document.getElementById('doublon-alert-modal').classList.remove('open');
+}
+
+function forcerSaveClient() {
+  fermerAlerteDoublon();
+  window._ignorerDoublon = true;
+  saveClient();
+}
+
+// Abandonne la nouvelle fiche et reprend la fiche existante
+function utiliserClientExistant(i) {
+  const c = window._doublonMatches?.[i];
+  if (!c) return;
+  const fromPaiement = window._paieNouveauClient;
+  fermerAlerteDoublon();
+  closeClientForm();
+  if (fromPaiement) {
+    // Parcours « nouveau paiement » : on encaisse directement sur la fiche existante
+    window._paieClientCree = c;
+    finPaiementNouveauClient();
+  } else {
+    editClient(c);
+  }
+}
+
+async function openDoublons() {
+  const [{ data: clients }, { data: paies }] = await Promise.all([
+    fetchAllRows(() => sb.from('clients').select('*').order('id')),
+    fetchAllRows(() => sb.from('paiements').select('client_id').order('id'))
+  ]);
+  const nbPaie = {};
+  (paies||[]).forEach(p => { if (p.client_id) nbPaie[p.client_id] = (nbPaie[p.client_id]||0) + 1; });
+  const groupes = groupesDoublons(clients||[]);
+  // Fiche proposée par défaut : celle qui a le plus de paiements, puis la plus ancienne
+  groupes.forEach(g => g.sort((a,b) => (nbPaie[b.id]||0) - (nbPaie[a.id]||0) || (a.created_at||'').localeCompare(b.created_at||'')));
+  window._doublonsGroupes = groupes;
+  const canMerge = PERMS.clients?.supprimer;
+
+  document.getElementById('doublons-list').innerHTML = !groupes.length
+    ? `<div class="al al-s">${t('doublons.aucun')}</div>`
+    : (canMerge ? '' : `<div class="al al-e" style="margin-bottom:10px">${t('doublons.no_perm')}</div>`)
+      + groupes.map((g, gi) => `
+      <div class="card" style="margin-bottom:12px;padding:12px">
+        ${g.map((c, ci) => `
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer">
+            <input type="radio" name="garder-${gi}" value="${ci}" ${ci===0?'checked':''} ${canMerge?'':'disabled'}>
+            ${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px">${c.prenom} ${c.nom}
+                <span class="badge ${c.statut==='Actif'?'b-g':'b-d'}" style="font-size:10px">${_statutLabel(c.statut)}</span>
+                <span class="badge b-i" style="font-size:10px">${nbPaie[c.id]||0} ${t('doublons.paiements')}</span>
+              </div>
+              <div style="font-size:11px;color:var(--text2)">${_ligneClientDoublon(c)}${c.email ? ' · ' + c.email : ''}</div>
+            </div>
+            <span style="font-size:11px;color:var(--text3)">${t('doublons.conserver')}</span>
+          </label>`).join('')}
+        ${canMerge ? `<div style="text-align:end;margin-top:10px"><button class="btn btn-sm btn-p" onclick="fusionnerGroupe(${gi}, this)">${t('doublons.fusionner')}</button></div>` : ''}
+      </div>`).join('');
+  document.getElementById('doublons-modal').classList.add('open');
+}
+
+async function fusionnerGroupe(gi, btn) {
+  const g = window._doublonsGroupes?.[gi];
+  if (!g) return;
+  const ki = parseInt(document.querySelector(`input[name="garder-${gi}"]:checked`)?.value || '0');
+  const garder = g[ki];
+  const doublons = g.filter((_, i) => i !== ki);
+  if (!confirm(t('doublons.confirm').replace('%n', doublons.length).replace('%s', `${garder.prenom} ${garder.nom}`))) return;
+  btn.disabled = true;
+
+  // Fiche fusionnée : sports réunis, inscription la plus ancienne, Actif si l'une l'est,
+  // champs vides complétés par la fiche la plus récente qui les renseigne
+  const toutes = [garder, ...doublons];
+  const sports = [...new Set(toutes.flatMap(c => c.sports || (c.sport ? [c.sport] : [])))];
+  const maj = {
+    sports, sport: sports[0] || null,
+    date_inscription: toutes.map(c => c.date_inscription).filter(Boolean).sort()[0] || garder.date_inscription,
+    statut: toutes.some(c => c.statut === 'Actif') ? 'Actif' : garder.statut,
+    updated_at: new Date().toISOString()
+  };
+  const exclus = new Set(['id','prenom','nom','sports','sport','date_inscription','statut','created_at','updated_at']);
+  const recents = [...doublons].sort((a,b) => (b.created_at||'').localeCompare(a.created_at||''));
+  Object.keys(garder).forEach(k => {
+    if (exclus.has(k)) return;
+    const vide = v => v === null || v === undefined || v === '';
+    if (vide(garder[k])) { const src = recents.find(d => !vide(d[k])); if (src) maj[k] = src[k]; }
+  });
+
+  const { error: e1 } = await sb.rpc('fusionner_clients', { p_garder: garder.id, p_doublons: doublons.map(d => d.id) });
+  if (e1) {
+    btn.disabled = false;
+    const manque = /fusionner_clients|function|PGRST202/i.test(e1.message + (e1.code||''));
+    showToast(manque ? t('doublons.sql_missing') : e1.message, 'e');
+    return;
+  }
+  const { error: e2 } = await sb.from('clients').update(maj).eq('id', garder.id);
+  if (e2) showToast(e2.message, 'e');
+
+  await logAudit('MERGE', 'clients', `${garder.prenom} ${garder.nom} ← ${doublons.length} doublon(s)`);
+  showToast(t('doublons.fusionnes'), 's');
+  await openDoublons();
+  loadClients(); loadImpayes();
 }
 
 async function delClient(id) {
