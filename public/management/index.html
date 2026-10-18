@@ -4745,7 +4745,8 @@ function openImport() {
 
 // Comparaison sans accents ni majuscules
 const _sansAccent = v => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-const _chiffres = v => String(v ?? '').replace(/\D/g, '');
+// Téléphone comparé sur ses 9 derniers chiffres : 0673125999 = 673125999 (0 perdu par Excel) = +212 673125999
+const _chiffres = v => String(v ?? '').replace(/\D/g, '').slice(-9);
 
 // Date Excel (objet Date, numéro de série ou texte JJ/MM/AAAA) → AAAA-MM-JJ
 function dateImport(v) {
