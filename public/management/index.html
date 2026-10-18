@@ -892,7 +892,7 @@ tr:hover td{background:var(--blue-light)}
         <div class="card" id="assurance-card" style="margin-top:1rem;max-width:520px">
           <div class="ct" data-i18n="sports.assur_title">Frais d'assurance</div>
           <p style="font-size:12px;color:var(--text2);margin-bottom:10px" data-i18n="sports.assur_note">Montant unique pour tous les clients, valable une saison sportive (septembre → août).</p>
-          <div id="assurance-missing" class="al al-e" style="display:none;margin-bottom:10px;font-size:12px" data-i18n="sports.assur_missing"></div>
+          <div id="assurance-missing" class="al al-e" style="display:none;margin-bottom:10px;font-size:12px" data-i18n="sports.assur_missing">La table « parametres » n'existe pas encore dans Supabase. Exécutez le script supabase/04_parametres_assurance.sql.</div>
           <div class="fg" style="margin-bottom:10px"><label data-i18n="sports.assur_montant">Montant par saison (DH)</label><input id="s-assurance" type="number" min="0" placeholder="0"></div>
           <div class="btns"><button class="btn btn-p" id="btn-save-assurance" onclick="saveAssurance()" data-i18n="common.enregistrer">Enregistrer</button></div>
         </div>
