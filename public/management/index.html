@@ -3753,6 +3753,8 @@ function saisonDe(dateStr) {
 // Date locale AAAA-MM-JJ (toISOString décalerait d'un jour au Maroc)
 const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const dateFr = s => s ? s.split('-').reverse().join('/') : '—';
+// Format court jj/mm/aa (tableau des paiements)
+const dateCourte = s => { if (!s) return '—'; const [y, m, d] = String(s).slice(0, 10).split('-'); return `${d}/${m}/${y.slice(2)}`; };
 
 // Assurance : valable 1 an à partir du jour du paiement (ex. 18/10/2026 → 17/10/2027)
 function finAssurance(dateStr) {
@@ -5507,16 +5509,16 @@ async function loadPaiements() {
           const [y, m, d] = abo.date_paiement.split('-').map(Number);
           const noms = LANG==='ar' ? MOIS_AR : MOIS_FR;
           const ml = keys.map(k => { const [yy, mm] = k.split('-').map(Number); return noms[mm-1] + ' ' + yy; }).join(', ');
-          mcCell = `<span style="font-size:10px">${dateFr(abo.date_paiement)} → ${dateFr(isoLocal(new Date(y, m - 1 + keys.length, d - 1)))}</span><br>${ml}`;
+          mcCell = `<span style="font-size:10px">${dateCourte(abo.date_paiement)} → ${dateCourte(isoLocal(new Date(y, m - 1 + keys.length, d - 1)))}</span><br>${ml}`;
         }
         const assur = g.find(x => x.type === 'Assurance');
-        if (assur) mcCell = (abo ? mcCell + '<br>' : '') + `<span style="font-size:10px;color:var(--text2)">${t('paie.t_assurance')} → ${dateFr(finAssurance(assur.date_paiement))}</span>`;
+        if (assur) mcCell = (abo ? mcCell + '<br>' : '') + `<span style="font-size:10px;color:var(--text2)">${t('paie.t_assurance')} → ${dateCourte(finAssurance(assur.date_paiement))}</span>`;
         const badges = g.map(x => `<span class="badge b-i" style="margin:1px">${typeTr[x.type] || x.type}</span>`).join('');
         const detail = g.length > 1
           ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">${g.map(x => fmt(x.montant)).join(' + ')}</div>` : '';
         const notes = [...new Set(g.map(x => x.note).filter(n => n && n !== "Frais d'inscription" && !/^Assurance/.test(n)))].join(' · ');
         return `<tr>
-        <td>${p.date_paiement}</td>
+        <td style="white-space:nowrap">${dateCourte(p.date_paiement)}</td>
         <td>${p.clients?.prenom||''} ${p.clients?.nom||''}</td>
         <td>${(p.clients?.sports || (p.clients?.sport ? [p.clients.sport] : [])).map(sp => `<span class="badge b-gray" style="font-size:10px;margin:1px">${sp}</span>`).join('') || '—'}</td>
         <td style="font-weight:600;color:var(--green);white-space:nowrap">${fmt(total)}${detail}</td>
