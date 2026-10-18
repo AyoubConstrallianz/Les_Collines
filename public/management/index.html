@@ -304,6 +304,7 @@ tr:hover td{background:var(--blue-light)}
 .pe-ligne{display:grid;grid-template-columns:150px 110px 140px 1fr 30px;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px}
 .pe-ligne select,.pe-ligne input{width:100%;font-size:12px;padding:6px 8px}
 .pe-ligne.supprimee{opacity:.45;text-decoration:line-through}
+.pe-ligne.nouvelle{border-style:dashed;border-color:var(--blue);background:var(--blue-light)}
 @media (max-width:640px){.pe-ligne{grid-template-columns:1fr 1fr}}
 .inscr-ligne input[type=number]{width:100%;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);text-align:end}
 .recap-table th,.recap-table td{padding:7px 10px;text-align:end;white-space:nowrap}
@@ -1168,6 +1169,7 @@ tr:hover td{background:var(--blue-light)}
           </div>
           <div id="pe-client" style="font-size:13px;color:var(--text2);margin-bottom:12px"></div>
           <div id="pe-lignes"></div>
+          <button type="button" class="btn btn-sm" id="btn-pe-ajout" onclick="ajouterLigneModif()" style="margin-bottom:6px">+ <span data-i18n="pe.ajouter">Ajouter une ligne</span></button>
           <div class="fr" style="margin-top:6px;align-items:end">
             <div class="fg" style="margin-bottom:0"><label data-i18n="paie.mode">Mode</label><select id="pe-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
             <div id="pe-total" style="text-align:end;font-size:16px;font-weight:700;padding-bottom:8px"></div>
@@ -2029,6 +2031,8 @@ const I18N = {
     'recu.title':        'Reçu de paiement',
     'pe.title':          'Modifier l\'encaissement',
     'pe.note':           'Note',
+    'pe.ajouter':        'Ajouter une ligne',
+    'pe.nouvelle':       'Nouvelle ligne',
     'pe.retirer':        'Retirer ce mouvement',
     'pe.une_ligne':      'Il doit rester au moins un mouvement (sinon, utilisez Supprimer).',
     'pe.saved':          'Encaissement modifié',
@@ -2593,6 +2597,8 @@ const I18N = {
     'recu.title':       'وصل الأداء',
     'pe.title':         'تعديل العملية',
     'pe.note':          'ملاحظة',
+    'pe.ajouter':       'إضافة سطر',
+    'pe.nouvelle':      'سطر جديد',
     'pe.retirer':       'إزالة هذه الحركة',
     'pe.une_ligne':     'يجب أن تبقى حركة واحدة على الأقل (وإلا استعمل الحذف).',
     'pe.saved':         'تم تعديل العملية',
@@ -5409,80 +5415,143 @@ async function envoyerRecuMail() {
 
 async function delPaiement(id) { return delTransaction([id]); }
 
-// ── Modifier une transaction (chaque mouvement : type, montant, date, note ; mode commun) ──
+// ── Modifier une transaction : mouvements existants (modifier / retirer) et nouveaux (ajouter) ──
 const TYPES_PAIEMENT = ['Mensualité','Semestriel','Annuel','Inscription','Assurance','Équipement','Autre'];
-let _peEdit = null; // { lignes, idxFiche }
+let _peEdit = null; // { lignes: [{ id?, type, montant, date_paiement, note, retiree, touche }], origine, client, idxFiche }
+
+const _peTypeTr = () => ({ 'Mensualité': t('paie.t_mensualite'), 'Trimestriel': t('paie.t_trimestriel'), 'Semestriel': t('paie.t_semestriel'),
+  'Annuel': t('paie.t_annuel'), 'Inscription': t('paie.t_inscription'), 'Assurance': t('paie.t_assurance'), 'Équipement': t('paie.t_equipement'), 'Autre': t('paie.t_autre') });
 
 async function modifierTransaction(ids, idxFiche) {
-  const { data, error } = await sb.from('paiements').select('*,clients(prenom,nom)').in('id', ids);
+  const { data, error } = await sb.from('paiements').select('*,clients(id,prenom,nom,sports,sport)').in('id', ids);
   if (error || !data?.length) { showToast(error?.message || t('msg.no_payment'), 'e'); return; }
-  const lignes = ids.map(id => data.find(r => r.id === id)).filter(Boolean);
-  _peEdit = { lignes, idxFiche };
-  const canDel = PERMS.paiements?.supprimer;
-  const typeTr = { 'Mensualité': t('paie.t_mensualite'), 'Trimestriel': t('paie.t_trimestriel'), 'Semestriel': t('paie.t_semestriel'),
-    'Annuel': t('paie.t_annuel'), 'Inscription': t('paie.t_inscription'), 'Assurance': t('paie.t_assurance'), 'Équipement': t('paie.t_equipement'), 'Autre': t('paie.t_autre') };
-  const c = lignes[0].clients || {};
-  document.getElementById('pe-title').textContent = `${t('pe.title')}${lignes[0].numero_recu ? ' ' + lignes[0].numero_recu : ''}`;
-  document.getElementById('pe-client').innerHTML = `<strong style="color:var(--text)">${c.prenom || ''} ${c.nom || ''}</strong>`;
-  document.getElementById('pe-lignes').innerHTML = lignes.map((l, i) => {
-    // Un type ancien ou libre (ex. Trimestriel, « Autre » précisé) reste sélectionnable
-    const types = TYPES_PAIEMENT.includes(l.type) ? TYPES_PAIEMENT : [l.type, ...TYPES_PAIEMENT];
-    return `<div class="pe-ligne" id="pe-l-${i}">
-      <select id="pe-type-${i}" onchange="majTotalModif()">${types.map(ty => `<option value="${ty}" ${ty === l.type ? 'selected' : ''}>${typeTr[ty] || ty}</option>`).join('')}</select>
-      <input id="pe-montant-${i}" type="number" min="0" value="${l.montant}" oninput="majTotalModif()">
-      <input id="pe-date-${i}" type="date" value="${l.date_paiement || ''}">
-      <input id="pe-note-${i}" placeholder="${t('pe.note')}" value="${(l.note || '').replace(/"/g, '&quot;')}">
-      ${canDel && lignes.length > 1 ? `<button type="button" class="btn btn-sm" title="${t('pe.retirer')}" onclick="basculerLigneModif(${i})">✕</button>` : '<span></span>'}
-    </div>`;
-  }).join('');
-  document.getElementById('pe-mode').value = lignes[0].mode || 'Espèces';
-  majTotalModif();
+  const origine = ids.map(id => data.find(r => r.id === id)).filter(Boolean);
+  if (!SPORTS_CACHE.length) { const { data: sp } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = sp || []; }
+  await loadParametres();
+  _peEdit = {
+    origine, idxFiche, client: origine[0].clients || {},
+    lignes: origine.map(l => ({ id: l.id, type: l.type, montant: l.montant, date_paiement: l.date_paiement, note: l.note || '', retiree: false }))
+  };
+  document.getElementById('pe-title').textContent = `${t('pe.title')}${origine[0].numero_recu ? ' ' + origine[0].numero_recu : ''}`;
+  document.getElementById('pe-client').innerHTML = `<strong style="color:var(--text)">${_peEdit.client.prenom || ''} ${_peEdit.client.nom || ''}</strong>`;
+  document.getElementById('pe-mode').value = origine[0].mode || 'Espèces';
+  renderLignesModif();
   document.getElementById('paie-edit-modal').classList.add('open');
 }
 
-function basculerLigneModif(i) {
-  document.getElementById(`pe-l-${i}`).classList.toggle('supprimee');
+// Relit les champs saisis dans l'état (avant un nouveau rendu ou l'enregistrement)
+function lireLignesModif() {
+  _peEdit.lignes.forEach((l, i) => {
+    const v = id => document.getElementById(`pe-${id}-${i}`);
+    if (!v('type')) return;
+    l.type = v('type').value;
+    const m = parseFloat(v('montant').value);
+    l.montant = isNaN(m) ? 0 : m;
+    l.date_paiement = v('date').value || l.date_paiement;
+    l.note = v('note').value.trim();
+  });
+}
+
+function renderLignesModif() {
+  const typeTr = _peTypeTr();
+  const canDel = PERMS.paiements?.supprimer;
+  const actives = _peEdit.lignes.filter(l => !l.retiree).length;
+  document.getElementById('pe-lignes').innerHTML = _peEdit.lignes.map((l, i) => {
+    const types = TYPES_PAIEMENT.includes(l.type) ? TYPES_PAIEMENT : [l.type, ...TYPES_PAIEMENT];
+    // Une ligne nouvelle se retire toujours ; une existante, avec le droit de suppression et s'il en reste une autre
+    const peutRetirer = !l.id || (canDel && (l.retiree || actives > 1));
+    return `<div class="pe-ligne ${l.retiree ? 'supprimee' : ''} ${l.id ? '' : 'nouvelle'}" id="pe-l-${i}">
+      <select id="pe-type-${i}" onchange="changerTypeLigneModif(${i})">${types.map(ty => `<option value="${ty}" ${ty === l.type ? 'selected' : ''}>${typeTr[ty] || ty}</option>`).join('')}</select>
+      <input id="pe-montant-${i}" type="number" min="0" value="${l.montant ?? ''}" oninput="_peEdit.lignes[${i}].touche=true;majTotalModif()">
+      <input id="pe-date-${i}" type="date" value="${l.date_paiement || ''}">
+      <input id="pe-note-${i}" placeholder="${l.id ? t('pe.note') : t('pe.nouvelle')}" value="${(l.note || '').replace(/"/g, '&quot;')}">
+      ${peutRetirer ? `<button type="button" class="btn btn-sm" title="${t('pe.retirer')}" onclick="basculerLigneModif(${i})">${l.retiree ? '↺' : '✕'}</button>` : '<span></span>'}
+    </div>`;
+  }).join('');
   majTotalModif();
+}
+
+// Montant proposé pour un type : tarifs du client, assurance des paramètres
+function montantProposeModif(type) {
+  const c = _peEdit.client;
+  const sports = c.sports || (c.sport ? [c.sport] : []);
+  if (type === 'Assurance') return montantAssurance() || 0;
+  if (type === 'Inscription') return sports.reduce((a, s) => Math.max(a, parseFloat(SPORTS_CACHE.find(x => x.nom === s)?.tarif_inscription) || 0), 0);
+  if (DUREE_ABONNEMENT[type]) return montantAbonnement(sports, type);
+  return 0;
+}
+
+function ajouterLigneModif() {
+  lireLignesModif();
+  // Type proposé : le premier mouvement courant absent de la transaction
+  const presents = new Set(_peEdit.lignes.filter(l => !l.retiree).map(l => l.type));
+  const type = ['Assurance', 'Inscription', 'Mensualité'].find(ty => !presents.has(ty)) || 'Autre';
+  _peEdit.lignes.push({ type, montant: montantProposeModif(type) || '', date_paiement: _peEdit.origine[0].date_paiement || today(), note: '', retiree: false });
+  renderLignesModif();
+  document.getElementById(`pe-montant-${_peEdit.lignes.length - 1}`).focus();
+}
+
+function changerTypeLigneModif(i) {
+  lireLignesModif();
+  const l = _peEdit.lignes[i];
+  // Ligne nouvelle dont le montant n'a pas été saisi : on propose le tarif du nouveau type
+  if (!l.id && !l.touche) l.montant = montantProposeModif(l.type) || '';
+  renderLignesModif();
+}
+
+function basculerLigneModif(i) {
+  lireLignesModif();
+  const l = _peEdit.lignes[i];
+  if (!l.id) _peEdit.lignes.splice(i, 1);   // ligne nouvelle : on l'enlève simplement
+  else l.retiree = !l.retiree;
+  renderLignesModif();
 }
 
 function majTotalModif() {
   if (!_peEdit) return;
-  const total = _peEdit.lignes.reduce((a, _, i) => a + (document.getElementById(`pe-l-${i}`).classList.contains('supprimee')
-    ? 0 : parseFloat(document.getElementById(`pe-montant-${i}`).value) || 0), 0);
+  const total = _peEdit.lignes.reduce((a, l, i) => a + (l.retiree ? 0 : parseFloat(document.getElementById(`pe-montant-${i}`)?.value) || 0), 0);
   document.getElementById('pe-total').textContent = `${t('stats.recap_total')} : ${fmt(total)}`;
 }
 
 async function enregistrerModifTransaction() {
   if (!_peEdit) return;
+  lireLignesModif();
   const mode = document.getElementById('pe-mode').value;
-  const aSupprimer = [], maj = [];
-  _peEdit.lignes.forEach((l, i) => {
-    if (document.getElementById(`pe-l-${i}`).classList.contains('supprimee')) { aSupprimer.push(l.id); return; }
-    const montant = parseFloat(document.getElementById(`pe-montant-${i}`).value);
-    maj.push({ id: l.id, avant: l, champs: {
-      type: document.getElementById(`pe-type-${i}`).value,
-      montant: isNaN(montant) ? l.montant : montant,
-      date_paiement: document.getElementById(`pe-date-${i}`).value || l.date_paiement,
-      note: document.getElementById(`pe-note-${i}`).value.trim(),
-      mode
-    }});
-  });
-  if (!maj.length) { showToast(t('pe.une_ligne'), 'e'); return; }
-  if (maj.some(m => !(m.champs.montant > 0))) { showToast(t('paie.required'), 'e'); return; }
+  const gardees = _peEdit.lignes.filter(l => !l.retiree);
+  if (!gardees.length) { showToast(t('pe.une_ligne'), 'e'); return; }
+  if (gardees.some(l => !(l.montant > 0))) { showToast(t('paie.required'), 'e'); return; }
+
+  const origine = _peEdit.origine;
+  const avant = id => origine.find(o => o.id === id);
+  const nouvelles = gardees.filter(l => !l.id);
+  // Des lignes ajoutées à un paiement isolé : on crée la transaction pour les relier (même n° de reçu)
+  const tid = origine[0].transaction_id || (nouvelles.length ? ((crypto.randomUUID && crypto.randomUUID()) || null) : null);
 
   const btn = document.getElementById('btn-pe-save');
   btn.disabled = true;
   try {
-    for (const m of maj) {
-      const change = Object.keys(m.champs).some(k => String(m.champs[k] ?? '') !== String(m.avant[k] ?? ''));
+    for (const l of gardees.filter(l => l.id)) {
+      const champs = { type: l.type, montant: l.montant, date_paiement: l.date_paiement, note: l.note, mode };
+      if (tid && !avant(l.id).transaction_id) champs.transaction_id = tid;
+      const change = Object.keys(champs).some(k => String(champs[k] ?? '') !== String(avant(l.id)[k] ?? ''));
       if (!change) continue;
-      const { data, error } = await sb.from('paiements').update(m.champs).eq('id', m.id).select('id');
+      const { data, error } = await sb.from('paiements').update(champs).eq('id', l.id).select('id');
       if (error) throw error;
       // Sans la règle de modification (script 10), Supabase ne modifie rien et ne renvoie aucune ligne
       if (!data?.length) throw new Error(t('pe.sql_missing'));
     }
-    if (aSupprimer.length) {
-      const { error } = await sb.from('paiements').delete().in('id', aSupprimer);
+    if (nouvelles.length) {
+      const base = { client_id: origine[0].client_id, mode, created_by: ME.id, ...(tid ? { transaction_id: tid } : {}),
+        // Reprend le n° de reçu de la transaction (sinon le trigger l'attribue)
+        ...(origine[0].numero_recu ? { numero_recu: origine[0].numero_recu } : {}) };
+      const { error } = await sb.from('paiements').insert(nouvelles.map(l => ({
+        ...base, type: l.type, montant: l.montant, date_paiement: l.date_paiement, note: l.note
+      })));
+      if (error) throw error;
+    }
+    const retirees = _peEdit.lignes.filter(l => l.retiree && l.id).map(l => l.id);
+    if (retirees.length) {
+      const { error } = await sb.from('paiements').delete().in('id', retirees);
       if (error) throw error;
     }
   } catch (e) {
@@ -5491,8 +5560,9 @@ async function enregistrerModifTransaction() {
     return;
   }
   btn.disabled = false;
-  const c = _peEdit.lignes[0].clients || {};
-  await logAudit('UPDATE', 'paiements', `${_peEdit.lignes[0].numero_recu || ''} ${c.prenom || ''} ${c.nom || ''}`.trim());
+  const c = _peEdit.client;
+  await logAudit('UPDATE', 'paiements', `${origine[0].numero_recu || ''} ${c.prenom || ''} ${c.nom || ''}`.trim()
+    + (nouvelles.length ? ` (+${nouvelles.length} ligne(s))` : ''));
   document.getElementById('paie-edit-modal').classList.remove('open');
   showToast(t('pe.saved'), 's');
   if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
