@@ -2108,6 +2108,7 @@ const I18N = {
     'imp.partiel':       'Les éléments déjà importés restent enregistrés : vérifiez la liste avant de relancer.',
     'imp.ok':            'Import terminé : %c client(s) et %p paiement(s)',
     'abo.couvert_jusqu': 'couvert jusqu\'au',
+    'abo.aucun':         'Aucun abonnement payé',
     'abo.paye_jusqu':    'Payé jusqu\'au',
     'pe.title':          'Modifier l\'encaissement',
     'paie.inscr_date':   'Date d\'inscription et du paiement',
@@ -2677,6 +2678,7 @@ const I18N = {
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
     'recu.title':       'وصل الأداء',
     'abo.couvert_jusqu':'مغطى إلى غاية',
+    'abo.aucun':        'لم يؤد أي اشتراك',
     'abo.paye_jusqu':   'مؤدى إلى غاية',
     'pe.title':         'تعديل العملية',
     'paie.inscr_date':  'تاريخ التسجيل والأداء',
@@ -3526,9 +3528,8 @@ async function loadDashboard() {
   // Liste des impayés (aucun abonnement ne couvre aujourd'hui)
   impayes.forEach(c => {
     const diffJ = joursRetard(sitAbo[c.id]);
-    const retardTxt = LANG === 'ar'
-      ? (diffJ === null ? 'لم يدفع أبداً' : `${diffJ} يوم تأخر`)
-      : (diffJ === null ? 'jamais payé' : `${diffJ} jour(s) de retard`);
+    const retardTxt = diffJ === null ? libelleSansAbonnement(sitAbo[c.id])
+      : (LANG === 'ar' ? `${diffJ} يوم تأخر` : `${diffJ} jour(s) de retard`);
     const fin = sitAbo[c.id]?.finPassee;
     const nonPayeLabel = fin
       ? (LANG === 'ar' ? `انتهى في ${dateFr(fin)}` : `échu le ${dateFr(fin)}`)
@@ -3668,13 +3669,14 @@ function situationAbonnements(paies, ref = today()) {
   return sit;
 }
 
-// Un client est « en retard » s'il n'est couvert par aucun abonnement aujourd'hui,
-// sauf pendant le mois qui suit son inscription (délai de grâce)
+// Un client est « en retard » s'il n'est couvert par aucun abonnement aujourd'hui
+// (assurance, inscription ou équipement seuls ne couvrent aucune période)
 function estEnRetard(c, sit, ref = today()) {
-  if (sit[c.id]?.aJour) return false;
-  if (c.date_inscription && finCouverture(c.date_inscription, 'Mensualité') >= ref) return false;
-  return true;
+  return !sit[c.id]?.aJour;
 }
+
+// Libellé quand aucun abonnement n'a jamais été payé
+const libelleSansAbonnement = s => s?.dernier ? t('abo.aucun') : t('msg.never_paid');
 
 // Jours écoulés depuis la fin de la dernière période payée (null = jamais d'abonnement)
 function joursRetard(s, ref = today()) {
@@ -5176,7 +5178,7 @@ async function loadImpayes() {
       const spts = c.sports || (c.sport ? [c.sport] : []);
 
       const retardHtml = diffJ === null
-        ? `<span class="jours-retard">${LANG==='ar'?'لم يدفع قط':'Jamais payé'}</span>`
+        ? `<span class="jours-retard">${libelleSansAbonnement(sit[c.id])}</span>`
         : diffJ > 60
           ? `<span class="jours-retard">${LANG==='ar'?`تأخر ${diffJ} يوم`:`${diffJ} jours`}</span>`
           : `<span class="jours-warning">${LANG==='ar'?`تأخر ${diffJ} يوم`:`${diffJ} jours`}</span>`;
@@ -6289,7 +6291,7 @@ async function loadStats() {
     const diffJ = joursRetard(sitR[c.id]);
     const last = diffJ !== null;
     const spts = (c.sports||(c.sport?[c.sport]:[])).join(', ')||'—';
-    const badge = !last ? `<span class="badge b-d">${t('msg.never_paid')}</span>` : `<span class="badge b-d">${LANG==='ar'?`تأخر ${diffJ} يوم`:`${diffJ} ${t('msg.days_late')}`}</span>`;
+    const badge = !last ? `<span class="badge b-d">${libelleSansAbonnement(sitR[c.id])}</span>` : `<span class="badge b-d">${LANG==='ar'?`تأخر ${diffJ} يوم`:`${diffJ} ${t('msg.days_late')}`}</span>`;
     retards.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span><strong>${c.prenom} ${c.nom}</strong> — ${spts}</span>${badge}</div>`);
   });
   document.getElementById('st-retards').innerHTML = retards.length ? retards.join('') : `<div class="al al-s">${t('select.no_late')}</div>`;
