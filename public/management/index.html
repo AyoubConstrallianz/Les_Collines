@@ -695,7 +695,7 @@ tr:hover td{background:var(--blue-light)}
         <div class="card" id="impayes-card" style="border-left:3px solid var(--red);border-radius:0 var(--rl) var(--rl) 0">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem">
             <div style="display:flex;align-items:center;gap:8px">
-              <span class="ct" style="margin:0;color:var(--red)" data-i18n="clients.impayes_title">Clients n'ayant pas payé ce mois</span>
+              <span class="ct" style="margin:0;color:var(--red)" data-i18n="clients.impayes_title">Clients dont l'abonnement est échu</span>
               <span id="impayes-count" class="badge b-d">0</span>
             </div>
             <button class="btn btn-sm" onclick="toggleImpayes()" id="btn-toggle-impayes" style="font-size:12px" data-i18n="msg.hide">Masquer</button>
@@ -2029,6 +2029,8 @@ const I18N = {
     'stats.retards':     'Clients en retard de paiement',
     'stats.recap_title': 'CA par sport et par mois',
     'recu.title':        'Reçu de paiement',
+    'abo.couvert_jusqu': 'couvert jusqu\'au',
+    'abo.paye_jusqu':    'Payé jusqu\'au',
     'pe.title':          'Modifier l\'encaissement',
     'pe.note':           'Note',
     'pe.ajouter':        'Ajouter une ligne',
@@ -2189,7 +2191,7 @@ const I18N = {
     'clients.edit_title':'Modifier le client',
     'clients.total_tarif':'Total tarif standard',
     'clients.inscr_saved':'Inscription de %s enregistrée — client Actif',
-    'clients.impayes_title':'Clients n\'ayant pas payé ce mois',
+    'clients.impayes_title':'Clients dont l\'abonnement est échu',
     // Paiements messages
     'paie.required':     'Client et montant requis',
     'paie.delete_confirm':'Supprimer ce paiement ?',
@@ -2595,6 +2597,8 @@ const I18N = {
     'stats.retards':    'الزبناء المتأخرون في الدفع',
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
     'recu.title':       'وصل الأداء',
+    'abo.couvert_jusqu':'مغطى إلى غاية',
+    'abo.paye_jusqu':   'مؤدى إلى غاية',
     'pe.title':         'تعديل العملية',
     'pe.note':          'ملاحظة',
     'pe.ajouter':       'إضافة سطر',
@@ -2755,7 +2759,7 @@ const I18N = {
     'clients.edit_title':'تعديل الزبون',
     'clients.total_tarif':'إجمالي التعريفة القياسية',
     'clients.inscr_saved':'تم تسجيل اشتراك %s — الزبون نشط',
-    'clients.impayes_title':'الزبناء الذين لم يدفعوا هذا الشهر',
+    'clients.impayes_title':'الزبناء الذين انتهى اشتراكهم',
     // Paiements messages
     'paie.required':    'الزبون والمبلغ مطلوبان',
     'paie.delete_confirm':'هل تريد حذف هذه الدفعة؟',
@@ -3342,7 +3346,7 @@ async function loadDashboard() {
     { data: sal }
   ] = await Promise.all([
     sb.from('clients').select('id,prenom,nom,sport,sports,date_inscription,statut,created_at').order('created_at',{ascending:false}),
-    sb.from('paiements').select('montant,date_paiement,client_id'),
+    fetchAllRows(() => sb.from('paiements').select('montant,date_paiement,client_id,type').order('id')),
     sb.from('charges').select('montant,date_charge,categorie'),
     sb.from('salaires_paie').select('montant,mois')
   ]);
@@ -3372,32 +3376,16 @@ async function loadDashboard() {
   solEl.textContent  = fmt(solde);
   solEl.style.color  = solde >= 0 ? 'var(--green)' : 'var(--red)';
 
-  // ── Paiements du mois courant par client ────────────────
-  const moisCourant = thisMonth();
-  const latestPai = {};
-  const payeMoisCourant = new Set();
-  (paie||[]).forEach(p => {
-    if (!latestPai[p.client_id] || latestPai[p.client_id] < p.date_paiement)
-      latestPai[p.client_id] = p.date_paiement;
-    if (p.date_paiement?.startsWith(moisCourant))
-      payeMoisCourant.add(p.client_id);
-  });
-
-  const now = new Date();
+  // ── Situation des abonnements aujourd'hui (période glissante) ──
+  const sitAbo = situationAbonnements(paie);
   const toutsClients = allClients||[];
 
-  // ── Clients concernés par la règle (hors Suspendus et hors nouveaux ce mois) ──
-  const clientsConcernes = toutsClients.filter(c =>
-    c.statut !== 'Suspendu' && !c.date_inscription?.startsWith(moisCourant)
-  );
+  // ── Clients concernés par la règle (hors Suspendus) ──
+  const clientsConcernes = toutsClients.filter(c => c.statut !== 'Suspendu');
 
-  // ── Statut automatique basé sur paiement du mois courant ─
-  const aPasserInactif = clientsConcernes.filter(c =>
-    c.statut === 'Actif' && !payeMoisCourant.has(c.id)
-  );
-  const aPasserActif = clientsConcernes.filter(c =>
-    c.statut === 'Inactif' && payeMoisCourant.has(c.id)
-  );
+  // ── Statut automatique : Actif tant qu'un abonnement couvre aujourd'hui ─
+  const aPasserInactif = clientsConcernes.filter(c => c.statut === 'Actif' && estEnRetard(c, sitAbo));
+  const aPasserActif = clientsConcernes.filter(c => c.statut === 'Inactif' && sitAbo[c.id]?.aJour);
 
   // Mise à jour en base silencieuse
   if (aPasserInactif.length > 0) {
@@ -3411,9 +3399,9 @@ async function loadDashboard() {
       .in('id', aPasserActif.map(c=>c.id));
   }
 
-  // ── Impayés = tous clients concernés qui n'ont pas payé ce mois ──
+  // ── Impayés = clients dont aucun abonnement ne couvre aujourd'hui ──
   // (peu importe leur statut actuel en base — on regarde le paiement réel)
-  const impayes = clientsConcernes.filter(c => !payeMoisCourant.has(c.id));
+  const impayes = clientsConcernes.filter(c => estEnRetard(c, sitAbo));
   const nbImpayes = impayes.length;
 
   const impEl = document.getElementById('db-impayes');
@@ -3431,8 +3419,8 @@ async function loadDashboard() {
         const spts = c.sports || (c.sport?[c.sport]:[]);
         let statutFinal = c.statut;
         if (c.statut === 'Suspendu') statutFinal = 'Suspendu';
-        else if (payeMoisCourant.has(c.id)) statutFinal = 'Actif';
-        else if (!c.date_inscription?.startsWith(moisCourant)) statutFinal = 'Inactif';
+        else if (sitAbo[c.id]?.aJour) statutFinal = 'Actif';
+        else if (estEnRetard(c, sitAbo)) statutFinal = 'Inactif';
         return `<tr>
           <td><strong>${c.prenom} ${c.nom}</strong></td>
           <td>${spts.map(s=>`<span class="badge b-i" style="font-size:10px;margin-right:2px">${s}</span>`).join('')||'—'}</td>
@@ -3447,22 +3435,24 @@ async function loadDashboard() {
 
   if (aPasserActif.length > 0) {
     const actifMsg = LANG==='ar'
-      ? `<svg width="14" height="14" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><polyline points="20 6 9 17 4 12"/></svg> <strong>${aPasserActif.length} زبون عاد نشطاً</strong> — دفعة ${moisCourant} مستلمة :`
-      : `<svg width="14" height="14" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><polyline points="20 6 9 17 4 12"/></svg> <strong>${aPasserActif.length} client(s) repassé(s) Actif</strong> — paiement ${moisCourant} reçu :`;
+      ? `<svg width="14" height="14" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><polyline points="20 6 9 17 4 12"/></svg> <strong>${aPasserActif.length} زبون عاد نشطاً</strong> — اشتراك مؤدى :`
+      : `<svg width="14" height="14" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><polyline points="20 6 9 17 4 12"/></svg> <strong>${aPasserActif.length} client(s) repassé(s) Actif</strong> — abonnement payé :`;
     alertes.push(`<div class="al al-s" style="margin-bottom:5px;padding:7px 12px">
       ${actifMsg}
       ${aPasserActif.map(c=>`<br><span style="margin-${LANG==='ar'?'right':'left'}:12px">— ${c.prenom} ${c.nom}</span>`).join('')}
     </div>`);
   }
 
-  // Liste des impayés ce mois
+  // Liste des impayés (aucun abonnement ne couvre aujourd'hui)
   impayes.forEach(c => {
-    const last = latestPai[c.id];
-    const diffJ = last ? Math.floor((now - new Date(last)) / 86400000) : null;
+    const diffJ = joursRetard(sitAbo[c.id]);
     const retardTxt = LANG === 'ar'
-      ? (!last ? 'لم يدفع أبداً' : diffJ > 60 ? `${diffJ} يوم تأخر` : `${diffJ} يوم منذ آخر دفعة`)
-      : (!last ? 'jamais payé' : diffJ > 60 ? `${diffJ} jours de retard` : `${diffJ} jours depuis dernier paiement`);
-    const nonPayeLabel = LANG === 'ar' ? `${moisCourant} غير مدفوع` : `${moisCourant} non payé`;
+      ? (diffJ === null ? 'لم يدفع أبداً' : `${diffJ} يوم تأخر`)
+      : (diffJ === null ? 'jamais payé' : `${diffJ} jour(s) de retard`);
+    const fin = sitAbo[c.id]?.finPassee;
+    const nonPayeLabel = fin
+      ? (LANG === 'ar' ? `انتهى في ${dateFr(fin)}` : `échu le ${dateFr(fin)}`)
+      : (LANG === 'ar' ? 'غير مدفوع' : 'non payé');
     alertes.push(`<div class="al al-e" style="margin-bottom:5px;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;direction:${LANG==='ar'?'rtl':'ltr'}">
       <span style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap"><strong dir="auto">${c.prenom} ${c.nom}</strong><span style="font-size:11px;color:var(--red)" dir="auto">${retardTxt}</span></span>
       <span class="badge b-d" style="font-size:10px;white-space:nowrap" dir="ltr">${nonPayeLabel}</span>
@@ -3471,7 +3461,7 @@ async function loadDashboard() {
 
   document.getElementById('db-alertes').innerHTML = alertes.length
     ? alertes.slice(0,12).join('') + (alertes.length>12?`<div style="font-size:12px;color:var(--text2);padding:6px 0">${LANG==='ar'?`… و ${alertes.length-12} آخرون`:`… et ${alertes.length-12} autres`}</div>`:'')
-    : `<div class="al al-s"><svg width="14" height="14" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><polyline points="20 6 9 17 4 12"/></svg> ${LANG==='ar'?'جميع الزبناء دفعوا هذا الشهر':'Tous les clients ont payé ce mois'}</div>`;
+    : `<div class="al al-s"><svg width="14" height="14" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><polyline points="20 6 9 17 4 12"/></svg> ${LANG==='ar'?'جميع الزبناء مؤدون':'Tous les clients sont à jour'}</div>`;
 
   // ── Mini graphe recettes 6 derniers mois ────────────────
   const moisLabels = [];
@@ -3571,6 +3561,46 @@ function assuranceValide(paies, dateRef) {
   const ref = dateRef || today();
   return (paies || []).filter(p => p.type === 'Assurance' && p.date_paiement && p.date_paiement <= ref && finAssurance(p.date_paiement) >= ref)
     .sort((a, b) => b.date_paiement.localeCompare(a.date_paiement))[0] || null;
+}
+
+// ── Abonnement en période glissante : payé le 21/09/2026 (mensuel) → couvert jusqu'au 20/10/2026 ──
+function finCouverture(datePaie, type) {
+  const n = DUREE_ABONNEMENT[type];
+  if (!n || !datePaie) return null;
+  const [y, m, d] = datePaie.split('-').map(Number);
+  const dernierJour = new Date(y, m - 1 + n + 1, 0).getDate();  // dernier jour du mois d'arrivée
+  // 31/01 + 1 mois → 28/02 (fin de mois) ; sinon la veille du même jour, n mois plus tard
+  return d > dernierJour ? isoLocal(new Date(y, m - 1 + n, dernierJour)) : isoLocal(new Date(y, m - 1 + n, d - 1));
+}
+
+// Situation de chaque client à une date : à jour ou non, fin de couverture, retard
+function situationAbonnements(paies, ref = today()) {
+  const sit = {};
+  (paies || []).forEach(p => {
+    if (!p.client_id || !p.date_paiement) return;
+    const s = sit[p.client_id] ??= { aJour: false, fin: null, finPassee: null, dernier: null };
+    if (!s.dernier || p.date_paiement > s.dernier) s.dernier = p.date_paiement;
+    const fin = finCouverture(p.date_paiement, p.type);
+    if (!fin) return;
+    if (p.date_paiement <= ref && fin >= ref) { s.aJour = true; if (!s.fin || fin > s.fin) s.fin = fin; }
+    else if (fin < ref && (!s.finPassee || fin > s.finPassee)) s.finPassee = fin;
+  });
+  return sit;
+}
+
+// Un client est « en retard » s'il n'est couvert par aucun abonnement aujourd'hui,
+// sauf pendant le mois qui suit son inscription (délai de grâce)
+function estEnRetard(c, sit, ref = today()) {
+  if (sit[c.id]?.aJour) return false;
+  if (c.date_inscription && finCouverture(c.date_inscription, 'Mensualité') >= ref) return false;
+  return true;
+}
+
+// Jours écoulés depuis la fin de la dernière période payée (null = jamais d'abonnement)
+function joursRetard(s, ref = today()) {
+  if (!s?.finPassee) return null;
+  const [y1, m1, d1] = s.finPassee.split('-').map(Number), [y2, m2, d2] = ref.split('-').map(Number);
+  return Math.round((new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1)) / 86400000);
 }
 
 // Montant d'un abonnement pour les sports d'un client
@@ -4183,7 +4213,8 @@ async function showClientFiche(idx, event) {
   // Dernier paiement
   const dernierPaie = (paies && paies.length) ? paies[0].date_paiement : null;
   const moisCur = thisMonth();
-  const payeCeMois = (paies || []).some(p => p.date_paiement?.startsWith(moisCur));
+  const sitFiche = situationAbonnements((paies || []).map(p => ({ ...p, client_id: c.id })))[c.id];
+  const payeCeMois = !!sitFiche?.aJour;
 
   // Photo grande
   const photoHtml = c.photo_url
@@ -4216,7 +4247,7 @@ async function showClientFiche(idx, event) {
         ${photoHtml}
         <div style="margin-top:6px"><span class="badge ${c.statut==='Actif'?'b-g':c.statut==='Inactif'?'b-w':'b-d'}" style="font-size:11px">${_statutLabel(c.statut)}</span></div>
         ${payeCeMois
-          ? '<div style="margin-top:4px"><span class="badge b-g" style="font-size:10px">'+t('clients.fiche_paye')+'</span></div>'
+          ? '<div style="margin-top:4px"><span class="badge b-g" style="font-size:10px">'+t('abo.paye_jusqu')+' '+dateFr(sitFiche.fin)+'</span></div>'
           : '<div style="margin-top:4px"><span class="badge b-d" style="font-size:10px">'+t('clients.fiche_impaye')+'</span></div>'}
       </div>
       <div style="flex:1;min-width:200px">
@@ -4778,24 +4809,14 @@ async function loadImpayes() {
     .order('created_at', {ascending: false});
 
   // Récupère tous les paiements
-  const { data: paiements } = await sb.from('paiements')
-    .select('client_id,date_paiement')
-    .order('date_paiement', {ascending: false});
+  const { data: paiements } = await fetchAllRows(() => sb.from('paiements')
+    .select('client_id,date_paiement,type').order('id'));
 
-  // Map : dernier paiement par client + set des payés ce mois
+  // Impayés = aucun abonnement ne couvre aujourd'hui (période glissante), hors délai de grâce
+  const sit = situationAbonnements(paiements);
   const latestPai = {};
-  const payesMois = new Set();
-  (paiements||[]).forEach(p => {
-    if (!latestPai[p.client_id]) latestPai[p.client_id] = p.date_paiement;
-    if (p.date_paiement?.startsWith(moisCur)) payesMois.add(p.client_id);
-  });
-
-  // Impayés = n'ont pas payé ce mois ET ne sont pas nouveaux inscrits ce mois
-  const impayes = (clients||[]).filter(c => {
-    if (payesMois.has(c.id)) return false;
-    if (c.date_inscription?.startsWith(moisCur)) return false; // délai de grâce
-    return true;
-  });
+  Object.entries(sit).forEach(([id, s]) => { latestPai[id] = s.dernier; });
+  const impayes = (clients||[]).filter(c => estEnRetard(c, sit));
 
   const now = new Date();
   document.getElementById('impayes-count').textContent = impayes.length;
@@ -4806,24 +4827,20 @@ async function loadImpayes() {
 
   const canWrite = PERMS.paiements?.ecrire;
   document.getElementById('impayes-tb').innerHTML = impayes
-    .sort((a,b) => {
-      const da = latestPai[a.id] ? new Date(latestPai[a.id]) : new Date(0);
-      const db2 = latestPai[b.id] ? new Date(latestPai[b.id]) : new Date(0);
-      return da - db2;
-    })
+    .sort((a,b) => (sit[a.id]?.finPassee || '').localeCompare(sit[b.id]?.finPassee || ''))
     .map(c => {
       const last = latestPai[c.id];
-      const diffJ = last ? Math.floor((now - new Date(last)) / 86400000) : null;
+      const diffJ = joursRetard(sit[c.id]);
       const spts = c.sports || (c.sport ? [c.sport] : []);
 
-      const retardHtml = !last
+      const retardHtml = diffJ === null
         ? `<span class="jours-retard">${LANG==='ar'?'لم يدفع قط':'Jamais payé'}</span>`
         : diffJ > 60
           ? `<span class="jours-retard">${LANG==='ar'?`تأخر ${diffJ} يوم`:`${diffJ} jours`}</span>`
           : `<span class="jours-warning">${LANG==='ar'?`تأخر ${diffJ} يوم`:`${diffJ} jours`}</span>`;
 
       const dernierHtml = last
-        ? `<span style="font-size:12px">${last}</span>`
+        ? `<span style="font-size:12px">${last}</span>${sit[c.id]?.finPassee ? `<br><span style="font-size:11px;color:var(--text3)">${t('abo.couvert_jusqu')} ${dateFr(sit[c.id].finPassee)}</span>` : ''}`
         : `<span style="color:var(--text3);font-size:12px">—</span>`;
 
       const statutLbl = c.statut === 'Actif' ? (LANG==='ar'?'نشط':'Actif')
@@ -5123,8 +5140,9 @@ async function savePaiement() {
   const { data: savedPaie, error } = await sb.from('paiements').insert(obj).select('id').single();
   if (error) { showToast(error.message,'e'); return; }
 
-  // Si le paiement est pour le mois courant → repasse le client en Actif
-  if (obj.date_paiement.startsWith(thisMonth())) {
+  // Si le paiement couvre aujourd'hui → repasse le client en Actif
+  const finObj = finCouverture(obj.date_paiement, obj.type);
+  if (finObj && obj.date_paiement <= today() && finObj >= today()) {
     await sb.from('clients')
       .update({ statut: 'Actif', updated_at: new Date().toISOString() })
       .eq('id', obj.client_id);
@@ -5915,20 +5933,16 @@ async function loadStats() {
   document.getElementById('st-mois').innerHTML = moisEntries.map(([m,v])=>
     `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="min-width:58px;color:var(--text2)">${m}</span><div style="height:8px;width:${Math.round(v/maxM*140)}px;background:var(--green);border-radius:3px"></div><span style="font-weight:500">${fmt(v)}</span></div>`).join('') || `<div style="color:var(--text3);font-size:13px">${t('msg.no_data')}</div>`;
 
-  // Retards — même logique que loadImpayes : n'a pas payé ce mois
-  const moisCur = thisMonth();
-  const { data: paiMap } = await sb.from('paiements').select('client_id,date_paiement').order('date_paiement',{ascending:false});
-  const latestPai = {};
-  const payesMois = new Set();
-  (paiMap||[]).forEach(p=>{ if(!latestPai[p.client_id]) latestPai[p.client_id]=p.date_paiement; if(p.date_paiement?.startsWith(moisCur)) payesMois.add(p.client_id); });
+  // Retards — même règle que loadImpayes : aucun abonnement ne couvre aujourd'hui
+  const { data: paiMap } = await fetchAllRows(() => sb.from('paiements').select('client_id,date_paiement,type').order('id'));
+  const sitR = situationAbonnements(paiMap);
   const { data: allClients } = await sb.from('clients').select('*').neq('statut','Suspendu');
   const retards = [];
   const now = new Date();
   (allClients||[]).forEach(c=>{
-    if (payesMois.has(c.id)) return;
-    if (c.date_inscription?.startsWith(moisCur)) return;
-    const last = latestPai[c.id];
-    const diffJ = last ? Math.floor((now-new Date(last))/86400000) : null;
+    if (!estEnRetard(c, sitR)) return;
+    const diffJ = joursRetard(sitR[c.id]);
+    const last = diffJ !== null;
     const spts = (c.sports||(c.sport?[c.sport]:[])).join(', ')||'—';
     const badge = !last ? `<span class="badge b-d">${t('msg.never_paid')}</span>` : `<span class="badge b-d">${LANG==='ar'?`تأخر ${diffJ} يوم`:`${diffJ} ${t('msg.days_late')}`}</span>`;
     retards.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span><strong>${c.prenom} ${c.nom}</strong> — ${spts}</span>${badge}</div>`);
