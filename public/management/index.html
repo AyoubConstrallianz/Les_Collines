@@ -764,7 +764,7 @@ tr:hover td{background:var(--blue-light)}
                 <label style="color:var(--blue-text)" data-i18n="clients.formule">Formule</label>
                 <select id="c-formule" onchange="document.getElementById('c-mensuel-custom').dataset.touche='';updateTarifPreview()" style="font-size:13px;padding:6px 10px">
                   <option value="Mensualité" data-i18n="clients.f_mensuel">Mensuel</option>
-                  <option value="Semestriel" data-i18n="paie.t_semestriel">6 mois</option>
+                  <option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option><option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option>
                   <option value="Annuel" data-i18n="paie.t_annuel">Annuel</option>
                 </select>
               </div>
@@ -853,7 +853,7 @@ tr:hover td{background:var(--blue-light)}
               <div id="p-client-dropdown" class="autocomplete-dropdown"></div>
             </div>
             <div class="fr">
-              <div class="fg"><label data-i18n="paie.type">Type</label><select id="p-type" onchange="onPaiementTypeChange();toggleAutre('p-type','p-type-autre')"><option value="Mensualité" data-i18n="paie.t_mensualite">Mensualité</option><option value="Semestriel" data-i18n="paie.t_semestriel">6 mois</option><option value="Annuel" data-i18n="paie.t_annuel">Annuel</option><option value="Inscription" data-i18n="paie.t_inscription">Inscription</option><option value="Assurance" data-i18n="paie.t_assurance">Assurance</option><option value="Équipement" data-i18n="paie.t_equipement">Équipement</option><option value="Autre" data-i18n="paie.t_autre">Autre</option></select><input id="p-type-autre" placeholder="Précisez..." style="display:none;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);width:100%"></div>
+              <div class="fg"><label data-i18n="paie.type">Type</label><select id="p-type" onchange="onPaiementTypeChange();toggleAutre('p-type','p-type-autre')"><option value="Mensualité" data-i18n="paie.t_mensualite">Mensualité</option><option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option><option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option><option value="Annuel" data-i18n="paie.t_annuel">Annuel</option><option value="Inscription" data-i18n="paie.t_inscription">Inscription</option><option value="Assurance" data-i18n="paie.t_assurance">Assurance</option><option value="Équipement" data-i18n="paie.t_equipement">Équipement</option><option value="Autre" data-i18n="paie.t_autre">Autre</option></select><input id="p-type-autre" placeholder="Précisez..." style="display:none;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);width:100%"></div>
               <div class="fg"><label data-i18n="paie.mode">Mode</label><select id="p-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
             </div>
             <div class="fr">
@@ -936,8 +936,9 @@ tr:hover td{background:var(--blue-light)}
             <div class="ct" id="sport-form-title" data-i18n="sports.nouveau">Ajouter un sport</div>
             <input type="hidden" id="s-id">
             <div class="fg" style="margin-bottom:10px"><label data-i18n="sports.nom">Nom du sport</label><input id="s-nom" placeholder="Ex: Karaté"></div>
-            <div class="fr"><div class="fg"><label data-i18n="sports.tarif_m">Tarif mensuel (DH)</label><input id="s-tarif" type="number" placeholder="0"></div><div class="fg"><label data-i18n="sports.tarif_s">Tarif 6 mois (DH)</label><input id="s-tarif-sem" type="number" placeholder="0"></div></div>
-            <div class="fr"><div class="fg"><label data-i18n="sports.tarif_a">Tarif annuel (DH)</label><input id="s-tarif-annuel" type="number" placeholder="0"></div><div class="fg"><label data-i18n="sports.tarif_i">Tarif inscription (DH)</label><input id="s-inscr" type="number" placeholder="0"></div></div>
+            <div class="fr"><div class="fg"><label data-i18n="sports.tarif_m">Tarif mensuel (DH)</label><input id="s-tarif" type="number" placeholder="0"></div><div class="fg"><label data-i18n="sports.tarif_t">Tarif trimestriel (3 mois) (DH)</label><input id="s-tarif-trim" type="number" placeholder="0"></div></div>
+            <div class="fr"><div class="fg"><label data-i18n="sports.tarif_s">Tarif semestriel (6 mois) (DH)</label><input id="s-tarif-sem" type="number" placeholder="0"></div><div class="fg"><label data-i18n="sports.tarif_a">Tarif annuel (DH)</label><input id="s-tarif-annuel" type="number" placeholder="0"></div></div>
+            <div class="fr"><div class="fg"><label data-i18n="sports.tarif_i">Tarif inscription (DH)</label><input id="s-inscr" type="number" placeholder="0"></div><div class="fg"></div></div>
             <div class="fr">
               <div class="fg"><label data-i18n="sports.coach">Coach assigné</label><select id="s-coach"><option value="">— Aucun coach —</option></select></div>
               <div class="fg"><label data-i18n="sports.horaires">Horaires</label><input id="s-horaires" placeholder="Lun-Mer 18h-20h"></div>
@@ -1210,7 +1211,7 @@ tr:hover td{background:var(--blue-light)}
               <div class="il-titre"><span data-i18n="clients.abonnement_court">Abonnement</span>
                 <select id="inscr-formule" onchange="changerFormuleInscription()" style="width:auto;font-size:12px;padding:3px 8px">
                   <option value="Mensualité" data-i18n="clients.f_mensuel">Mensuel</option>
-                  <option value="Semestriel" data-i18n="paie.t_semestriel">6 mois</option>
+                  <option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option><option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option>
                   <option value="Annuel" data-i18n="paie.t_annuel">Annuel</option>
                 </select>
               </div>
@@ -1875,8 +1876,8 @@ const I18N = {
     'sports.assur_note': 'Montant unique pour tous les clients, valable 1 an à partir du jour du paiement.',
     'sports.assur_saved':'Montant de l\'assurance enregistré',
     'sports.assur_missing':'La table « parametres » n\'existe pas encore dans Supabase. Exécutez le script supabase/04_parametres_assurance.sql.',
-    'paie.t_trimestriel':'Trimestriel',
-    'paie.t_semestriel': '6 mois',
+    'paie.t_trimestriel':'Trimestriel (3 mois)',
+    'paie.t_semestriel': 'Semestriel (6 mois)',
     'paie.t_annuel':     'Annuel',
     'paie.t_equipement': 'Équipement',
     'paie.t_autre':      'Autre',
@@ -1885,7 +1886,7 @@ const I18N = {
     'paie.m_cheque':     'Chèque',
     'paie.hint_calc':    'Calculé selon les sports',
     'paie.hint_trim':    'Tarif trimestriel',
-    'paie.hint_sem':     'Tarif 6 mois',
+    'paie.hint_sem':     'Tarif semestriel',
     'paie.hint_annuel':  'Tarif annuel',
     'paie.hint_inscr':   'Frais d\'inscription',
     'paie.periode_mois': 'Période couverte (1 mois)',
@@ -1906,8 +1907,8 @@ const I18N = {
     'sports.nouveau':    'Ajouter un sport',
     'sports.nom':        'Nom du sport',
     'sports.tarif_m':    'Tarif mensuel (DH)',
-    'sports.tarif_t':    'Tarif trimestriel (DH)',
-    'sports.tarif_s':    'Tarif 6 mois (DH)',
+    'sports.tarif_t':    'Tarif trimestriel (3 mois) (DH)',
+    'sports.tarif_s':    'Tarif semestriel (6 mois) (DH)',
     'sports.sem_sql':    'Le tarif 6 mois n\'est pas encore activé dans Supabase. Exécutez le script supabase/08_tarif_6_mois.sql.',
     'sports.tarif_a':    'Tarif annuel (DH)',
     'sports.tarif_i':    "Tarif inscription (DH)",
@@ -1917,7 +1918,7 @@ const I18N = {
     'sports.disciplines':'Disciplines',
     'sports.lbl_mensuel':'Mensuel',
     'sports.lbl_trimestriel':'Trimestriel',
-    'sports.lbl_semestriel':'6 mois',
+    'sports.lbl_semestriel':'Semestriel',
     'sports.lbl_annuel':'Annuel',
     'sports.lbl_inscription':'Inscription',
     'sports.lbl_coach':  'Coach',
@@ -2429,8 +2430,8 @@ const I18N = {
     'paie.cemois':      'هذا الشهر',
     'paie.annee':       'هذه السنة',
     'paie.t_mensualite':'اشتراك شهري',
-    'paie.t_trimestriel':'اشتراك فصلي',
-    'paie.t_semestriel':'6 أشهر',
+    'paie.t_trimestriel':'فصلي (3 أشهر)',
+    'paie.t_semestriel':'نصف سنوي (6 أشهر)',
     'paie.t_annuel':    'اشتراك سنوي',
     'paie.t_inscription':'تسجيل',
     'paie.t_assurance': 'تأمين',
@@ -2453,7 +2454,7 @@ const I18N = {
     'paie.m_cheque':    'شيك',
     'paie.hint_calc':   'محسوب حسب الرياضات',
     'paie.hint_trim':   'السعر الفصلي',
-    'paie.hint_sem':    'سعر 6 أشهر',
+    'paie.hint_sem':    'السعر النصف سنوي',
     'paie.hint_annuel': 'السعر السنوي',
     'paie.hint_inscr':  'رسوم التسجيل',
     'paie.periode_mois': 'الفترة المغطاة (شهر واحد)',
@@ -2474,8 +2475,8 @@ const I18N = {
     'sports.nouveau':   'إضافة رياضة',
     'sports.nom':       'اسم الرياضة',
     'sports.tarif_m':   'الاشتراك الشهري (درهم)',
-    'sports.tarif_t':   'الاشتراك الفصلي (درهم)',
-    'sports.tarif_s':   'اشتراك 6 أشهر (درهم)',
+    'sports.tarif_t':   'الاشتراك الفصلي (3 أشهر) (درهم)',
+    'sports.tarif_s':   'الاشتراك النصف سنوي (6 أشهر) (درهم)',
     'sports.sem_sql':   'سعر 6 أشهر غير مفعل بعد في Supabase. نفّذ السكريبت supabase/08_tarif_6_mois.sql.',
     'sports.tarif_a':   'الاشتراك السنوي (درهم)',
     'sports.tarif_i':   'رسوم التسجيل (درهم)',
@@ -2485,7 +2486,7 @@ const I18N = {
     'sports.disciplines':'التخصصات',
     'sports.lbl_mensuel':'الشهري',
     'sports.lbl_trimestriel':'الفصلي',
-    'sports.lbl_semestriel':'6 أشهر',
+    'sports.lbl_semestriel':'نصف سنوي',
     'sports.lbl_annuel':'السنوي',
     'sports.lbl_inscription':'التسجيل',
     'sports.lbl_coach': 'المدرب',
@@ -5289,7 +5290,7 @@ async function genererRecuPdf(paies, client, encaissePar) {
   doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
   doc.text('Désignation', cDes, y + 6); doc.text('Période', cPer, y + 6); doc.text('Montant', cMnt, y + 6, { align: 'right' });
   y += 9;
-  const DESIGNATIONS = { 'Mensualité': 'Mensualité', 'Trimestriel': 'Abonnement trimestriel', 'Semestriel': 'Abonnement 6 mois',
+  const DESIGNATIONS = { 'Mensualité': 'Mensualité', 'Trimestriel': 'Abonnement trimestriel (3 mois)', 'Semestriel': 'Abonnement semestriel (6 mois)',
     'Annuel': 'Abonnement annuel', 'Inscription': "Frais d'inscription", 'Assurance': 'Assurance', 'Équipement': 'Équipement' };
   doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
   paies.forEach(p => {
@@ -5434,7 +5435,7 @@ async function envoyerRecuMail() {
 async function delPaiement(id) { return delTransaction([id]); }
 
 // ── Modifier une transaction : mouvements existants (modifier / retirer) et nouveaux (ajouter) ──
-const TYPES_PAIEMENT = ['Mensualité','Semestriel','Annuel','Inscription','Assurance','Équipement','Autre'];
+const TYPES_PAIEMENT = ['Mensualité','Trimestriel','Semestriel','Annuel','Inscription','Assurance','Équipement','Autre'];
 let _peEdit = null; // { lignes: [{ id?, type, montant, date_paiement, note, retiree, touche }], origine, client, idxFiche }
 
 const _peTypeTr = () => ({ 'Mensualité': t('paie.t_mensualite'), 'Trimestriel': t('paie.t_trimestriel'), 'Semestriel': t('paie.t_semestriel'),
@@ -5648,6 +5649,7 @@ async function loadSports() {
           <div style="font-size:12px;color:var(--text2);margin-bottom:4px">${s.description||''}</div>
           <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;align-items:center">
             <span>${t('sports.lbl_mensuel')}: <strong style="color:var(--green)">${fmt(s.tarif_mensuel)}</strong></span>
+            ${s.tarif_trimestriel?`<span>${t('sports.lbl_trimestriel')}: <strong style="color:var(--green)">${fmt(s.tarif_trimestriel)}</strong></span>`:''}
             ${s.tarif_semestriel?`<span>${t('sports.lbl_semestriel')}: <strong style="color:var(--green)">${fmt(s.tarif_semestriel)}</strong></span>`:''}
             ${s.tarif_annuel?`<span>${t('sports.lbl_annuel')}: <strong style="color:var(--green)">${fmt(s.tarif_annuel)}</strong></span>`:''}
             <span>${t('sports.lbl_inscription')}: <strong>${fmt(s.tarif_inscription)}</strong></span>
@@ -5675,6 +5677,7 @@ async function saveSport() {
     nom:              document.getElementById('s-nom').value.trim(),
     tarif_mensuel:    parseFloat(document.getElementById('s-tarif').value)||0,
     // N'envoie le tarif 6 mois que si la colonne est connue ou le champ rempli (script 08 non exécuté = pas d'erreur)
+    tarif_trimestriel:parseFloat(document.getElementById('s-tarif-trim').value)||0,
     ...((parseFloat(document.getElementById('s-tarif-sem').value) || window._sportEditSemConnu)
       ? { tarif_semestriel: parseFloat(document.getElementById('s-tarif-sem').value)||0 } : {}),
     tarif_annuel:     parseFloat(document.getElementById('s-tarif-annuel').value)||0,
@@ -5694,6 +5697,7 @@ function editSport(s) {
   document.getElementById('s-id').value       = s.id;
   document.getElementById('s-nom').value      = s.nom;
   document.getElementById('s-tarif').value    = s.tarif_mensuel;
+  document.getElementById('s-tarif-trim').value = s.tarif_trimestriel||'';
   document.getElementById('s-tarif-sem').value = s.tarif_semestriel||'';
   window._sportEditSemConnu = 'tarif_semestriel' in s;
   document.getElementById('s-tarif-annuel').value = s.tarif_annuel||'';
@@ -5713,7 +5717,7 @@ function editSport(s) {
 
 function resetSportForm() {
   window._sportEditSemConnu = false;
-  ['s-id','s-nom','s-tarif','s-tarif-sem','s-tarif-annuel','s-inscr','s-horaires','s-desc'].forEach(i=>document.getElementById(i).value='');
+  ['s-id','s-nom','s-tarif','s-tarif-trim','s-tarif-sem','s-tarif-annuel','s-inscr','s-horaires','s-desc'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('s-coach').value = '';
   document.getElementById('sport-form-title').textContent = t('sports.add_title');
 }
