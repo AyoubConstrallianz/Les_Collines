@@ -1170,7 +1170,9 @@ tr:hover td{background:var(--blue-light)}
             <button class="btn btn-sm" onclick="document.getElementById('import-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
           </div>
           <ol style="font-size:13px;color:var(--text2);margin:0 0 12px 18px;line-height:1.7">
-            <li><a href="modele_import_clients_paiements.xlsx" download style="color:var(--blue);font-weight:600" data-i18n="imp.etape1">Télécharger le modèle Excel</a> <span data-i18n="imp.etape1b">et le remplir (feuilles Clients et Paiements).</span></li>
+            <li><span data-i18n="imp.etape1s">Télécharger un modèle et le remplir :</span>
+              <a href="modele_import_simple.xlsx" download style="color:var(--blue);font-weight:600" data-i18n="imp.modele_simple">Modèle simplifié</a> <span style="color:var(--text3)" data-i18n="imp.modele_simple_desc">(une ligne par client, recommandé)</span>
+              · <a href="modele_import_clients_paiements.xlsx" download style="color:var(--blue)" data-i18n="imp.modele_complet">Modèle complet</a> <span style="color:var(--text3)" data-i18n="imp.modele_complet_desc">(feuilles Clients + Paiements)</span></li>
             <li data-i18n="imp.etape2">Choisir le fichier rempli : un aperçu s'affiche, avec les erreurs éventuelles.</li>
             <li data-i18n="imp.etape3">Cliquer sur « Importer ». Rien n'est enregistré avant.</li>
           </ol>
@@ -2055,6 +2057,11 @@ const I18N = {
     'imp.btn':           'Importer Excel',
     'imp.title':         'Importer des clients et des paiements',
     'imp.etape1':        'Télécharger le modèle Excel',
+    'imp.etape1s':       'Télécharger un modèle et le remplir :',
+    'imp.modele_simple': 'Modèle simplifié',
+    'imp.modele_simple_desc':'(une ligne par client, recommandé)',
+    'imp.modele_complet':'Modèle complet',
+    'imp.modele_complet_desc':'(feuilles Clients + Paiements)',
     'imp.etape1b':       'et le remplir (feuilles Clients et Paiements).',
     'imp.etape2':        'Choisir le fichier rempli : un aperçu s\'affiche, avec les erreurs éventuelles.',
     'imp.etape3':        'Cliquer sur « Importer ». Rien n\'est enregistré avant.',
@@ -4789,15 +4796,45 @@ async function lireFichierImport(file) {
   try {
     await chargerSheetJS();
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: false }  /* numéros de série : pas de décalage de fuseau */);
-    const fC = lignesFeuille(wb, 'Clients'), fP = lignesFeuille(wb, 'Paiements');
-    if (!fC && !fP) throw new Error(t('imp.feuilles_ko'));
-    await analyserImport(fC || [], fP || []);
+    const fS = lignesFeuille(wb, 'Import');
+    if (fS) {
+      const { fC, fP } = convertirImportSimple(fS);
+      await analyserImport(fC, fP, { LC: 'Import', LP: 'Import' });
+    } else {
+      const fC = lignesFeuille(wb, 'Clients'), fP = lignesFeuille(wb, 'Paiements');
+      if (!fC && !fP) throw new Error(t('imp.feuilles_ko'));
+      await analyserImport(fC || [], fP || []);
+    }
   } catch (e) {
     zone.innerHTML = `<div class="al al-e">${e.message}</div>`;
   }
 }
 
-async function analyserImport(fC, fP) {
+// Modèle simplifié : une ligne = un client + une transaction (abonnement, inscription, assurance)
+function convertirImportSimple(lignes) {
+  const fC = [], fP = [];
+  const vide = v => v === '' || v === null || v === undefined;
+  lignes.filter(r => !/exemple/i.test(String(r['note'] ?? ''))).forEach(r => {
+    const ref = 'L' + r._ligne;
+    const c = { _ligne: r._ligne, 'ref client': ref, prenom: r['prenom'], nom: r['nom'], telephone: r['telephone'],
+      'telephone 2': r['telephone 2'], cin: r['cin'], 'e-mail': r['e-mail'], sexe: r['sexe'],
+      "date d'inscription": r["date d'inscription"], statut: '' };
+    const sports = String(r['sports'] ?? '').split(/[,;\/+]/).map(x => x.trim()).filter(Boolean);
+    if (sports.length) sports.forEach((sp, i) => { c['sport ' + (i + 1)] = sp; }); else c['sport 1'] = '';
+    fC.push(c);
+    const ajout = (type, montant, note) => {
+      if (vide(montant)) return;
+      fP.push({ _ligne: r._ligne, 'ref client': ref, 'n° transaction': 'T' + r._ligne, 'date du paiement': r["date d'inscription"],
+        type, 'montant (dh)': montant, mode: r['mode'], note });
+    };
+    ajout(r['formule'] || '', r['abonnement (dh)'], String(r['note'] ?? '').trim());
+    ajout('Inscription', r["frais d'inscription (dh)"], "Frais d'inscription");
+    ajout('Assurance', r['assurance (dh)'], 'Assurance 1 an');
+  });
+  return { fC, fP };
+}
+
+async function analyserImport(fC, fP, { LC = 'Clients', LP = 'Paiements' } = {}) {
   const erreurs = [], avert = [];
   const err = (f, l, msg) => erreurs.push(`${f} ${t('imp.ligne')} ${l} : ${msg}`);
   if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
@@ -4816,29 +4853,29 @@ async function analyserImport(fC, fP) {
       sexe: ({ homme: 'Homme', femme: 'Femme', h: 'Homme', f: 'Femme' })[_sansAccent(r['sexe'])] || null,
       statut: ({ actif: 'Actif', inactif: 'Inactif', suspendu: 'Suspendu' })[_sansAccent(r['statut'])] || 'Actif'
     };
-    if (!ref) err('Clients', L, t('imp.e_ref'));
-    else if (parRef[_sansAccent(ref)]) err('Clients', L, t('imp.e_ref_double').replace('%s', ref));
-    if (!c.prenom || !c.nom) err('Clients', L, t('imp.e_nom'));
-    if (!c.sexe) err('Clients', L, t('imp.e_sexe'));
-    if (!c.date_inscription || c.date_inscription === 'invalide') err('Clients', L, t('imp.e_date_insc'));
-    if (c.date_naissance === 'invalide') { err('Clients', L, t('imp.e_date_naiss')); c.date_naissance = null; }
+    if (!ref) err(LC, L, t('imp.e_ref'));
+    else if (parRef[_sansAccent(ref)]) err(LC, L, t('imp.e_ref_double').replace('%s', ref));
+    if (!c.prenom || !c.nom) err(LC, L, t('imp.e_nom'));
+    if (!c.sexe) err(LC, L, t('imp.e_sexe'));
+    if (!c.date_inscription || c.date_inscription === 'invalide') err(LC, L, t('imp.e_date_insc'));
+    if (c.date_naissance === 'invalide') { err(LC, L, t('imp.e_date_naiss')); c.date_naissance = null; }
     const sports = [];
-    ['sport 1', 'sport 2', 'sport 3'].forEach(k => {
+    Object.keys(r).filter(k => /^sport \d+$/.test(k)).forEach(k => {
       if (!r[k]) return;
       const nomSp = sportsDb[_sansAccent(r[k])];
       if (nomSp) { if (!sports.includes(nomSp)) sports.push(nomSp); }
-      else err('Clients', L, t('imp.e_sport').replace('%s', r[k]));
+      else err(LC, L, t('imp.e_sport').replace('%s', r[k]));
     });
-    if (!sports.length && !r['sport 1']) err('Clients', L, t('imp.e_sport1'));
+    if (!sports.length && !r['sport 1']) err(LC, L, t('imp.e_sport1'));
     c.sports = sports; c.sport = sports[0] || null;
 
     // Déjà dans l'application ? (même prénom + nom et même téléphone) → on réutilise la fiche
     const cle = cleNomClient(c.prenom, c.nom), tel = _chiffres(c.telephone);
     const deja = (existants || []).find(e => cleNomClient(e.prenom, e.nom) === cle
       && tel && [e.telephone, e.telephone2].some(x => _chiffres(x) === tel));
-    if (deja) avert.push(`Clients ${t('imp.ligne')} ${L} : ${t('imp.a_existe').replace('%s', `${c.prenom} ${c.nom}`)}`);
+    if (deja) avert.push(`${LC} ${t('imp.ligne')} ${L} : ${t('imp.a_existe').replace('%s', `${c.prenom} ${c.nom}`)}`);
     else if ((existants || []).some(e => cleNomClient(e.prenom, e.nom) === cle))
-      avert.push(`Clients ${t('imp.ligne')} ${L} : ${t('imp.a_homonyme').replace('%s', `${c.prenom} ${c.nom}`)}`);
+      avert.push(`${LC} ${t('imp.ligne')} ${L} : ${t('imp.a_homonyme').replace('%s', `${c.prenom} ${c.nom}`)}`);
     const item = { ref, ligne: L, data: c, existantId: deja?.id || null };
     if (ref) parRef[_sansAccent(ref)] = item;
     clients.push(item);
@@ -4849,20 +4886,20 @@ async function analyserImport(fC, fP) {
   fP.forEach(r => {
     const L = r._ligne, ref = String(r['ref client'] ?? '').trim(), tel = _chiffres(r['telephone client']);
     let client = null, existantId = null;
-    if (ref) { client = parRef[_sansAccent(ref)]; if (!client) err('Paiements', L, t('imp.e_ref_inconnue').replace('%s', ref)); }
+    if (ref) { client = parRef[_sansAccent(ref)]; if (!client) err(LP, L, t('imp.e_ref_inconnue').replace('%s', ref)); }
     else if (tel) {
       const ex = (existants || []).filter(e => [e.telephone, e.telephone2].some(x => _chiffres(x) === tel));
       if (ex.length === 1) existantId = ex[0].id;
-      else err('Paiements', L, ex.length ? t('imp.e_tel_plusieurs').replace('%s', r['telephone client']) : t('imp.e_tel_inconnu').replace('%s', r['telephone client']));
-    } else err('Paiements', L, t('imp.e_client'));
+      else err(LP, L, ex.length ? t('imp.e_tel_plusieurs').replace('%s', r['telephone client']) : t('imp.e_tel_inconnu').replace('%s', r['telephone client']));
+    } else err(LP, L, t('imp.e_client'));
     const date = dateImport(r['date du paiement']);
     const type = TYPES_IMPORT[_sansAccent(r['type'])];
     const montant = parseFloat(String(r['montant (dh)'] ?? '').replace(/\s/g, '').replace(',', '.'));
     let mode = MODES_IMPORT[_sansAccent(r['mode'])];
-    if (!date || date === 'invalide') err('Paiements', L, t('imp.e_date_paie'));
-    if (!type) err('Paiements', L, t('imp.e_type').replace('%s', r['type'] || '—'));
-    if (isNaN(montant) || montant < 0) err('Paiements', L, t('imp.e_montant'));
-    if (!mode) { if (r['mode']) err('Paiements', L, t('imp.e_mode').replace('%s', r['mode'])); else mode = 'Espèces'; }
+    if (!date || date === 'invalide') err(LP, L, t('imp.e_date_paie'));
+    if (!type) err(LP, L, t('imp.e_type').replace('%s', r['type'] || '—'));
+    if (isNaN(montant) || montant < 0) err(LP, L, t('imp.e_montant'));
+    if (!mode) { if (r['mode']) err(LP, L, t('imp.e_mode').replace('%s', r['mode'])); else mode = 'Espèces'; }
     paiements.push({ ligne: L, client, existantId, transaction: String(r['n° transaction'] ?? r['n transaction'] ?? '').trim(),
       data: { date_paiement: date, type, montant, mode, note: String(r['note'] ?? '').trim() } });
   });
