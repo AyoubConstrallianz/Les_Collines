@@ -1235,8 +1235,9 @@ tr:hover td{background:var(--blue-light)}
 
           <div class="fr" style="margin-top:6px;align-items:end">
             <div class="fg" style="margin-bottom:0"><label data-i18n="paie.inscr_mode">Mode de paiement</label><select id="inscr-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
-            <div id="inscr-total" style="text-align:end;font-size:16px;font-weight:700;padding-bottom:8px"></div>
+            <div class="fg" style="margin-bottom:0"><label data-i18n="paie.inscr_date">Date d'inscription et du paiement</label><input id="inscr-date" type="date" onchange="majTotalInscription()"></div>
           </div>
+          <div id="inscr-total" style="text-align:end;font-size:16px;font-weight:700;margin-top:10px"></div>
           <div class="mo-footer">
             <button class="btn" onclick="fermerInscription()" data-i18n="paie.inscr_later">Plus tard</button>
             <button class="btn btn-p" id="btn-inscr-encaisser" onclick="confirmerInscription()" data-i18n="paie.inscr_encaisser">Encaisser</button>
@@ -2033,6 +2034,7 @@ const I18N = {
     'abo.couvert_jusqu': 'couvert jusqu\'au',
     'abo.paye_jusqu':    'Payé jusqu\'au',
     'pe.title':          'Modifier l\'encaissement',
+    'paie.inscr_date':   'Date d\'inscription et du paiement',
     'pe.note':           'Note',
     'pe.ajouter':        'Ajouter une ligne',
     'pe.nouvelle':       'Nouvelle ligne',
@@ -2601,6 +2603,7 @@ const I18N = {
     'abo.couvert_jusqu':'مغطى إلى غاية',
     'abo.paye_jusqu':   'مؤدى إلى غاية',
     'pe.title':         'تعديل العملية',
+    'paie.inscr_date':  'تاريخ التسجيل والأداء',
     'pe.note':          'ملاحظة',
     'pe.ajouter':       'إضافة سطر',
     'pe.nouvelle':      'سطر جديد',
@@ -4106,6 +4109,7 @@ function ouvrirInscriptionModal(client, montantsSaisis = {}) {
     <div style="font-weight:600">${client.prenom} ${client.nom}</div>
     <div style="font-size:12px;color:var(--text2);margin-top:2px">${sports.join(', ') || '—'}</div>`;
   document.getElementById('inscr-formule').value = formule;
+  document.getElementById('inscr-date').value = client.date_inscription || today();
   document.getElementById('inscr-abo-montant').value = abo || '';
   document.getElementById('inscr-montant').value = inscr || '';
   document.getElementById('inscr-assur-montant').value = assur || '';
@@ -4133,8 +4137,8 @@ function majTotalInscription() {
     document.getElementById(`il-${k}`).classList.toggle('off', !on);
     if (on) total += parseFloat(document.getElementById(inputId).value) || 0;
   });
-  // Périodes : à partir d'aujourd'hui
-  const d = today();
+  // Périodes : à partir de la date d'inscription / du paiement
+  const d = document.getElementById('inscr-date').value || today();
   const mois = DUREE_ABONNEMENT[document.getElementById('inscr-formule').value] || 1;
   const [y, m, j] = d.split('-').map(Number);
   document.getElementById('inscr-abo-periode').textContent = `${dateFr(d)} → ${dateFr(isoLocal(new Date(y, m - 1 + mois, j - 1)))}`;
@@ -4155,7 +4159,8 @@ async function confirmerInscription() {
   const on  = k => document.getElementById(`inscr-${k}-check`).checked;
   const mode = document.getElementById('inscr-mode').value;
   const formule = document.getElementById('inscr-formule').value;
-  const base = { client_id: client.id, date_paiement: today(), mode, created_by: ME.id };
+  const dateInscr = document.getElementById('inscr-date').value || client.date_inscription || today();
+  const base = { client_id: client.id, date_paiement: dateInscr, mode, created_by: ME.id };
 
   // Une ligne par mouvement (stats propres), toutes rattachées à la même transaction (un seul reçu)
   const lignes = [];
@@ -4171,8 +4176,9 @@ async function confirmerInscription() {
   btn.disabled = false;
   if (res.error) { showToast(res.error.message, 'e'); return; }
 
-  // Paiement à l'inscription → client Actif
-  await sb.from('clients').update({ statut: 'Actif', updated_at: new Date().toISOString() }).eq('id', client.id);
+  // Paiement à l'inscription → client Actif ; date d'inscription = date des paiements
+  await sb.from('clients').update({ statut: 'Actif', date_inscription: dateInscr, updated_at: new Date().toISOString() }).eq('id', client.id);
+  if (dateInscr !== client.date_inscription) loadClients();
   await logAudit('CREATE','paiements',`Inscription ${client.prenom} ${client.nom} — ${fmt(total)}`);
   document.getElementById('inscr-modal').classList.remove('open');
   showToast(t('clients.inscr_saved').replace('%s', fmt(total)), 's');
@@ -4603,6 +4609,7 @@ function editClient(c) {
 function openClientForm() {
   loadParametres();
   resetClientForm();
+  document.getElementById('c-date').value = today();  // date d'inscription = date des paiements
   loadSportsCheckboxes([]);
   document.getElementById('client-form-modal').classList.add('open');
 }
