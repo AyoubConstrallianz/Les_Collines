@@ -6,6 +6,7 @@
 <title>Association Les Collines</title>
 <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 @import url('https://fonts.cdnfonts.com/css/sf-pro-display');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -1088,6 +1089,23 @@ tr:hover td{background:var(--blue-light)}
 
       <!-- MODAL note absence -->
       <!-- MODAL inscription auto -->
+      <div class="mo" id="recu-modal">
+        <div class="mo-box" style="max-width:640px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div class="mo-title" style="margin-bottom:0" id="recu-title" data-i18n="recu.title">Reçu de paiement</div>
+            <button class="btn btn-sm" onclick="closeRecu()" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <iframe id="recu-preview" title="Reçu" style="width:100%;height:56vh;border:1px solid var(--border);border-radius:var(--r);background:#fff"></iframe>
+          <div id="recu-mail-info" style="font-size:12px;color:var(--text2);margin-top:8px"></div>
+          <div class="mo-footer" style="flex-wrap:wrap">
+            <button class="btn" onclick="closeRecu()" data-i18n="common.fermer">Fermer</button>
+            <button class="btn" onclick="telechargerRecu()" data-i18n="recu.telecharger">Télécharger PDF</button>
+            <button class="btn" onclick="imprimerRecu()" data-i18n="recu.imprimer">Imprimer</button>
+            <button class="btn btn-p" id="btn-recu-mail" onclick="envoyerRecuMail()" data-i18n="recu.envoyer">Envoyer par mail</button>
+          </div>
+        </div>
+      </div>
+
       <div class="mo" id="inscr-modal">
         <div class="mo-box" style="max-width:500px">
           <div class="mo-title" data-i18n="paie.inscr_title">Paiement d'inscription</div>
@@ -1879,6 +1897,16 @@ const I18N = {
     'stats.recettes_mois':'Recettes par mois',
     'stats.retards':     'Clients en retard de paiement',
     'stats.recap_title': 'CA par sport et par mois',
+    'recu.title':        'Reçu de paiement',
+    'recu.btn':          'Reçu',
+    'recu.telecharger':  'Télécharger PDF',
+    'recu.imprimer':     'Imprimer',
+    'recu.envoyer':      'Envoyer par mail',
+    'recu.envoi':        'Envoi en cours…',
+    'recu.envoye':       'Reçu envoyé à %s',
+    'recu.mail_a':       'Sera envoyé à : %s',
+    'recu.no_email':     'Pas d\'adresse e-mail sur la fiche du client : ajoutez-la pour pouvoir envoyer le reçu.',
+    'recu.pdf_ko':       'Impossible de générer le PDF (connexion internet ?)',
     'stats.recap_export':'Exporter (CSV)',
     'stats.recap_note':  'CA encaissé dans le mois. Adhérents = clients couverts ce mois-là (mensualité, trimestre, année ou inscription). Un paiement multi-sports est réparti selon les tarifs.',
     'stats.recap_sport': 'Sport',
@@ -2368,6 +2396,16 @@ const I18N = {
     'stats.recettes_mois':'الإيرادات حسب الشهر',
     'stats.retards':    'الزبناء المتأخرون في الدفع',
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
+    'recu.title':       'وصل الأداء',
+    'recu.btn':         'وصل',
+    'recu.telecharger': 'تحميل PDF',
+    'recu.imprimer':    'طباعة',
+    'recu.envoyer':     'إرسال بالبريد',
+    'recu.envoi':       'جارٍ الإرسال…',
+    'recu.envoye':      'تم إرسال الوصل إلى %s',
+    'recu.mail_a':      'سيرسل إلى : %s',
+    'recu.no_email':    'لا يوجد بريد إلكتروني في ملف الزبون : أضفه لإرسال الوصل.',
+    'recu.pdf_ko':      'تعذر إنشاء ملف PDF (الاتصال بالإنترنت؟)',
     'stats.recap_export':'تصدير (CSV)',
     'stats.recap_note': 'المبالغ المحصلة خلال الشهر. المنخرطون = الزبائن المغطون ذلك الشهر (شهري، فصلي، سنوي أو تسجيل). الدفعة متعددة الرياضات توزع حسب الأسعار.',
     'stats.recap_sport':'الرياضة',
@@ -3726,10 +3764,10 @@ async function confirmerInscription() {
   const montant = parseFloat(document.getElementById('inscr-montant').value);
   const mode    = document.getElementById('inscr-mode').value;
   if (!client || !montant) return;
-  const { error } = await sb.from('paiements').insert({
+  const { data: savedPaie, error } = await sb.from('paiements').insert({
     client_id: client.id, montant, date_paiement: today(),
     type: 'Inscription', mode, note: 'Frais d\'inscription', created_by: ME.id
-  });
+  }).select('id').single();
   if (error) { showToast(error.message, 'e'); return; }
   // Paiement inscription = paiement du mois → client Actif
   await sb.from('clients').update({ statut: 'Actif', updated_at: new Date().toISOString() }).eq('id', client.id);
@@ -3737,7 +3775,11 @@ async function confirmerInscription() {
   document.getElementById('inscr-modal').classList.remove('open');
   showToast(t('clients.inscr_saved').replace('%s',fmt(montant)), 's');
   loadImpayes();
-  finPaiementNouveauClient();
+  if (savedPaie?.id) {
+    // Le reçu d'inscription d'abord ; le formulaire de paiement s'ouvrira à sa fermeture
+    window._recuApres = finPaiementNouveauClient;
+    ouvrirRecu(savedPaie.id);
+  } else finPaiementNouveauClient();
 }
 
 async function showClientFiche(idx, event) {
@@ -4270,7 +4312,7 @@ async function loadPaiements() {
         <td style="color:var(--blue);font-size:12px">${mcCell}</td>
         <td>${modeTr[p.mode]||p.mode}</td>
         <td style="color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis">${p.note||''}</td>
-        <td>${canDel?`<button class="btn btn-sm btn-d" onclick="delPaiement('${p.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`;}).join('')
+        <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecu('${p.id}')">${t('recu.btn')}</button> ${canDel?`<button class="btn btn-sm btn-d" onclick="delPaiement('${p.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`;}).join('')
     : `<tr class="empty-row"><td colspan="8">${t('msg.no_payment')}</td></tr>`;
 
   const btnNewPaie = document.getElementById('btn-new-paie');
@@ -4394,7 +4436,7 @@ async function savePaiement() {
   const oldAlert = document.getElementById('p-overlap-alert');
   if (oldAlert) oldAlert.remove();
 
-  const { error } = await sb.from('paiements').insert(obj);
+  const { data: savedPaie, error } = await sb.from('paiements').insert(obj).select('id').single();
   if (error) { showToast(error.message,'e'); return; }
 
   // Si le paiement est pour le mois courant → repasse le client en Actif
@@ -4409,6 +4451,259 @@ async function savePaiement() {
   closePaiementForm();
   loadPaiements();
   if (document.getElementById('page-clients').classList.contains('active')) loadImpayes();
+  if (savedPaie?.id) ouvrirRecu(savedPaie.id);
+}
+
+// ════════════════════════════════════════════════════════════
+// REÇU DE PAIEMENT (PDF : impression, téléchargement, e-mail)
+// ════════════════════════════════════════════════════════════
+const RECU_ASSO = {
+  nom:     'ASSOCIATION LES COLLINES',
+  slogan:  'Fitness & Arts Martiaux',
+  adresse: 'Résidence Les Collines, Sidi Maarouf, Casablanca',
+  tel:     '06 61 09 27 66 - 06 62 02 87 33',
+  email:   'lescollines.fitness@gmail.com'
+};
+const MOIS_LONG_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+let _recu = null; // { doc, blobUrl, paiement, client }
+let _recuLogo;    // undefined = pas chargé, null = indisponible
+
+// Montant pour le PDF (les polices standard n'ont pas l'espace fine utilisée par toLocaleString)
+function montantPdf(n) {
+  const v = parseFloat(n) || 0;
+  const [ent, dec] = v.toFixed(2).split('.');
+  return ent.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (dec !== '00' ? ',' + dec : '') + ' DH';
+}
+
+function nombreEnLettres(n) {
+  const u = ['zéro','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize'];
+  const d = ['','','vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
+  const moinsDeCent = x => {
+    if (x <= 16) return u[x];
+    if (x < 20) return 'dix-' + u[x - 10];
+    const di = Math.floor(x / 10), un = x % 10;
+    if (di === 7 || di === 9) return d[di] + (di === 7 && un === 1 ? '-et-' : '-') + moinsDeCent(10 + un);
+    if (un === 0) return d[di] + (di === 8 ? 's' : '');
+    if (un === 1 && di !== 8) return d[di] + '-et-un';
+    return d[di] + '-' + u[un];
+  };
+  const moinsDeMille = x => {
+    const c = Math.floor(x / 100), r = x % 100;
+    const cent = c === 0 ? '' : (c === 1 ? 'cent' : u[c] + ' cent' + (r === 0 ? 's' : ''));
+    return [cent, r ? moinsDeCent(r) : ''].filter(Boolean).join(' ');
+  };
+  n = Math.floor(n);
+  if (n === 0) return 'zéro';
+  const parts = [];
+  const mil = Math.floor(n / 1000000), mille = Math.floor((n % 1000000) / 1000), reste = n % 1000;
+  if (mil) parts.push(moinsDeMille(mil) + (mil > 1 ? ' millions' : ' million'));
+  // « cents » et « quatre-vingts » perdent leur s devant « mille »
+  if (mille) parts.push(mille === 1 ? 'mille' : moinsDeMille(mille).replace(/(cent|vingt)s$/, '$1') + ' mille');
+  if (reste) parts.push(moinsDeMille(reste));
+  return parts.join(' ');
+}
+
+function montantEnLettres(n) {
+  const v = Math.round((parseFloat(n) || 0) * 100);
+  const dh = Math.floor(v / 100), cts = v % 100;
+  const lettres = nombreEnLettres(dh);
+  let s = lettres + (/(million|millions)$/.test(lettres) ? ' de' : '') + (dh > 1 ? ' dirhams' : ' dirham');
+  if (cts) s += ' et ' + nombreEnLettres(cts) + ' centimes';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Logo réduit en PNG (le fichier d'origine est trop lourd pour un PDF envoyé par mail)
+async function chargerLogoRecu() {
+  if (_recuLogo !== undefined) return _recuLogo;
+  try {
+    const img = await loadImageAsync('/images/logo-square.png');
+    const c = document.createElement('canvas');
+    c.width = c.height = 240;
+    c.getContext('2d').drawImage(img, 0, 0, 240, 240);
+    _recuLogo = c.toDataURL('image/png');
+  } catch (_) { _recuLogo = null; }
+  return _recuLogo;
+}
+
+function periodeRecu(p) {
+  if (p.type === 'Assurance') return 'Saison ' + saisonDe(p.date_paiement).label;
+  const keys = moisCouvertsKeys(p.date_paiement, p.type);
+  if (!keys.length) return '-';
+  const nom = k => { const [y, m] = k.split('-').map(Number); return MOIS_LONG_FR[m - 1] + ' ' + y; };
+  return keys.length === 1 ? nom(keys[0]) : `${nom(keys[0])} à ${nom(keys[keys.length - 1])}`;
+}
+
+async function genererRecuPdf(p, client, encaissePar) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, M = 18;
+  const bleu = [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42];
+  const fD = s => s ? s.split('-').reverse().join('/') : '-';
+  const numero = p.numero_recu || ('P-' + p.id.substring(0, 8).toUpperCase());
+  const sports = client.sports || (client.sport ? [client.sport] : []);
+
+  // En-tête association
+  const logo = await chargerLogoRecu();
+  if (logo) doc.addImage(logo, 'PNG', M, 14, 24, 24);
+  const xTxt = logo ? M + 29 : M;
+  doc.setTextColor(...noir); doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+  doc.text(RECU_ASSO.nom, xTxt, 21);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+  doc.text(RECU_ASSO.slogan, xTxt, 26.5);
+  doc.text(RECU_ASSO.adresse, xTxt, 31);
+  doc.text(`Tél. ${RECU_ASSO.tel}  |  ${RECU_ASSO.email}`, xTxt, 35.5);
+
+  // Titre et numéro
+  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+  doc.text('REÇU DE PAIEMENT', W - M, 21, { align: 'right' });
+  doc.setTextColor(...noir); doc.setFontSize(10);
+  doc.text(`N° ${numero}`, W - M, 28, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
+  doc.text(`Date : ${fD(p.date_paiement)}`, W - M, 33, { align: 'right' });
+
+  doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 43, W - M, 43);
+
+  // Client
+  doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
+  doc.roundedRect(M, 50, W - 2 * M, 30, 2, 2, 'FD');
+  doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text('REÇU DE', M + 5, 57);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...noir);
+  doc.text(`${client.prenom || ''} ${client.nom || ''}`.trim() || '-', M + 5, 64);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+  const infos = [
+    client.id ? `N° adhérent : ADH-${client.id.substring(0, 8).toUpperCase()}` : '',
+    client.cin ? `CIN : ${client.cin}` : '',
+    client.telephone ? `Tél. : ${client.telephone}` : ''
+  ].filter(Boolean).join('     ');
+  doc.text(infos || '-', M + 5, 71);
+  if (sports.length) doc.text(`Sport(s) : ${sports.join(', ')}`, M + 5, 76);
+
+  // Tableau
+  let y = 92;
+  const cDes = M + 4, cPer = M + 82, cMnt = W - M - 4;
+  doc.setFillColor(...bleu); doc.rect(M, y, W - 2 * M, 9, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+  doc.text('Désignation', cDes, y + 6); doc.text('Période', cPer, y + 6); doc.text('Montant', cMnt, y + 6, { align: 'right' });
+  y += 9;
+  const designation = ({ 'Mensualité': 'Mensualité', 'Trimestriel': 'Abonnement trimestriel', 'Annuel': 'Abonnement annuel',
+    'Inscription': "Frais d'inscription", 'Assurance': 'Assurance', 'Équipement': 'Équipement' })[p.type] || p.type || 'Paiement';
+  doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  const desLignes = doc.splitTextToSize(designation + (p.note && p.note !== designation && p.note !== "Frais d'inscription" ? ` - ${p.note}` : ''), cPer - cDes - 4);
+  const hLigne = Math.max(11, desLignes.length * 5 + 6);
+  doc.text(desLignes, cDes, y + 7);
+  doc.text(doc.splitTextToSize(periodeRecu(p), cMnt - cPer - 32), cPer, y + 7);
+  doc.text(montantPdf(p.montant), cMnt, y + 7, { align: 'right' });
+  y += hLigne;
+  doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y);
+
+  // Total
+  doc.setFillColor(239, 246, 255); doc.rect(W - M - 80, y + 4, 80, 11, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
+  doc.text('TOTAL PAYÉ', W - M - 76, y + 11.5);
+  doc.text(montantPdf(p.montant), cMnt, y + 11.5, { align: 'right' });
+  y += 24;
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...noir);
+  doc.text(doc.splitTextToSize(`Arrêté le présent reçu à la somme de : ${montantEnLettres(p.montant)}.`, W - 2 * M), M, y);
+  y += 8;
+  doc.setTextColor(...gris);
+  doc.text(`Mode de paiement : ${p.mode || '-'}`, M, y);
+  if (encaissePar) doc.text(`Encaissé par : ${encaissePar}`, M, y + 5.5);
+
+  // Signature
+  doc.setDrawColor(203, 213, 225); doc.setLineDashPattern([1.2, 1.2], 0);
+  doc.roundedRect(W - M - 70, y + 12, 70, 30, 2, 2, 'S');
+  doc.setLineDashPattern([], 0);
+  doc.setFontSize(8.5); doc.text('Cachet et signature', W - M - 35, y + 18, { align: 'center' });
+
+  // Pied de page
+  doc.setDrawColor(226, 232, 240); doc.line(M, 280, W - M, 280);
+  doc.setFontSize(8); doc.setTextColor(...gris);
+  doc.text(`${RECU_ASSO.nom} - ${RECU_ASSO.adresse} - Merci de votre confiance`, W / 2, 285, { align: 'center' });
+
+  doc.setProperties({ title: `Reçu ${numero}`, author: 'Association Les Collines' });
+  return doc;
+}
+
+async function ouvrirRecu(paiementId) {
+  if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  const { data: p, error } = await sb.from('paiements')
+    .select('*,clients(id,prenom,nom,cin,telephone,email,sports,sport)').eq('id', paiementId).single();
+  if (error || !p) { showToast(error?.message || t('recu.pdf_ko'), 'e'); return; }
+
+  let encaissePar = '';
+  if (p.created_by) {
+    const { data: prof } = await sb.from('profils').select('prenom,nom').eq('id', p.created_by).maybeSingle();
+    if (prof) encaissePar = `${prof.prenom} ${prof.nom}`;
+  }
+  const client = p.clients || {};
+  let doc;
+  try { doc = await genererRecuPdf(p, client, encaissePar); }
+  catch (e) { console.error(e); showToast(t('recu.pdf_ko'), 'e'); return; }
+
+  if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
+  const blobUrl = URL.createObjectURL(doc.output('blob'));
+  _recu = { doc, blobUrl, paiement: p, client };
+
+  document.getElementById('recu-title').textContent = `${t('recu.title')} ${p.numero_recu || ''}`.trim();
+  document.getElementById('recu-preview').src = blobUrl;
+  const btnMail = document.getElementById('btn-recu-mail');
+  btnMail.disabled = !client.email;
+  btnMail.textContent = t('recu.envoyer');
+  document.getElementById('recu-mail-info').textContent = client.email
+    ? t('recu.mail_a').replace('%s', client.email) : t('recu.no_email');
+  document.getElementById('recu-modal').classList.add('open');
+}
+
+function closeRecu() {
+  document.getElementById('recu-modal').classList.remove('open');
+  const suite = window._recuApres;
+  window._recuApres = null;
+  if (suite) suite();
+}
+
+function nomFichierRecu() {
+  const p = _recu.paiement, c = _recu.client;
+  const nom = `${c.prenom || ''}-${c.nom || ''}`.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9-]+/g, '');
+  return `${p.numero_recu || 'recu'}-${nom}.pdf`;
+}
+
+function telechargerRecu() {
+  if (_recu) _recu.doc.save(nomFichierRecu());
+}
+
+function imprimerRecu() {
+  if (!_recu) return;
+  try {
+    const f = document.getElementById('recu-preview');
+    f.contentWindow.focus();
+    f.contentWindow.print();
+  } catch (_) {
+    // Certains navigateurs bloquent l'impression d'un PDF intégré : on l'ouvre dans un onglet
+    window.open(_recu.blobUrl, '_blank');
+  }
+}
+
+async function envoyerRecuMail() {
+  if (!_recu?.client?.email) return;
+  const btn = document.getElementById('btn-recu-mail');
+  btn.disabled = true; btn.textContent = t('recu.envoi');
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch('/api/envoyer-recu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+      body: JSON.stringify({ paiement_id: _recu.paiement.id, pdf_base64: _recu.doc.output('datauristring').split(',')[1] })
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error || `Erreur ${res.status}`);
+    await logAudit('EMAIL', 'paiements', `Reçu ${_recu.paiement.numero_recu || ''} → ${out.to}`);
+    showToast(t('recu.envoye').replace('%s', out.to), 's');
+  } catch (e) {
+    showToast(e.message, 'e');
+  } finally {
+    btn.disabled = false; btn.textContent = t('recu.envoyer');
+  }
 }
 
 async function delPaiement(id) {

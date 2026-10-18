@@ -6,6 +6,7 @@ const path       = require('path');
 const indexRouter  = require('./routes/index');
 const adminRouter  = require('./routes/admin');
 const memberRouter = require('./routes/member');
+const apiRouter    = require('./routes/api');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -13,6 +14,9 @@ const PORT = process.env.PORT || 3000;
 // ── View engine ──
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// ── API (avant le parseur JSON global : accepte des PDF jusqu'à 3 Mo) ──
+app.use('/api', apiRouter);
 
 // ── Middleware ──
 app.use(express.urlencoded({ extended: true }));
