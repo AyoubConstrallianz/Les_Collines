@@ -313,6 +313,7 @@ tr:hover td{background:var(--blue-light)}
 .recap-table .rc-ca{font-weight:600;display:block}
 .recap-table .rc-adh{font-size:10px;color:var(--text3)}
 .recap-table .rc-zero{color:var(--text3)}
+.recap-table tr.rc-sous td{font-weight:600;color:var(--text2);border-top:1px solid var(--border2)}
 .recap-table tr.rc-tot td{font-weight:700;background:var(--bg3);border-top:2px solid var(--border)}
 .recap-table td.rc-col-tot{background:var(--bg3)}
 .paie-choix-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
@@ -1500,7 +1501,7 @@ tr:hover td{background:var(--blue-light)}
               <button class="btn btn-sm" onclick="exportRecapSports()" data-i18n="stats.recap_export">Exporter (CSV)</button>
             </div>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="stats.recap_note">CA réparti par mois : un abonnement trimestriel, semestriel ou annuel est étalé sur les mois qu'il couvre (les autres recettes comptent dans leur mois d'encaissement). Adhérents = clients couverts ce mois-là. Un paiement multi-sports est réparti selon les tarifs.</p>
+          <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="stats.recap_note">CA réparti par mois : un abonnement trimestriel, semestriel ou annuel est étalé sur les mois qu'il couvre. Lignes de sport = abonnements seulement ; inscription, assurance et autres recettes sur des lignes à part, dans leur mois d'encaissement. Adhérents = clients couverts ce mois-là. Un paiement multi-sports est réparti selon les tarifs.</p>
           <div style="overflow-x:auto"><table id="recap-table" class="recap-table"></table></div>
         </div>
         <div class="card"><div class="ct" data-i18n="stats.retards">Clients en retard de paiement</div><div id="st-retards"></div></div>
@@ -2180,10 +2181,13 @@ const I18N = {
     'recu.no_email':     'Pas d\'adresse e-mail sur la fiche du client : ajoutez-la pour pouvoir envoyer le reçu.',
     'recu.pdf_ko':       'Impossible de générer le PDF (connexion internet ?)',
     'stats.recap_export':'Exporter (CSV)',
-    'stats.recap_note':  'CA réparti par mois : un abonnement trimestriel, semestriel ou annuel est étalé sur les mois qu\'il couvre (les autres recettes comptent dans leur mois d\'encaissement). Adhérents = clients couverts ce mois-là. Un paiement multi-sports est réparti selon les tarifs.',
+    'stats.recap_note':  'CA réparti par mois : un abonnement trimestriel, semestriel ou annuel est étalé sur les mois qu\'il couvre. Lignes de sport = abonnements seulement ; inscription, assurance et autres recettes sur des lignes à part, dans leur mois d\'encaissement. Adhérents = clients couverts ce mois-là. Un paiement multi-sports est réparti selon les tarifs.',
     'stats.recap_sport': 'Sport',
     'stats.recap_total': 'Total',
-    'stats.recap_autres':'Autres recettes (assurance, équipement…)',
+    'stats.recap_autres':'Autres recettes (équipement…)',
+    'stats.recap_inscr': 'Frais d\'inscription',
+    'stats.recap_assur': 'Assurance',
+    'stats.recap_sous_total':'Sous-total abonnements',
     'stats.recap_adh':   'adh.',
     // Salaires
     'salaires.title':    'Salaires',
@@ -2754,7 +2758,10 @@ const I18N = {
     'stats.recap_note': 'رقم المعاملات موزع حسب الأشهر : الاشتراك الفصلي أو النصف سنوي أو السنوي يوزع على الأشهر التي يغطيها (باقي المداخيل تحتسب في شهر تحصيلها). المنخرطون = الزبائن المغطون ذلك الشهر. الدفعة متعددة الرياضات توزع حسب الأسعار.',
     'stats.recap_sport':'الرياضة',
     'stats.recap_total':'المجموع',
-    'stats.recap_autres':'مداخيل أخرى (تأمين، معدات…)',
+    'stats.recap_autres':'مداخيل أخرى (معدات…)',
+    'stats.recap_inscr':'رسوم التسجيل',
+    'stats.recap_assur':'التأمين',
+    'stats.recap_sous_total':'مجموع الاشتراكات',
     'stats.recap_adh':  'منخرط',
     // Salaires
     'salaires.title':   'الرواتب',
@@ -6326,7 +6333,11 @@ async function fetchAllRows(build, pageSize = 1000) {
   }
 }
 
-const RECAP_TYPES_SPORT = [...TYPES_PERIODIQUES, 'Inscription'];
+const RECAP_TYPES_SPORT = TYPES_PERIODIQUES;   // seuls les abonnements vont dans les lignes de sport
+// Lignes à part, sous les sports : [clé, libellé i18n, types de paiement]
+const RECAP_EXTRAS = [['__inscr__', 'stats.recap_inscr', ['Inscription']], ['__assur__', 'stats.recap_assur', ['Assurance']]];
+const RECAP_AUTRES = '__autres__';
+const cleExtraRecap = type => (RECAP_EXTRAS.find(([, , types]) => types.includes(type)) || [RECAP_AUTRES])[0];
 let _recapData = null;
 
 async function loadRecapSports() {
@@ -6354,7 +6365,6 @@ async function loadRecapSports() {
   (clients||[]).forEach(c => { clientSports[c.id] = c.sports || (c.sport ? [c.sport] : []); });
 
   const mois = Array.from({ length: 12 }, (_, i) => `${year}-${String(i+1).padStart(2,'0')}`);
-  const AUTRES = '__autres__';
   const ca = {};   // ca[sport][mois] = montant
   const adh = {};  // adh[sport][mois] = Set(client_id)
   const adhTotal = {}; // adhTotal[mois] = Set(client_id), tous sports confondus
@@ -6373,33 +6383,32 @@ async function loadRecapSports() {
     const moisCA = DUREE_ABONNEMENT[p.type] ? moisCouvertsKeys(p.date_paiement, p.type) : (m ? [m] : []);
     const part = moisCA.length ? montant / moisCA.length : 0;
     moisCA.filter(k => k.startsWith(String(year))).forEach(k => {
-      if (!isSport) add(ca, AUTRES, k, part);
+      if (!isSport) add(ca, cleExtraRecap(p.type), k, part);
       else {
-        const key = p.type === 'Inscription' ? 'tarif_inscription' : 'tarif_mensuel';
-        const poids = spts.map(s => parseFloat(tarifs[s]?.[key]) || 0);
+        const poids = spts.map(s => parseFloat(tarifs[s]?.tarif_mensuel) || 0);
         const somme = poids.reduce((a, b) => a + b, 0);
         spts.forEach((s, i) => add(ca, s, k, somme ? part * poids[i] / somme : part / spts.length));
       }
     });
 
-    // Adhérents : mois couverts par le paiement (ou mois de l'inscription)
+    // Adhérents : mois couverts par un abonnement
     if (isSport && p.client_id) {
-      const couverts = p.type === 'Inscription' ? [m] : moisCouvertsKeys(p.date_paiement, p.type);
-      couverts.filter(k => k?.startsWith(String(year))).forEach(k => {
+      moisCouvertsKeys(p.date_paiement, p.type).filter(k => k?.startsWith(String(year))).forEach(k => {
         spts.forEach(s => addSet(adh, s, k, p.client_id));
         (adhTotal[k] ??= new Set()).add(p.client_id);
       });
     }
   });
 
+  const extras = [...RECAP_EXTRAS.map(([k]) => k), RECAP_AUTRES];
   const sportRows = [...new Set([...(sports||[]).map(s => s.nom), ...Object.keys(ca), ...Object.keys(adh)])]
-    .filter(s => s !== AUTRES);
-  _recapData = { year, mois, sportRows, ca, adh, adhTotal, AUTRES };
+    .filter(s => !extras.includes(s));
+  _recapData = { year, mois, sportRows, ca, adh, adhTotal, extras };
   renderRecapSports();
 }
 
 function renderRecapSports() {
-  const { mois, sportRows, ca, adh, adhTotal, AUTRES } = _recapData;
+  const { mois, sportRows, ca, adh, adhTotal, extras } = _recapData;
   const noms = LANG === 'ar' ? MOIS_AR : MOIS_FR;
   const sumCa = (k) => mois.reduce((a, m) => a + (ca[k]?.[m] || 0), 0);
   const uniq = (sets) => new Set(sets.flatMap(s => s ? [...s] : [])).size;
@@ -6413,10 +6422,17 @@ function renderRecapSports() {
       + mois.map(m => cell(ca[s]?.[m] || 0, adh[s]?.[m]?.size || 0)).join('')
       + cell(sumCa(s), uniq(mois.map(m => adh[s]?.[m])), 'rc-col-tot') + '</tr>');
 
-  if (sumCa(AUTRES)) rows.push(`<tr><td>${t('stats.recap_autres')}</td>`
-    + mois.map(m => cell(ca[AUTRES]?.[m] || 0, null)).join('') + cell(sumCa(AUTRES), null, 'rc-col-tot') + '</tr>');
+  // Sous-total des abonnements, puis inscription / assurance / autres sur des lignes à part
+  const sousTot = m => sportRows.reduce((a, s) => a + (ca[s]?.[m] || 0), 0);
+  if (rows.length) rows.push(`<tr class="rc-sous"><td>${t('stats.recap_sous_total')}</td>`
+    + mois.map(m => cell(sousTot(m), null)).join('') + cell(mois.reduce((a, m) => a + sousTot(m), 0), null, 'rc-col-tot') + '</tr>');
+  extras.forEach(k => {
+    if (!sumCa(k)) return;
+    const lib = k === RECAP_AUTRES ? t('stats.recap_autres') : t(RECAP_EXTRAS.find(([c]) => c === k)[1]);
+    rows.push(`<tr><td>${lib}</td>` + mois.map(m => cell(ca[k]?.[m] || 0, null)).join('') + cell(sumCa(k), null, 'rc-col-tot') + '</tr>');
+  });
 
-  const totMois = m => [...sportRows, AUTRES].reduce((a, s) => a + (ca[s]?.[m] || 0), 0);
+  const totMois = m => [...sportRows, ...extras].reduce((a, s) => a + (ca[s]?.[m] || 0), 0);
   const totAll = mois.reduce((a, m) => a + totMois(m), 0);
   const totRow = `<tr class="rc-tot"><td>${t('stats.recap_total')}</td>`
     + mois.map(m => cell(totMois(m), adhTotal[m]?.size || 0)).join('')
@@ -6429,12 +6445,14 @@ function renderRecapSports() {
 
 function exportRecapSports() {
   if (!_recapData) return;
-  const { year, mois, sportRows, ca, adh, adhTotal, AUTRES } = _recapData;
+  const { year, mois, sportRows, ca, adh, adhTotal, extras } = _recapData;
   const r = v => Math.round(v || 0);
   const lines = [['Sport', ...mois.flatMap(m => [`${m} CA (DH)`, `${m} adhérents`])]];
   sportRows.forEach(s => lines.push([s, ...mois.flatMap(m => [r(ca[s]?.[m]), adh[s]?.[m]?.size || 0])]));
-  lines.push(['Autres recettes', ...mois.flatMap(m => [r(ca[AUTRES]?.[m]), ''])]);
-  lines.push(['Total', ...mois.flatMap(m => [r([...sportRows, AUTRES].reduce((a, s) => a + (ca[s]?.[m] || 0), 0)), adhTotal[m]?.size || 0])]);
+  lines.push(['Sous-total abonnements', ...mois.flatMap(m => [r(sportRows.reduce((a, s) => a + (ca[s]?.[m] || 0), 0)), ''])]);
+  extras.forEach(k => lines.push([k === RECAP_AUTRES ? 'Autres recettes' : t(RECAP_EXTRAS.find(([c]) => c === k)[1]),
+    ...mois.flatMap(m => [r(ca[k]?.[m]), ''])]));
+  lines.push(['Total', ...mois.flatMap(m => [r([...sportRows, ...extras].reduce((a, s) => a + (ca[s]?.[m] || 0), 0)), adhTotal[m]?.size || 0])]);
   const csv = '﻿' + lines.map(l => l.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
