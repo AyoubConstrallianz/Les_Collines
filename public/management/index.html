@@ -138,7 +138,9 @@ body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Inter','Sego
 
 /* ── Topbar ── */
 .topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 1.25rem;position:sticky;top:0;z-index:100;gap:10px;box-shadow:var(--shadow-xs)}
-.topbar-logo{font-size:15px;font-weight:700;flex:1;color:var(--text);letter-spacing:-.2px}
+.topbar-logo{font-size:15px;font-weight:700;flex:1;color:var(--text);letter-spacing:-.2px;display:inline-flex;align-items:center;gap:10px;min-width:0}
+.topbar-logo-img{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:block;box-shadow:0 1px 4px rgba(15,23,42,.25)}
+.topbar-logo-txt{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tbu{display:flex;align-items:center;gap:10px;font-size:13px}
 .avatar{width:34px;height:34px;border-radius:var(--r-full);background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;box-shadow:0 2px 8px rgba(59,130,246,.2);letter-spacing:.5px}
 .photo-upload{display:flex;gap:14px;align-items:center;margin-bottom:12px;padding:10px 14px;border:1px dashed var(--border);border-radius:var(--r);background:var(--bg3)}
@@ -499,7 +501,8 @@ tr:hover td{background:var(--blue-light)}
 @media(max-width:768px){
   /* Barre du haut sur une ligne, sans débordement */
   .topbar{overflow:hidden}
-  .topbar-logo{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar-logo{flex:1 1 auto;min-width:0;gap:8px}
+  .topbar-logo-img{width:32px;height:32px}
   #tb-role{display:none}
   #lang-btn{margin-inline-start:0 !important}
   .tbu{gap:6px;flex-shrink:0}
@@ -599,7 +602,7 @@ tr:hover td{background:var(--blue-light)}
 <div id="app">
   <div class="topbar">
     <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-    <span class="topbar-logo">Association Les Collines</span>
+    <span class="topbar-logo"><img src="../images/logo-rond-128.png" alt="Logo Les Collines" class="topbar-logo-img" width="38" height="38"><span class="topbar-logo-txt">Association Les Collines</span></span>
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Basculer mode clair/sombre"><svg id="theme-icon-sun" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><svg id="theme-icon-moon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
     <button id="lang-btn" onclick="toggleLang()" style="margin-inline-start:auto;padding:5px 14px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--r-full);background:var(--bg3);color:var(--text2);cursor:pointer;letter-spacing:.3px;transition:all .2s" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">العربية</button>
     <div class="tbu">
