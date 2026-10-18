@@ -1399,8 +1399,27 @@ tr:hover td{background:var(--blue-light)}
                 </select>
               </div>
             </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label data-i18n="remu.title">Rémunération</label>
+              <select id="co-remu" onchange="majFormRemu()">
+                <option value="Mensuel" data-i18n="remu.mensuel">Mensuel — salaire fixe</option>
+                <option value="Groupe" data-i18n="remu.groupe">Par groupe — nombre de groupes × montant unitaire</option>
+                <option value="Pourcentage" data-i18n="remu.pourcentage">Pourcentage — % du CA des adhérents de ses disciplines</option>
+              </select>
+            </div>
+            <div class="fr" id="co-remu-groupe" style="display:none">
+              <div class="fg"><label data-i18n="remu.nb_groupes">Nombre de groupes</label><input id="co-nb-groupes" type="number" min="0" step="1" oninput="majFormRemu()"></div>
+              <div class="fg"><label data-i18n="remu.montant_groupe">Montant par groupe (DH)</label><input id="co-montant-groupe" type="number" min="0" oninput="majFormRemu()"></div>
+            </div>
+            <div id="co-remu-pct" style="display:none">
+              <div class="fr">
+                <div class="fg"><label data-i18n="remu.pct">Pourcentage (%)</label><input id="co-pourcentage" type="number" min="0" max="100" step="0.5" oninput="majFormRemu()"></div>
+                <div class="fg"><label data-i18n="remu.disciplines">Disciplines du coach</label><div id="co-remu-sports" style="font-size:12px;padding:8px 0;color:var(--text2)"></div></div>
+              </div>
+            </div>
+            <div id="co-remu-calc" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--blue-bg);border-radius:var(--r);font-size:13px;color:var(--blue-text)"></div>
             <div class="fr">
-              <div class="fg">
+              <div class="fg" id="co-salaire-wrap">
                 <label id="co-salaire-label" data-i18n="coaches.salaire">Salaire mensuel (DH)</label>
                 <input id="co-salaire" type="number" placeholder="0" min="0">
                 <span id="co-salaire-hint" style="font-size:11px;color:var(--blue-text);margin-top:2px;display:none" data-i18n="coaches.salaire_hint">Tarif payé par séance effectuée</span>
@@ -1438,14 +1457,15 @@ tr:hover td{background:var(--blue-light)}
         <div class="card">
           <div class="ct" data-i18n="salaires.enregistrer_paie">Enregistrer un paiement de salaire</div>
           <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end">
-            <div class="fg" style="flex:2;min-width:160px"><label data-i18n="coaches.salarie">Salarié</label><select id="co-sal-emp"></select></div>
-            <div class="fg" style="min-width:130px"><label data-i18n="coaches.mois_concerne">Mois concerné</label><input id="co-sal-mois" type="month"></div>
+            <div class="fg" style="flex:2;min-width:160px"><label data-i18n="coaches.salarie">Salarié</label><select id="co-sal-emp" onchange="calculerSalaire()"></select></div>
+            <div class="fg" style="min-width:130px"><label data-i18n="coaches.mois_concerne">Mois concerné</label><input id="co-sal-mois" type="month" onchange="calculerSalaire()"></div>
             <div class="fg" style="min-width:120px"><label data-i18n="paie.montant">Montant (DH)</label><input id="co-sal-mont" type="number" min="0"></div>
             <div class="fg" style="min-width:130px"><label data-i18n="coaches.mode_paiement">Mode de paiement</label>
               <select id="co-sal-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select>
             </div>
             <button class="btn btn-p" onclick="saveCoachPaie()" data-i18n="coaches.valider_paie">Valider le paiement</button>
           </div>
+          <div id="co-sal-detail" style="display:none"></div>
         </div>
 
         <!-- Historique des paiements + alertes non payés -->
@@ -2055,6 +2075,26 @@ const I18N = {
     'stats.retards':     'Clients en retard de paiement',
     'stats.recap_title': 'CA par sport et par mois',
     'recu.title':        'Reçu de paiement',
+    'remu.title':        'Rémunération',
+    'remu.mensuel':      'Mensuel — salaire fixe',
+    'remu.groupe':       'Par groupe — nombre de groupes × montant unitaire',
+    'remu.pourcentage':  'Pourcentage — % du CA des adhérents de ses disciplines',
+    'remu.nb_groupes':   'Nombre de groupes',
+    'remu.montant_groupe':'Montant par groupe (DH)',
+    'remu.pct':          'Pourcentage (%)',
+    'remu.disciplines':  'Disciplines du coach',
+    'remu.aucune_discipline':'Aucune discipline : assignez ce coach dans Sports & Tarifs (champ « Coach assigné »).',
+    'remu.mensualite':   'Mensualité',
+    'remu.pct_info':     'Calculé à chaque paiement : CA du mois des adhérents de ses disciplines × pourcentage.',
+    'remu.du_ca':        'du CA',
+    'remu.calcul':       'Calcul en cours…',
+    'remu.groupe_court': 'Par groupe',
+    'remu.mensuel_court':'Salaire mensuel',
+    'remu.discipline':   'Discipline',
+    'remu.adherents':    'Adhérents',
+    'remu.ca_mois':      'CA du mois',
+    'remu.recu_title':   'Reçu de rémunération',
+    'remu.sql':          'Rémunération par groupe / pourcentage non activée : exécutez supabase/13_remuneration_coachs.sql dans Supabase.',
     'imp.btn':           'Importer Excel',
     'imp.title':         'Importer des clients et des paiements',
     'imp.etape1':        'Télécharger le modèle Excel',
@@ -2682,6 +2722,26 @@ const I18N = {
     'stats.retards':    'الزبناء المتأخرون في الدفع',
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
     'recu.title':       'وصل الأداء',
+    'remu.title':       'الأجرة',
+    'remu.mensuel':     'شهري — راتب ثابت',
+    'remu.groupe':      'حسب المجموعة — عدد المجموعات × المبلغ',
+    'remu.pourcentage': 'نسبة مئوية — % من رقم معاملات منخرطي تخصصاته',
+    'remu.nb_groupes':  'عدد المجموعات',
+    'remu.montant_groupe':'المبلغ لكل مجموعة (درهم)',
+    'remu.pct':         'النسبة (%)',
+    'remu.disciplines': 'تخصصات المدرب',
+    'remu.aucune_discipline':'لا توجد تخصصات : عيّن هذا المدرب في الرياضات والأسعار.',
+    'remu.mensualite':  'الأجرة الشهرية',
+    'remu.pct_info':    'تحسب عند كل أداء : رقم معاملات الشهر لمنخرطي تخصصاته × النسبة.',
+    'remu.du_ca':       'من رقم المعاملات',
+    'remu.calcul':      'جارٍ الحساب…',
+    'remu.groupe_court':'حسب المجموعة',
+    'remu.mensuel_court':'الراتب الشهري',
+    'remu.discipline':  'التخصص',
+    'remu.adherents':   'المنخرطون',
+    'remu.ca_mois':     'رقم معاملات الشهر',
+    'remu.recu_title':  'وصل الأجرة',
+    'remu.sql':         'الأجرة حسب المجموعة / النسبة غير مفعلة : نفّذ supabase/13_remuneration_coachs.sql في Supabase.',
     'abo.couvert_jusqu':'مغطى إلى غاية',
     'abo.aucun':        'لم يؤد أي اشتراك',
     'abo.paye_jusqu':   'مؤدى إلى غاية',
@@ -5739,6 +5799,7 @@ async function ouvrirRecu(paiementIds) {
   document.getElementById('recu-title').textContent = `${t('recu.title')} ${p0.numero_recu ? _recu.numero : ''}`.trim();
   document.getElementById('recu-preview').src = blobUrl;
   const btnMail = document.getElementById('btn-recu-mail');
+  btnMail.style.display = '';
   btnMail.disabled = !client.email;
   btnMail.textContent = t('recu.envoyer');
   document.getElementById('recu-mail-info').textContent = client.email
@@ -6693,7 +6754,7 @@ function showMoAl(msg, type) {
 // ════════════════════════════════════════════════════════════
 async function loadCoaches() {
   const { data } = await sb.from('employes').select('*').order('nom');
-  const total = (data||[]).reduce((a,e)=>a+parseFloat(e.salaire||0),0);
+  const total = (data||[]).filter(e => e.actif !== false).reduce((a,e)=>a+parseFloat(e.salaire||0),0);
   document.getElementById('co-nb').textContent    = (data||[]).length;
   document.getElementById('co-masse').textContent = fmt(total);
 
@@ -6734,7 +6795,7 @@ async function loadCoaches() {
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <div style="text-align:right">
-            <div style="font-weight:500;font-size:13px">${fmt(e.salaire)}</div>
+            <div style="font-weight:500;font-size:13px">${libelleRemu(e)}</div>
             <div style="font-size:11px;color:var(--text3)">${e.date_embauche ? t('coaches.since')+' '+e.date_embauche : ''}</div>
           </div>
           ${canWrite?`<button class="btn btn-sm" onclick="editCoach(window._COACHES_LIST[${idx}])">${t('common.modifier')}</button>`:''}
@@ -6760,11 +6821,24 @@ async function saveCoach() {
     notes:         document.getElementById('co-notes').value.trim(),
     actif
   };
+  // Rémunération (n'envoie les colonnes que si utile ou déjà connues : script 13 non exécuté = pas d'erreur)
+  const remu = document.getElementById('co-remu').value;
+  if (remu !== 'Mensuel' || window._coachRemuConnu) {
+    Object.assign(obj, {
+      remuneration:   remu,
+      nb_groupes:     parseInt(document.getElementById('co-nb-groupes').value) || 0,
+      montant_groupe: parseFloat(document.getElementById('co-montant-groupe').value) || 0,
+      pourcentage:    parseFloat(document.getElementById('co-pourcentage').value) || 0
+    });
+    // Par groupe : le salaire mensuel = nb de groupes × montant ; pourcentage : variable (calculé au paiement)
+    if (remu === 'Groupe') obj.salaire = obj.nb_groupes * obj.montant_groupe;
+    if (remu === 'Pourcentage') obj.salaire = 0;
+  }
   if (!obj.prenom||!obj.nom) { showToast(t('coaches.name_required'),'e'); return; }
   const { data: saved, error } = id
     ? await sb.from('employes').update(obj).eq('id',id).select().single()
     : await sb.from('employes').insert(obj).select().single();
-  if (error) { showToast(error.message,'e'); return; }
+  if (error) { showToast(/remuneration|nb_groupes|montant_groupe|pourcentage/.test(error.message) ? t('remu.sql') : error.message,'e'); return; }
 
   // Upload photo et CIN si fichiers sélectionnés
   const empId = saved?.id || id;
@@ -6817,6 +6891,13 @@ function editCoach(e) {
   document.getElementById('co-contrat').value = e.contrat||'CDI';
   toggleSalaireLabel();
   document.getElementById('co-salaire').value = e.salaire||'';
+  window._coachRemuConnu = 'remuneration' in e;
+  window._coachEditNom = `${e.prenom} ${e.nom}`;
+  document.getElementById('co-remu').value = e.remuneration || 'Mensuel';
+  document.getElementById('co-nb-groupes').value = e.nb_groupes || '';
+  document.getElementById('co-montant-groupe').value = e.montant_groupe || '';
+  document.getElementById('co-pourcentage').value = e.pourcentage || '';
+  majFormRemu();
   document.getElementById('co-tel').value     = e.telephone||'';
   document.getElementById('co-emb').value     = e.date_embauche||'';
   document.getElementById('co-depart').value  = e.date_depart||'';
@@ -6828,7 +6909,10 @@ function editCoach(e) {
 }
 
 function resetCoachForm() {
-  ['co-id','co-prenom','co-nom','co-salaire','co-tel','co-emb','co-depart','co-cin','co-notes'].forEach(i=>document.getElementById(i).value='');
+  ['co-id','co-prenom','co-nom','co-salaire','co-tel','co-emb','co-depart','co-cin','co-notes','co-nb-groupes','co-montant-groupe','co-pourcentage'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('co-remu').value = 'Mensuel';
+  window._coachRemuConnu = false; window._coachEditNom = '';
+  majFormRemu();
   document.getElementById('co-poste').value   = 'Coach';
   document.getElementById('co-poste-autre').value=''; document.getElementById('co-poste-autre').style.display='none';
   onPosteChange(); // met à jour les contrats selon le poste par défaut
@@ -6865,12 +6949,21 @@ async function saveCoachPaie() {
     if (!confirm(t('salaires.exists').replace('%s',mois))) return;
   }
 
-  const { error } = await sb.from('salaires_paie').insert({ employe_id:empId, mois, montant, mode, created_by:ME.id });
+  // Détail du calcul conservé avec le paiement (reçu PDF) — seulement s'il correspond à ce salarié et ce mois
+  const detail = (_salCalc && _salCalc.empId === empId && _salCalc.mois === mois) ? { ..._salCalc.detail, montant_verse: montant } : null;
+  let { data: savedSal, error } = await sb.from('salaires_paie').insert({ employe_id:empId, mois, montant, mode, created_by:ME.id, ...(detail ? { detail } : {}) }).select('id').single();
+  if (error && /detail/.test(error.message)) {
+    ({ data: savedSal, error } = await sb.from('salaires_paie').insert({ employe_id:empId, mois, montant, mode, created_by:ME.id }).select('id').single());
+    if (!error) showToast(t('remu.sql'), 'e');
+  }
   if (error) { showToast(error.message,'e'); return; }
   await logAudit('CREATE','coaches',`Salaire ${fmt(montant)} — ${mois}`);
   showToast(t('salaires.saved'),'s');
   document.getElementById('co-sal-mont').value='';
+  document.getElementById('co-sal-detail').style.display = 'none';
+  _salCalc = null;
   loadCoaches(); loadCoachPaies(); loadCoachNonPayes();
+  if (savedSal?.id) ouvrirRecuSalaire(savedSal.id);
 }
 
 async function loadCoachPaies() {
@@ -6905,7 +6998,7 @@ async function loadCoachPaies() {
         <td><span class="badge b-i">${p.mois}</span></td>
         <td style="font-weight:500;color:var(--green)">${fmt(p.montant)}</td>
         <td>${_mTr[p.mode]||p.mode||'—'}</td>
-        <td>${canDel?`<button class="btn btn-sm btn-d" onclick="delCoachPaie('${p.id}')">${t('msg.suppr')}</button>`:''}</td>
+        <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecuSalaire('${p.id}')">${t('recu.btn')}</button> ${canDel?`<button class="btn btn-sm btn-d" onclick="delCoachPaie('${p.id}')">${t('msg.suppr')}</button>`:''}</td>
       </tr>`).join('')
     : `<tr class="empty-row"><td colspan="6">${t('msg.no_payment')}</td></tr>`;
 }
@@ -6922,7 +7015,7 @@ async function loadCoachNonPayes() {
   const { data: paies }    = await sb.from('salaires_paie').select('employe_id,mois').eq('mois',moisCur);
 
   const payesIds = new Set((paies||[]).map(p=>p.employe_id));
-  const nonPayes = (employes||[]).filter(e => !payesIds.has(e.id) && e.salaire > 0);
+  const nonPayes = (employes||[]).filter(e => !payesIds.has(e.id) && e.actif !== false && (e.salaire > 0 || e.remuneration === 'Pourcentage'));
 
   document.getElementById('co-nonpayes').textContent = nonPayes.length;
   document.getElementById('co-nonpayes').style.color = nonPayes.length > 0 ? 'var(--amber)' : 'var(--green)';
@@ -6937,7 +7030,7 @@ async function loadCoachNonPayes() {
           <div style="font-size:11px;color:var(--text2)">${_posteTr2[e.poste]||e.poste||'—'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-weight:500">${fmt(e.salaire)}</span>
+          <span style="font-weight:500">${libelleRemu(e)}</span>
           ${canWrite?`<button class="btn btn-sm btn-p" onclick="prefillPaie('${e.id}')">${t('salaires.payer')}</button>`:''}
         </div>
       </div>`).join('')
@@ -6947,6 +7040,7 @@ async function loadCoachNonPayes() {
 function prefillPaie(empId) {
   document.getElementById('co-sal-emp').value  = empId;
   document.getElementById('co-sal-mois').value = thisMonth();
+  calculerSalaire();
   // Auto-remplit le salaire contractuel
   sb.from('employes').select('salaire').eq('id',empId).single().then(({data})=>{
     if (data) document.getElementById('co-sal-mont').value = data.salaire;
@@ -7040,6 +7134,212 @@ function onPosteChange() {
     contrat.value = (['CDI','CDD','Vacataire','Bénévole'].includes(prevVal)) ? prevVal : 'CDI';
   }
   toggleSalaireLabel();
+}
+
+// ── Rémunération des coachs : mensuel / par groupe / pourcentage du CA ──
+let _salCalc = null; // dernier calcul affiché dans le formulaire de paiement
+
+function libelleRemu(e) {
+  if (e.remuneration === 'Groupe') return `${fmt(e.salaire)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${e.nb_groupes || 0} × ${fmt(e.montant_groupe)})</span>`;
+  if (e.remuneration === 'Pourcentage') return `${e.pourcentage || 0} % <span style="font-size:10px;color:var(--text3);font-weight:400">${t('remu.du_ca')}</span>`;
+  return fmt(e.salaire);
+}
+
+// Sports dont le coach est responsable (champ « Coach assigné » de Sports & Tarifs)
+async function sportsDuCoach(nomComplet) {
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
+  const cle = cleNomClient(...String(nomComplet || '').split(' ').reduce((a, w, i, arr) => i === 0 ? [w, arr.slice(1).join(' ')] : a, ['', '']));
+  return SPORTS_CACHE.filter(sp => sp.coach && cleNomClient(sp.coach, '') === cle);
+}
+
+function majFormRemu() {
+  const remu = document.getElementById('co-remu').value;
+  document.getElementById('co-remu-groupe').style.display = remu === 'Groupe' ? '' : 'none';
+  document.getElementById('co-remu-pct').style.display = remu === 'Pourcentage' ? '' : 'none';
+  document.getElementById('co-salaire-wrap').style.display = remu === 'Mensuel' ? '' : 'none';
+  const calc = document.getElementById('co-remu-calc');
+  if (remu === 'Groupe') {
+    const n = parseInt(document.getElementById('co-nb-groupes').value) || 0, u = parseFloat(document.getElementById('co-montant-groupe').value) || 0;
+    calc.innerHTML = `${t('remu.mensualite')} : ${n} × ${fmt(u)} = <strong>${fmt(n * u)}</strong>`;
+    calc.style.display = '';
+  } else if (remu === 'Pourcentage') {
+    calc.innerHTML = t('remu.pct_info');
+    calc.style.display = '';
+    const nom = window._coachEditNom || `${formatPrenom(document.getElementById('co-prenom').value)} ${formatNom(document.getElementById('co-nom').value)}`;
+    sportsDuCoach(nom).then(list => {
+      document.getElementById('co-remu-sports').innerHTML = list.length
+        ? list.map(sp => `<span class="badge b-i" style="margin:1px">${sp.nom}</span>`).join('')
+        : `<span style="color:var(--amber-text)">${t('remu.aucune_discipline')}</span>`;
+    });
+  } else calc.style.display = 'none';
+}
+
+// CA d'un mois pour une liste de sports : abonnements étalés sur leurs mois, répartis au prorata des tarifs
+// (même règle que le tableau « CA par sport et par mois »)
+async function caSportsDuMois(mois, nomsSports) {
+  const [y, m] = mois.split('-').map(Number);
+  const debut = isoLocal(new Date(y - 1, m - 1, 1)), fin = isoLocal(new Date(y, m, 0));
+  const [{ data: paie }, { data: clients }] = await Promise.all([
+    fetchAllRows(() => sb.from('paiements').select('client_id,montant,date_paiement,type')
+      .in('type', TYPES_PERIODIQUES).gte('date_paiement', debut).lte('date_paiement', fin).order('id')),
+    fetchAllRows(() => sb.from('clients').select('id,sports,sport').order('id'))
+  ]);
+  const tarifs = {}; SPORTS_CACHE.forEach(sp => { tarifs[sp.nom] = sp; });
+  const clientSports = {}; (clients || []).forEach(c => { clientSports[c.id] = c.sports || (c.sport ? [c.sport] : []); });
+  const res = {}; nomsSports.forEach(n => { res[n] = { ca: 0, adherents: new Set() }; });
+  (paie || []).forEach(p => {
+    const keys = moisCouvertsKeys(p.date_paiement, p.type);
+    if (!keys.includes(mois)) return;
+    const spts = (clientSports[p.client_id] || []).filter(Boolean);
+    if (!spts.length) return;
+    const part = (parseFloat(p.montant) || 0) / keys.length;
+    const poids = spts.map(sp => parseFloat(tarifs[sp]?.tarif_mensuel) || 0);
+    const somme = poids.reduce((a, b) => a + b, 0);
+    spts.forEach((sp, i) => {
+      if (!res[sp]) return;
+      res[sp].ca += somme ? part * poids[i] / somme : part / spts.length;
+      res[sp].adherents.add(p.client_id);
+    });
+  });
+  return res;
+}
+
+// Formulaire de paiement : calcule le montant selon le mode de rémunération et affiche le détail
+async function calculerSalaire() {
+  const empId = document.getElementById('co-sal-emp').value, mois = document.getElementById('co-sal-mois').value;
+  const zone = document.getElementById('co-sal-detail');
+  _salCalc = null; zone.style.display = 'none';
+  const e = (window._COACHES_LIST || []).find(x => x.id === empId);
+  if (!e || !mois) return;
+  const remu = e.remuneration || 'Mensuel';
+  let detail;
+  if (remu === 'Groupe') {
+    const total = (e.nb_groupes || 0) * (parseFloat(e.montant_groupe) || 0);
+    detail = { remuneration: 'Groupe', nb_groupes: e.nb_groupes || 0, montant_groupe: parseFloat(e.montant_groupe) || 0, total };
+  } else if (remu === 'Pourcentage') {
+    zone.innerHTML = `<div style="font-size:12px;color:var(--text3)">${t('remu.calcul')}</div>`; zone.style.display = '';
+    const sports = await sportsDuCoach(`${e.prenom} ${e.nom}`);
+    const ca = await caSportsDuMois(mois, sports.map(sp => sp.nom));
+    const lignes = sports.map(sp => ({ sport: sp.nom, adherents: ca[sp.nom].adherents.size, ca: Math.round(ca[sp.nom].ca * 100) / 100 }));
+    const caTotal = lignes.reduce((a, l) => a + l.ca, 0);
+    const adhTotal = new Set(sports.flatMap(sp => [...ca[sp.nom].adherents])).size;
+    const pct = parseFloat(e.pourcentage) || 0;
+    detail = { remuneration: 'Pourcentage', pourcentage: pct, lignes, ca_total: Math.round(caTotal * 100) / 100,
+               adherents_total: adhTotal, total: Math.round(caTotal * pct) / 100 };
+  } else {
+    detail = { remuneration: 'Mensuel', total: parseFloat(e.salaire) || 0 };
+  }
+  // Le formulaire a pu changer pendant le calcul
+  if (document.getElementById('co-sal-emp').value !== empId || document.getElementById('co-sal-mois').value !== mois) return;
+  _salCalc = { empId, mois, detail };
+  document.getElementById('co-sal-mont').value = detail.total || '';
+  zone.innerHTML = detailSalaireHtml(detail);
+  zone.style.display = '';
+}
+
+function detailSalaireHtml(d) {
+  const boite = c => `<div style="margin-top:6px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);font-size:13px">${c}</div>`;
+  if (d.remuneration === 'Groupe')
+    return boite(`${t('remu.groupe_court')} : ${d.nb_groupes} × ${fmt(d.montant_groupe)} = <strong>${fmt(d.total)}</strong>`);
+  if (d.remuneration === 'Pourcentage') {
+    if (!d.lignes.length) return boite(`<span style="color:var(--amber-text)">${t('remu.aucune_discipline')}</span>`);
+    return boite(`<table style="font-size:12px;margin-bottom:6px"><thead><tr><th>${t('remu.discipline')}</th><th style="text-align:end">${t('remu.adherents')}</th><th style="text-align:end">${t('remu.ca_mois')}</th></tr></thead><tbody>
+      ${d.lignes.map(l => `<tr><td>${l.sport}</td><td style="text-align:end">${l.adherents}</td><td style="text-align:end">${fmt(l.ca)}</td></tr>`).join('')}
+      <tr style="font-weight:700"><td>${t('stats.recap_total')}</td><td style="text-align:end">${d.adherents_total}</td><td style="text-align:end">${fmt(d.ca_total)}</td></tr></tbody></table>
+      ${fmt(d.ca_total)} × ${d.pourcentage} % = <strong>${fmt(d.total)}</strong>`);
+  }
+  return boite(`${t('remu.mensuel_court')} : <strong>${fmt(d.total)}</strong>`);
+}
+
+// ── Reçu PDF du paiement de salaire (détail du calcul) ──
+async function ouvrirRecuSalaire(id) {
+  if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  const { data: p, error } = await sb.from('salaires_paie').select('*,employes(*)').eq('id', id).single();
+  if (error || !p) { showToast(error?.message || t('recu.pdf_ko'), 'e'); return; }
+  const e = p.employes || {};
+  const d = p.detail || { remuneration: e.remuneration || 'Mensuel', total: parseFloat(p.montant) || 0 };
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, M = 18, bleu = [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42];
+  const [an, mo] = (p.mois || '').split('-').map(Number);
+  const moisLib = mo ? `${MOIS_LONG_FR[mo - 1]} ${an}` : (p.mois || '-');
+
+  const logo = await chargerLogoRecu();
+  if (logo) doc.addImage(logo, 'PNG', M, 14, 24, 24);
+  const xT = logo ? M + 29 : M;
+  doc.setTextColor(...noir); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text(RECU_ASSO.nom, xT, 21);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+  doc.text(RECU_ASSO.adresse, xT, 27); doc.text(`Tél. ${RECU_ASSO.tel}`, xT, 31.5);
+  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+  doc.text('REÇU DE RÉMUNÉRATION', W - M, 21, { align: 'right' });
+  doc.setTextColor(...noir); doc.setFontSize(10); doc.text(`Mois : ${moisLib}`, W - M, 28, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
+  doc.text(`Payé le : ${dateFr(String(p.created_at || '').slice(0, 10))}`, W - M, 33, { align: 'right' });
+  doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 42, W - M, 42);
+
+  // Salarié
+  doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
+  doc.roundedRect(M, 48, W - 2 * M, 24, 2, 2, 'FD');
+  doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text('BÉNÉFICIAIRE', M + 5, 55);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...noir); doc.text(`${e.prenom || ''} ${e.nom || ''}`, M + 5, 62);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+  const modeLib = { Mensuel: 'Salaire mensuel', Groupe: 'Rémunération par groupe', Pourcentage: `Pourcentage du CA (${d.pourcentage || 0} %)` }[d.remuneration] || '';
+  doc.text([e.poste, e.cin ? `CIN : ${e.cin}` : '', modeLib].filter(Boolean).join('     '), M + 5, 68);
+
+  // Détail du calcul
+  let y = 82;
+  const entete = cols => {
+    doc.setFillColor(...bleu); doc.rect(M, y, W - 2 * M, 9, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+    cols.forEach(([txt, x, al]) => doc.text(txt, x, y + 6, al ? { align: al } : undefined));
+    y += 9; doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  };
+  const ligne = cols => { cols.forEach(([txt, x, al]) => doc.text(String(txt), x, y + 7, al ? { align: al } : undefined)); y += 11; doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y); };
+  if (d.remuneration === 'Pourcentage') {
+    entete([['Discipline', M + 4], ['Adhérents', 130, 'right'], ['CA du mois', W - M - 4, 'right']]);
+    (d.lignes || []).forEach(l => ligne([[l.sport, M + 4], [l.adherents, 130, 'right'], [montantPdf(l.ca), W - M - 4, 'right']]));
+    doc.setFont('helvetica', 'bold');
+    ligne([['Total', M + 4], [d.adherents_total ?? '', 130, 'right'], [montantPdf(d.ca_total), W - M - 4, 'right']]);
+    doc.setFont('helvetica', 'normal');
+    ligne([[`Pourcentage appliqué : ${montantPdf(d.ca_total)} × ${d.pourcentage} %`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
+  } else if (d.remuneration === 'Groupe') {
+    entete([['Désignation', M + 4], ['Groupes', 120, 'right'], ['Montant unitaire', 160, 'right'], ['Total', W - M - 4, 'right']]);
+    ligne([[`Groupes encadrés — ${moisLib}`, M + 4], [d.nb_groupes, 120, 'right'], [montantPdf(d.montant_groupe), 160, 'right'], [montantPdf(d.total), W - M - 4, 'right']]);
+  } else {
+    entete([['Désignation', M + 4], ['Montant', W - M - 4, 'right']]);
+    ligne([[`Salaire mensuel — ${moisLib}`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
+  }
+
+  // Montant versé
+  const verse = parseFloat(p.montant) || 0;
+  doc.setFillColor(239, 246, 255); doc.rect(W - M - 85, y + 4, 85, 11, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
+  doc.text('MONTANT VERSÉ', W - M - 81, y + 11.5); doc.text(montantPdf(verse), W - M - 4, y + 11.5, { align: 'right' });
+  y += 24;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...noir);
+  doc.text(doc.splitTextToSize(`Arrêté le présent reçu à la somme de : ${montantEnLettres(verse)}.`, W - 2 * M), M, y);
+  y += 7; doc.setTextColor(...gris); doc.text(`Mode de paiement : ${p.mode || '-'}`, M, y);
+  if (Math.abs(verse - (d.total || 0)) > 0.009) { y += 5.5; doc.text(`Montant calculé : ${montantPdf(d.total)} (ajusté lors du paiement)`, M, y); }
+
+  // Signatures
+  doc.setDrawColor(203, 213, 225); doc.setLineDashPattern([1.2, 1.2], 0);
+  doc.roundedRect(M, y + 12, 70, 28, 2, 2, 'S'); doc.roundedRect(W - M - 70, y + 12, 70, 28, 2, 2, 'S');
+  doc.setLineDashPattern([], 0); doc.setFontSize(8.5);
+  doc.text("Signature de l'association", M + 35, y + 18, { align: 'center' });
+  doc.text('Signature du bénéficiaire', W - M - 35, y + 18, { align: 'center' });
+  doc.setDrawColor(226, 232, 240); doc.line(M, 280, W - M, 280); doc.setFontSize(8);
+  doc.text(`${RECU_ASSO.nom} - ${RECU_ASSO.adresse}`, W / 2, 285, { align: 'center' });
+  doc.setProperties({ title: `Rémunération ${e.prenom || ''} ${e.nom || ''} ${p.mois || ''}`, author: 'Association Les Collines' });
+
+  // Affichage dans la fenêtre des reçus (impression / téléchargement ; pas d'envoi au client)
+  if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
+  const blobUrl = URL.createObjectURL(doc.output('blob'));
+  _recu = { doc, blobUrl, paiements: [{ id: p.id, numero_recu: null }], numero: `salaire-${p.mois}`, client: { prenom: e.prenom, nom: e.nom } };
+  document.getElementById('recu-title').textContent = `${t('remu.recu_title')} — ${e.prenom || ''} ${e.nom || ''}`;
+  document.getElementById('recu-preview').src = blobUrl;
+  document.getElementById('btn-recu-mail').style.display = 'none';
+  document.getElementById('recu-mail-info').textContent = '';
+  document.getElementById('recu-modal').classList.add('open');
 }
 
 function toggleSalaireLabel() {
