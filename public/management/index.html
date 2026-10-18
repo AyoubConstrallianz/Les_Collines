@@ -810,7 +810,7 @@ tr:hover td{background:var(--blue-light)}
               <div id="p-client-dropdown" class="autocomplete-dropdown"></div>
             </div>
             <div class="fr">
-              <div class="fg"><label data-i18n="paie.type">Type</label><select id="p-type" onchange="onPaiementTypeChange();toggleAutre('p-type','p-type-autre')"><option value="Mensualité" data-i18n="paie.t_mensualite">Mensualité</option><option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel</option><option value="Annuel" data-i18n="paie.t_annuel">Annuel</option><option value="Inscription" data-i18n="paie.t_inscription">Inscription</option><option value="Assurance" data-i18n="paie.t_assurance">Assurance</option><option value="Équipement" data-i18n="paie.t_equipement">Équipement</option><option value="Autre" data-i18n="paie.t_autre">Autre</option></select><input id="p-type-autre" placeholder="Précisez..." style="display:none;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);width:100%"></div>
+              <div class="fg"><label data-i18n="paie.type">Type</label><select id="p-type" onchange="onPaiementTypeChange();toggleAutre('p-type','p-type-autre')"><option value="Mensualité" data-i18n="paie.t_mensualite">Mensualité</option><option value="Semestriel" data-i18n="paie.t_semestriel">6 mois</option><option value="Annuel" data-i18n="paie.t_annuel">Annuel</option><option value="Inscription" data-i18n="paie.t_inscription">Inscription</option><option value="Assurance" data-i18n="paie.t_assurance">Assurance</option><option value="Équipement" data-i18n="paie.t_equipement">Équipement</option><option value="Autre" data-i18n="paie.t_autre">Autre</option></select><input id="p-type-autre" placeholder="Précisez..." style="display:none;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);width:100%"></div>
               <div class="fg"><label data-i18n="paie.mode">Mode</label><select id="p-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
             </div>
             <div class="fr">
@@ -893,7 +893,7 @@ tr:hover td{background:var(--blue-light)}
             <div class="ct" id="sport-form-title" data-i18n="sports.nouveau">Ajouter un sport</div>
             <input type="hidden" id="s-id">
             <div class="fg" style="margin-bottom:10px"><label data-i18n="sports.nom">Nom du sport</label><input id="s-nom" placeholder="Ex: Karaté"></div>
-            <div class="fr"><div class="fg"><label data-i18n="sports.tarif_m">Tarif mensuel (DH)</label><input id="s-tarif" type="number" placeholder="0"></div><div class="fg"><label data-i18n="sports.tarif_t">Tarif trimestriel (DH)</label><input id="s-tarif-trim" type="number" placeholder="0"></div></div>
+            <div class="fr"><div class="fg"><label data-i18n="sports.tarif_m">Tarif mensuel (DH)</label><input id="s-tarif" type="number" placeholder="0"></div><div class="fg"><label data-i18n="sports.tarif_s">Tarif 6 mois (DH)</label><input id="s-tarif-sem" type="number" placeholder="0"></div></div>
             <div class="fr"><div class="fg"><label data-i18n="sports.tarif_a">Tarif annuel (DH)</label><input id="s-tarif-annuel" type="number" placeholder="0"></div><div class="fg"><label data-i18n="sports.tarif_i">Tarif inscription (DH)</label><input id="s-inscr" type="number" placeholder="0"></div></div>
             <div class="fr">
               <div class="fg"><label data-i18n="sports.coach">Coach assigné</label><select id="s-coach"><option value="">— Aucun coach —</option></select></div>
@@ -1489,14 +1489,15 @@ const thisMonth = () => new Date().toISOString().substr(0,7);
 
 const MOIS_FR = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
 const MOIS_AR = ['يناير','فبراير','مارس','أبريل','ماي','يونيو','يوليوز','غشت','شتنبر','أكتوبر','نونبر','دجنبر'];
+// Abonnements périodiques et leur durée en mois.
+// « Trimestriel » n'est plus proposé mais reste reconnu pour les paiements déjà enregistrés.
+const DUREE_ABONNEMENT = { 'Mensualité': 1, 'Trimestriel': 3, 'Semestriel': 6, 'Annuel': 12 };
+const TYPES_PERIODIQUES = Object.keys(DUREE_ABONNEMENT);
 function moisCouvertsKeys(datePaie, type) {
   if (!datePaie) return [];
   const [y, m] = datePaie.split('-').map(Number);
-  let count = 0;
-  if (type === 'Mensualité') count = 1;
-  else if (type === 'Trimestriel') count = 3;
-  else if (type === 'Annuel') count = 12;
-  else return [];
+  const count = DUREE_ABONNEMENT[type] || 0;
+  if (!count) return [];
   const keys = [];
   for (let i = 0; i < count; i++) {
     const mi = (m - 1 + i) % 12;
@@ -1783,6 +1784,7 @@ const I18N = {
     'sports.assur_saved':'Montant de l\'assurance enregistré',
     'sports.assur_missing':'La table « parametres » n\'existe pas encore dans Supabase. Exécutez le script supabase/04_parametres_assurance.sql.',
     'paie.t_trimestriel':'Trimestriel',
+    'paie.t_semestriel': '6 mois',
     'paie.t_annuel':     'Annuel',
     'paie.t_equipement': 'Équipement',
     'paie.t_autre':      'Autre',
@@ -1791,10 +1793,12 @@ const I18N = {
     'paie.m_cheque':     'Chèque',
     'paie.hint_calc':    'Calculé selon les sports',
     'paie.hint_trim':    'Tarif trimestriel',
+    'paie.hint_sem':     'Tarif 6 mois',
     'paie.hint_annuel':  'Tarif annuel',
     'paie.hint_inscr':   'Frais d\'inscription',
     'paie.periode_mois': 'Période couverte (1 mois)',
     'paie.periode_trim': 'Période couverte (3 mois)',
+    'paie.periode_sem':  'Période couverte (6 mois)',
     'paie.periode_annuel':'Période couverte (12 mois)',
     'paie.calc_toggle':  'Calculatrice',
     'paie.calc_hint':    'Usage libre — n\'impacte aucun champ du formulaire',
@@ -1811,6 +1815,8 @@ const I18N = {
     'sports.nom':        'Nom du sport',
     'sports.tarif_m':    'Tarif mensuel (DH)',
     'sports.tarif_t':    'Tarif trimestriel (DH)',
+    'sports.tarif_s':    'Tarif 6 mois (DH)',
+    'sports.sem_sql':    'Le tarif 6 mois n\'est pas encore activé dans Supabase. Exécutez le script supabase/08_tarif_6_mois.sql.',
     'sports.tarif_a':    'Tarif annuel (DH)',
     'sports.tarif_i':    "Tarif inscription (DH)",
     'sports.coach':      'Coach assigné',
@@ -1819,6 +1825,7 @@ const I18N = {
     'sports.disciplines':'Disciplines',
     'sports.lbl_mensuel':'Mensuel',
     'sports.lbl_trimestriel':'Trimestriel',
+    'sports.lbl_semestriel':'6 mois',
     'sports.lbl_annuel':'Annuel',
     'sports.lbl_inscription':'Inscription',
     'sports.lbl_coach':  'Coach',
@@ -2296,6 +2303,7 @@ const I18N = {
     'paie.annee':       'هذه السنة',
     'paie.t_mensualite':'اشتراك شهري',
     'paie.t_trimestriel':'اشتراك فصلي',
+    'paie.t_semestriel':'6 أشهر',
     'paie.t_annuel':    'اشتراك سنوي',
     'paie.t_inscription':'تسجيل',
     'paie.t_assurance': 'تأمين',
@@ -2318,10 +2326,12 @@ const I18N = {
     'paie.m_cheque':    'شيك',
     'paie.hint_calc':   'محسوب حسب الرياضات',
     'paie.hint_trim':   'السعر الفصلي',
+    'paie.hint_sem':    'سعر 6 أشهر',
     'paie.hint_annuel': 'السعر السنوي',
     'paie.hint_inscr':  'رسوم التسجيل',
     'paie.periode_mois': 'الفترة المغطاة (شهر واحد)',
     'paie.periode_trim': 'الفترة المغطاة (3 أشهر)',
+    'paie.periode_sem': 'الفترة المغطاة (6 أشهر)',
     'paie.periode_annuel':'الفترة المغطاة (12 شهرا)',
     'paie.calc_toggle':  'آلة حاسبة',
     'paie.calc_hint':    'استخدام حر — لا يؤثر على أي حقل في النموذج',
@@ -2338,6 +2348,8 @@ const I18N = {
     'sports.nom':       'اسم الرياضة',
     'sports.tarif_m':   'الاشتراك الشهري (درهم)',
     'sports.tarif_t':   'الاشتراك الفصلي (درهم)',
+    'sports.tarif_s':   'اشتراك 6 أشهر (درهم)',
+    'sports.sem_sql':   'سعر 6 أشهر غير مفعل بعد في Supabase. نفّذ السكريبت supabase/08_tarif_6_mois.sql.',
     'sports.tarif_a':   'الاشتراك السنوي (درهم)',
     'sports.tarif_i':   'رسوم التسجيل (درهم)',
     'sports.coach':     'المدرب المعين',
@@ -2346,6 +2358,7 @@ const I18N = {
     'sports.disciplines':'التخصصات',
     'sports.lbl_mensuel':'الشهري',
     'sports.lbl_trimestriel':'الفصلي',
+    'sports.lbl_semestriel':'6 أشهر',
     'sports.lbl_annuel':'السنوي',
     'sports.lbl_inscription':'التسجيل',
     'sports.lbl_coach': 'المدرب',
@@ -3561,15 +3574,17 @@ async function onPaiementTypeChange() {
   const isInscr   = type === 'Inscription';
   const isMensuel = type === 'Mensualité';
   const isTrim    = type === 'Trimestriel';
+  const isSem     = type === 'Semestriel';
   const isAnnuel  = type === 'Annuel';
 
-  if (isInscr || isMensuel || isTrim || isAnnuel) {
-    const key = isInscr ? 'tarif_inscription' : isTrim ? 'tarif_trimestriel' : isAnnuel ? 'tarif_annuel' : 'tarif_mensuel';
+  if (isInscr || isMensuel || isTrim || isSem || isAnnuel) {
+    const key = isInscr ? 'tarif_inscription' : isTrim ? 'tarif_trimestriel' : isSem ? 'tarif_semestriel' : isAnnuel ? 'tarif_annuel' : 'tarif_mensuel';
     // Pour trim/annuel : si pas de tarif spécifique, calculer depuis le mensuel
     const total = sports.reduce((a,s)=>{
       const sp = sportMap[s];
       if (!sp) return a;
       if (isTrim) return a + (sp.tarif_trimestriel || sp.tarif_mensuel * 3);
+      if (isSem) return a + (sp.tarif_semestriel || sp.tarif_mensuel * 6);
       if (isAnnuel) return a + (sp.tarif_annuel || sp.tarif_mensuel * 12);
       return a + (sp[key]||0);
     },0);
@@ -3578,7 +3593,7 @@ async function onPaiementTypeChange() {
     document.getElementById('p-montant').value = total;
 
     // Hint sous le label
-    const hint = isMensuel ? t('paie.hint_calc') : isTrim ? t('paie.hint_trim') : isAnnuel ? t('paie.hint_annuel') : t('paie.hint_inscr');
+    const hint = isMensuel ? t('paie.hint_calc') : isTrim ? t('paie.hint_trim') : isSem ? t('paie.hint_sem') : isAnnuel ? t('paie.hint_annuel') : t('paie.hint_inscr');
     document.getElementById('p-montant-hint').textContent = `· ${hint}`;
 
     // Détail par sport
@@ -3587,6 +3602,7 @@ async function onPaiementTypeChange() {
       if (!sp) return '';
       let val;
       if (isTrim) val = sp.tarif_trimestriel || sp.tarif_mensuel * 3;
+      else if (isSem) val = sp.tarif_semestriel || sp.tarif_mensuel * 6;
       else if (isAnnuel) val = sp.tarif_annuel || sp.tarif_mensuel * 12;
       else val = sp[key]||0;
       return `<span style="margin-right:12px"><svg width="13" height="13" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><path d="M12 8v8m-4-4h8"/></svg> ${s} : <strong>${fmt(val)}</strong></span>`;
@@ -3606,11 +3622,11 @@ function updatePeriodeDetail() {
   const type = document.getElementById('p-type').value;
   const dateVal = document.getElementById('p-date').value;
   const el = document.getElementById('p-periode-detail');
-  if (!dateVal || (type !== 'Mensualité' && type !== 'Trimestriel' && type !== 'Annuel')) {
+  if (!dateVal || !DUREE_ABONNEMENT[type]) {
     el.style.display = 'none'; return;
   }
   const d = new Date(dateVal);
-  let months = type === 'Mensualité' ? 1 : type === 'Trimestriel' ? 3 : 12;
+  let months = DUREE_ABONNEMENT[type];
   const fin = new Date(d);
   fin.setMonth(fin.getMonth() + months);
   fin.setDate(fin.getDate() - 1);
@@ -3626,7 +3642,7 @@ function updatePeriodeDetail() {
     const yi = d.getFullYear() + Math.floor((d.getMonth() + i) / 12);
     moisList.push('<strong>' + noms[mi] + ' ' + yi + '</strong>');
   }
-  const label = type === 'Mensualité' ? t('paie.periode_mois') : type === 'Trimestriel' ? t('paie.periode_trim') : t('paie.periode_annuel');
+  const label = ({ 'Mensualité': t('paie.periode_mois'), 'Trimestriel': t('paie.periode_trim'), 'Semestriel': t('paie.periode_sem') })[type] || t('paie.periode_annuel');
   el.innerHTML = `<div style="margin-bottom:4px"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${label}</div>`
     + `<div style="font-weight:600;font-size:13px">${fmtDate(d)} → ${fmtDate(fin)}</div>`
     + `<div style="margin-top:4px;font-size:11px;color:var(--text2)">${t('paie.mois_couverts')} : ${moisList.join(', ')}</div>`;
@@ -3968,7 +3984,7 @@ async function showClientFiche(idx, event) {
 // Libellé lisible d'un encaissement : « Mensualité Karaté — Octobre 2026 »
 function libelleEncaissement(p, sports) {
   const noms = LANG === 'ar' ? MOIS_AR : MOIS_LONG_FR;
-  const typeLbl = ({ 'Mensualité': t('paie.t_mensualite'), 'Trimestriel': t('paie.t_trimestriel'), 'Annuel': t('paie.t_annuel'),
+  const typeLbl = ({ 'Mensualité': t('paie.t_mensualite'), 'Trimestriel': t('paie.t_trimestriel'), 'Semestriel': t('paie.t_semestriel'), 'Annuel': t('paie.t_annuel'),
     'Inscription': t('paie.frais_inscr'), 'Assurance': t('paie.frais_assur'), 'Équipement': t('paie.t_equipement') })[p.type] || p.type || '—';
   const keys = moisCouvertsKeys(p.date_paiement, p.type);
   const mois = k => { const [y, m] = k.split('-').map(Number); return noms[m - 1] + ' ' + y; };
@@ -4580,7 +4596,7 @@ async function loadPaiements() {
   const recY = (allData||[]).filter(p=>p.date_paiement?.startsWith(year+'')).reduce((a,p)=>a+parseFloat(p.montant||0),0);
   document.getElementById('p-mois-total').textContent  = fmt(recM);
   document.getElementById('p-annee-total').textContent = fmt(recY);
-  const typeTr={'Mensualité':t('paie.t_mensualite'),'Trimestriel':t('paie.t_trimestriel'),'Annuel':t('paie.t_annuel'),'Inscription':t('paie.t_inscription'),'Assurance':t('paie.t_assurance'),'Équipement':t('paie.t_equipement'),'Autre':t('paie.t_autre')};
+  const typeTr={'Mensualité':t('paie.t_mensualite'),'Trimestriel':t('paie.t_trimestriel'),'Semestriel':t('paie.t_semestriel'),'Annuel':t('paie.t_annuel'),'Inscription':t('paie.t_inscription'),'Assurance':t('paie.t_assurance'),'Équipement':t('paie.t_equipement'),'Autre':t('paie.t_autre')};
   const modeTr={'Espèces':t('paie.m_especes'),'Virement':t('paie.m_virement'),'Chèque':t('paie.m_cheque')};
   const types = {};
   list.forEach(p=>{ const k=typeTr[p.type]||p.type; types[k]=(types[k]||0)+parseFloat(p.montant||0); });
@@ -4686,19 +4702,19 @@ async function savePaiement() {
 
   // ── Vérification chevauchement de période ──
   const newType = document.getElementById('p-type').value;
-  if (newType === 'Mensualité' || newType === 'Trimestriel' || newType === 'Annuel') {
-    const newMonths = newType === 'Mensualité' ? 1 : newType === 'Trimestriel' ? 3 : 12;
+  if (DUREE_ABONNEMENT[newType]) {
+    const newMonths = DUREE_ABONNEMENT[newType];
     const newStart = new Date(obj.date_paiement);
     const newEnd = new Date(newStart); newEnd.setMonth(newEnd.getMonth() + newMonths); newEnd.setDate(newEnd.getDate() - 1);
 
     // Charger les paiements existants du client (types périodiques uniquement)
     const { data: existPaies } = await sb.from('paiements').select('date_paiement,type')
       .eq('client_id', obj.client_id)
-      .in('type', ['Mensualité','Trimestriel','Annuel']);
+      .in('type', TYPES_PERIODIQUES);
 
     let chevauchement = null;
     for (const ep of (existPaies || [])) {
-      const epMonths = ep.type === 'Mensualité' ? 1 : ep.type === 'Trimestriel' ? 3 : 12;
+      const epMonths = DUREE_ABONNEMENT[ep.type];
       const epStart = new Date(ep.date_paiement);
       const epEnd = new Date(epStart); epEnd.setMonth(epEnd.getMonth() + epMonths); epEnd.setDate(epEnd.getDate() - 1);
       // Chevauchement si les deux plages se croisent
@@ -4880,7 +4896,7 @@ async function genererRecuPdf(p, client, encaissePar) {
   doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
   doc.text('Désignation', cDes, y + 6); doc.text('Période', cPer, y + 6); doc.text('Montant', cMnt, y + 6, { align: 'right' });
   y += 9;
-  const designation = ({ 'Mensualité': 'Mensualité', 'Trimestriel': 'Abonnement trimestriel', 'Annuel': 'Abonnement annuel',
+  const designation = ({ 'Mensualité': 'Mensualité', 'Trimestriel': 'Abonnement trimestriel', 'Semestriel': 'Abonnement 6 mois', 'Annuel': 'Abonnement annuel',
     'Inscription': "Frais d'inscription", 'Assurance': 'Assurance', 'Équipement': 'Équipement' })[p.type] || p.type || 'Paiement';
   doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
   const desLignes = doc.splitTextToSize(designation + (p.note && p.note !== designation && p.note !== "Frais d'inscription" ? ` - ${p.note}` : ''), cPer - cDes - 4);
@@ -5056,7 +5072,7 @@ async function loadSports() {
           <div style="font-size:12px;color:var(--text2);margin-bottom:4px">${s.description||''}</div>
           <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;align-items:center">
             <span>${t('sports.lbl_mensuel')}: <strong style="color:var(--green)">${fmt(s.tarif_mensuel)}</strong></span>
-            ${s.tarif_trimestriel?`<span>${t('sports.lbl_trimestriel')}: <strong style="color:var(--green)">${fmt(s.tarif_trimestriel)}</strong></span>`:''}
+            ${s.tarif_semestriel?`<span>${t('sports.lbl_semestriel')}: <strong style="color:var(--green)">${fmt(s.tarif_semestriel)}</strong></span>`:''}
             ${s.tarif_annuel?`<span>${t('sports.lbl_annuel')}: <strong style="color:var(--green)">${fmt(s.tarif_annuel)}</strong></span>`:''}
             <span>${t('sports.lbl_inscription')}: <strong>${fmt(s.tarif_inscription)}</strong></span>
             ${s.coach?`<span style="display:flex;align-items:center;gap:4px;color:var(--text2)">${t('sports.lbl_coach')}: <strong style="color:var(--text)">${s.coach}</strong> ${coachBadge}</span>`:''}
@@ -5082,7 +5098,9 @@ async function saveSport() {
   const obj = {
     nom:              document.getElementById('s-nom').value.trim(),
     tarif_mensuel:    parseFloat(document.getElementById('s-tarif').value)||0,
-    tarif_trimestriel:parseFloat(document.getElementById('s-tarif-trim').value)||0,
+    // N'envoie le tarif 6 mois que si la colonne est connue ou le champ rempli (script 08 non exécuté = pas d'erreur)
+    ...((parseFloat(document.getElementById('s-tarif-sem').value) || window._sportEditSemConnu)
+      ? { tarif_semestriel: parseFloat(document.getElementById('s-tarif-sem').value)||0 } : {}),
     tarif_annuel:     parseFloat(document.getElementById('s-tarif-annuel').value)||0,
     tarif_inscription:parseFloat(document.getElementById('s-inscr').value)||0,
     horaires:         document.getElementById('s-horaires').value,
@@ -5091,7 +5109,8 @@ async function saveSport() {
   };
   if (!obj.nom) { showToast(t('sports.name_required'),'e'); return; }
   const { error } = id ? await sb.from('sports').update(obj).eq('id',id) : await sb.from('sports').insert(obj);
-  if (error) { showToast(error.message,'e'); return; }
+  if (error) { showToast(/tarif_semestriel/.test(error.message) ? t('sports.sem_sql') : error.message,'e'); return; }
+  SPORTS_CACHE = [];
   showToast(id?'Modifié':'Ajouté','s'); resetSportForm(); loadSports();
 }
 
@@ -5099,7 +5118,8 @@ function editSport(s) {
   document.getElementById('s-id').value       = s.id;
   document.getElementById('s-nom').value      = s.nom;
   document.getElementById('s-tarif').value    = s.tarif_mensuel;
-  document.getElementById('s-tarif-trim').value = s.tarif_trimestriel||'';
+  document.getElementById('s-tarif-sem').value = s.tarif_semestriel||'';
+  window._sportEditSemConnu = 'tarif_semestriel' in s;
   document.getElementById('s-tarif-annuel').value = s.tarif_annuel||'';
   document.getElementById('s-inscr').value    = s.tarif_inscription;
   document.getElementById('s-horaires').value = s.horaires||'';
@@ -5116,7 +5136,8 @@ function editSport(s) {
 }
 
 function resetSportForm() {
-  ['s-id','s-nom','s-tarif','s-tarif-trim','s-tarif-annuel','s-inscr','s-horaires','s-desc'].forEach(i=>document.getElementById(i).value='');
+  window._sportEditSemConnu = false;
+  ['s-id','s-nom','s-tarif','s-tarif-sem','s-tarif-annuel','s-inscr','s-horaires','s-desc'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('s-coach').value = '';
   document.getElementById('sport-form-title').textContent = t('sports.add_title');
 }
@@ -5371,7 +5392,7 @@ async function fetchAllRows(build, pageSize = 1000) {
   }
 }
 
-const RECAP_TYPES_SPORT = ['Mensualité','Trimestriel','Annuel','Inscription'];
+const RECAP_TYPES_SPORT = [...TYPES_PERIODIQUES, 'Inscription'];
 let _recapData = null;
 
 async function loadRecapSports() {
