@@ -36,7 +36,7 @@ router.post('/envoyer-recu', async (req, res) => {
     if (new Set(rows.map(x => x.client_id)).size !== 1) return res.status(400).json({ error: 'Paiements de clients différents' });
     const p = rows[0];
     const montantTotal = rows.reduce((a, x) => a + (parseFloat(x.montant) || 0), 0);
-    const numeros = rows.map(x => x.numero_recu).filter(Boolean).join(' / ');
+    const numeros = [...new Set(rows.map(x => x.numero_recu).filter(Boolean))].join(' / ');
 
     const client = p.clients || {};
     if (!client.email) return res.status(400).json({ error: "Ce client n'a pas d'adresse e-mail" });
