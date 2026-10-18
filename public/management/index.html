@@ -2079,7 +2079,7 @@ const I18N = {
     'imp.e_client':      'Réf client ou Téléphone client obligatoire',
     'imp.e_date_paie':   'date du paiement manquante ou invalide (JJ/MM/AAAA)',
     'imp.e_type':        'type « %s » invalide',
-    'imp.e_montant':     'montant manquant ou invalide',
+    'imp.e_montant':     'montant manquant ou négatif (0 accepté)',
     'imp.e_mode':        'mode « %s » invalide (Espèces / Virement / Chèque)',
     'imp.a_existe':      '%s existe déjà : fiche réutilisée, non recréée',
     'imp.a_homonyme':    'un client « %s » existe déjà avec un autre téléphone : une nouvelle fiche sera créée',
@@ -4810,7 +4810,7 @@ async function analyserImport(fC, fP) {
     const L = r._ligne, ref = String(r['ref client'] ?? '').trim();
     const c = {
       prenom: formatPrenom(r['prenom']), nom: formatNom(r['nom']),
-      telephone: String(r['telephone'] ?? '').trim(), telephone2: String(r['telephone 2'] ?? '').trim() || null,
+      telephone: String(r['telephone'] ?? '').trim() || null, telephone2: String(r['telephone 2'] ?? '').trim() || null,
       cin: String(r['cin'] ?? '').trim() || null, email: String(r['e-mail'] ?? '').trim() || null,
       date_naissance: dateImport(r['date de naissance']), date_inscription: dateImport(r["date d'inscription"]),
       sexe: ({ homme: 'Homme', femme: 'Femme', h: 'Homme', f: 'Femme' })[_sansAccent(r['sexe'])] || null,
@@ -4819,7 +4819,6 @@ async function analyserImport(fC, fP) {
     if (!ref) err('Clients', L, t('imp.e_ref'));
     else if (parRef[_sansAccent(ref)]) err('Clients', L, t('imp.e_ref_double').replace('%s', ref));
     if (!c.prenom || !c.nom) err('Clients', L, t('imp.e_nom'));
-    if (!c.telephone) err('Clients', L, t('imp.e_tel'));
     if (!c.sexe) err('Clients', L, t('imp.e_sexe'));
     if (!c.date_inscription || c.date_inscription === 'invalide') err('Clients', L, t('imp.e_date_insc'));
     if (c.date_naissance === 'invalide') { err('Clients', L, t('imp.e_date_naiss')); c.date_naissance = null; }
@@ -4862,7 +4861,7 @@ async function analyserImport(fC, fP) {
     let mode = MODES_IMPORT[_sansAccent(r['mode'])];
     if (!date || date === 'invalide') err('Paiements', L, t('imp.e_date_paie'));
     if (!type) err('Paiements', L, t('imp.e_type').replace('%s', r['type'] || '—'));
-    if (!(montant > 0)) err('Paiements', L, t('imp.e_montant'));
+    if (isNaN(montant) || montant < 0) err('Paiements', L, t('imp.e_montant'));
     if (!mode) { if (r['mode']) err('Paiements', L, t('imp.e_mode').replace('%s', r['mode'])); else mode = 'Espèces'; }
     paiements.push({ ligne: L, client, existantId, transaction: String(r['n° transaction'] ?? r['n transaction'] ?? '').trim(),
       data: { date_paiement: date, type, montant, mode, note: String(r['note'] ?? '').trim() } });
@@ -5393,7 +5392,7 @@ async function savePaiement() {
     note:          document.getElementById('p-note').value,
     created_by:    ME.id
   };
-  if (!obj.client_id||!obj.montant) { showToast(t('paie.required'),'e'); return; }
+  if (!obj.client_id || isNaN(obj.montant) || obj.montant < 0) { showToast(t('paie.required'),'e'); return; }
 
   // ── Vérification chevauchement de période ──
   const newType = document.getElementById('p-type').value;
@@ -5769,7 +5768,7 @@ function lireLignesModif() {
     if (!v('type')) return;
     l.type = v('type').value;
     const m = parseFloat(v('montant').value);
-    l.montant = isNaN(m) ? 0 : m;
+    l.montant = isNaN(m) ? '' : m;
     l.date_paiement = v('date').value || l.date_paiement;
     l.note = v('note').value.trim();
   });
@@ -5842,7 +5841,7 @@ async function enregistrerModifTransaction() {
   const mode = document.getElementById('pe-mode').value;
   const gardees = _peEdit.lignes.filter(l => !l.retiree);
   if (!gardees.length) { showToast(t('pe.une_ligne'), 'e'); return; }
-  if (gardees.some(l => !(l.montant > 0))) { showToast(t('paie.required'), 'e'); return; }
+  if (gardees.some(l => l.montant === '' || l.montant < 0)) { showToast(t('paie.required'), 'e'); return; }
 
   const origine = _peEdit.origine;
   const avant = id => origine.find(o => o.id === id);
