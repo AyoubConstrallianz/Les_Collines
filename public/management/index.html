@@ -720,9 +720,10 @@ tr:hover td{background:var(--blue-light)}
             </div>
           </div>
           <div class="fr"><div class="fg"><label data-i18n="clients.prenom">Prénom</label><input id="c-prenom" placeholder="Prénom"></div><div class="fg"><label data-i18n="clients.nom">Nom</label><input id="c-nom" placeholder="Nom"></div></div>
-          <div class="fr"><div class="fg"><label data-i18n="clients.tel">Téléphone</label><input id="c-tel" placeholder="06 00 00 00 00"></div><div class="fg"><label data-i18n="clients.cin">CIN</label><input id="c-cin" placeholder="AB123456"></div></div>
-          <div class="fr"><div class="fg"><label data-i18n="clients.email">E-mail</label><input id="c-email" type="email" placeholder="exemple@email.com"></div><div class="fg"><label data-i18n="clients.dob">Date de naissance</label><input id="c-dob" type="date"></div></div>
-          <div class="fr"><div class="fg"><label data-i18n="clients.sexe">Sexe</label><select id="c-sexe"><option value="Homme" data-i18n="clients.homme">Homme</option><option value="Femme" data-i18n="clients.femme">Femme</option></select></div><div class="fg"><label data-i18n="clients.date_insc">Date d'inscription</label><input id="c-date" type="date"></div></div>
+          <div class="fr"><div class="fg"><label data-i18n="clients.tel">Téléphone</label><input id="c-tel" placeholder="06 00 00 00 00"></div><div class="fg"><label><span data-i18n="clients.tel2">Téléphone 2</span> <span style="color:var(--text3);font-weight:400" data-i18n="clients.optionnel">(facultatif)</span></label><input id="c-tel2" placeholder="06 00 00 00 00"></div></div>
+          <div class="fr"><div class="fg"><label data-i18n="clients.cin">CIN</label><input id="c-cin" placeholder="AB123456"></div><div class="fg"><label data-i18n="clients.email">E-mail</label><input id="c-email" type="email" placeholder="exemple@email.com"></div></div>
+          <div class="fr"><div class="fg"><label data-i18n="clients.dob">Date de naissance</label><input id="c-dob" type="date"></div><div class="fg"><label data-i18n="clients.sexe">Sexe</label><select id="c-sexe"><option value="Homme" data-i18n="clients.homme">Homme</option><option value="Femme" data-i18n="clients.femme">Femme</option></select></div></div>
+          <div class="fr"><div class="fg"><label data-i18n="clients.date_insc">Date d'inscription</label><input id="c-date" type="date"></div><div class="fg"></div></div>
           <div class="fg" style="margin-bottom:10px">
             <label><span data-i18n="clients.sports">Sports pratiqués</span> <span style="color:var(--text3);font-weight:400" data-i18n="clients.sports_hint">(sélectionnez un ou plusieurs)</span></label>
             <div id="c-sports-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-top:6px;padding:10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)"></div>
@@ -1687,6 +1688,9 @@ const I18N = {
     'clients.prenom':    'Prénom',
     'clients.nom':       'Nom',
     'clients.tel':       'Téléphone',
+    'clients.tel2':      'Téléphone 2',
+    'clients.optionnel': '(facultatif)',
+    'clients.tel2_sql':  'Le 2e numéro n\'est pas encore activé dans Supabase. Exécutez le script supabase/07_telephone2_clients.sql.',
     'clients.email':     'E-mail',
     'clients.cin':       'CIN',
     'clients.photo':     'Photo du client',
@@ -2211,6 +2215,9 @@ const I18N = {
     'clients.prenom':   'الاسم الأول',
     'clients.nom':      'اسم العائلة',
     'clients.tel':      'الهاتف',
+    'clients.tel2':     'الهاتف 2',
+    'clients.optionnel':'(اختياري)',
+    'clients.tel2_sql': 'الرقم الثاني غير مفعل بعد في Supabase. نفّذ السكريبت supabase/07_telephone2_clients.sql.',
     'clients.email':    'البريد الإلكتروني',
     'clients.cin':      'البطاقة الوطنية',
     'clients.photo':    'صورة الزبون',
@@ -3473,7 +3480,7 @@ function updateTarifPreview() {
 let _clientsForSelect = [];
 async function loadClientsForSelect(id) {
   // Actifs + Inactifs (impayés qui reviennent payer) — les Suspendus restent exclus
-  const { data } = await sb.from('clients').select('id,prenom,nom,sports,sport,photo_url,statut,telephone').neq('statut','Suspendu').order('nom');
+  const { data } = await sb.from('clients').select('*').neq('statut','Suspendu').order('nom');
   _clientsForSelect = data||[];
   // Sélectionner le premier par défaut
   if (_clientsForSelect.length) {
@@ -3485,7 +3492,7 @@ function filterClientList() {
   const input = document.getElementById('p-client-search');
   const dd = document.getElementById('p-client-dropdown');
   const q = input.value.toLowerCase();
-  const filtered = _clientsForSelect.filter(c => (c.prenom+' '+c.nom+' '+(c.telephone||'')).toLowerCase().includes(q));
+  const filtered = _clientsForSelect.filter(c => (c.prenom+' '+c.nom+' '+(c.telephone||'')+' '+(c.telephone2||'')).toLowerCase().includes(q));
   if (!filtered.length) {
     dd.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--text3)">Aucun client trouvé</div>';
   } else {
@@ -3687,7 +3694,10 @@ async function loadClients() {
   let list = (data||[]).filter(c => {
     const name = (c.prenom+' '+c.nom).toLowerCase();
     const sports = c.sports || (c.sport ? [c.sport] : []);
-    const matchQ = !q || name.includes(q);
+    // Recherche aussi par téléphone (chiffres seuls, espaces ignorés)
+    const qTel = q.replace(/\D/g, '');
+    const tels = [c.telephone, c.telephone2].map(v => (v||'').replace(/\D/g, ''));
+    const matchQ = !q || name.includes(q) || (qTel.length >= 3 && tels.some(v => v.includes(qTel)));
     const matchS = !sport || sports.includes(sport);
     return matchQ && matchS;
   });
@@ -3720,7 +3730,7 @@ async function loadClients() {
           <td style="color:var(--text3)">${i+1}</td>
           <td><div style="display:flex;align-items:center;gap:8px">${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}<strong>${c.prenom} ${c.nom}</strong></div></td>
           <td style="font-size:12px">${c.cin||'—'}</td>
-          <td>${c.telephone||'—'}</td>
+          <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>')||'—'}</td>
           <td>${badges||'—'}</td>
           <td style="font-size:12px;color:var(--text2)">${c.date_inscription||'—'}</td>
           <td style="font-size:12px;color:var(--green);font-weight:500">${mensuel?fmt(mensuel):'—'}</td>
@@ -3747,6 +3757,8 @@ async function saveClient() {
     prenom:           document.getElementById('c-prenom').value.trim(),
     nom:              document.getElementById('c-nom').value.trim(),
     telephone:        document.getElementById('c-tel').value.trim(),
+    ...((document.getElementById('c-tel2').value.trim() || window._clientEditTel2Connu)
+      ? { telephone2: document.getElementById('c-tel2').value.trim() || null } : {}),
     cin:              document.getElementById('c-cin').value.trim()||null,
     email:            document.getElementById('c-email').value.trim()||null,
     date_naissance:   document.getElementById('c-dob').value||null,
@@ -3776,7 +3788,7 @@ async function saveClient() {
   const { data: saved, error } = id
     ? await sb.from('clients').update(obj).eq('id', id).select().single()
     : await sb.from('clients').insert(obj).select().single();
-  if (error) { showToast(error.message, 'e'); return; }
+  if (error) { showToast(/telephone2/.test(error.message) ? t('clients.tel2_sql') : error.message, 'e'); return; }
 
   // Upload photo et CIN si fichiers sélectionnés
   const clientId = saved?.id || id;
@@ -3930,6 +3942,7 @@ async function showClientFiche(idx, event) {
         <div style="font-size:18px;font-weight:700;margin-bottom:2px">${c.prenom} ${c.nom}</div>
         <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${t('clients.fiche_inscrit')} ${c.date_inscription||'—'}</div>
         ${infoLine(t('clients.tel'), c.telephone)}
+        ${infoLine(t('clients.tel2'), c.telephone2)}
         ${infoLine(t('clients.email'), c.email)}
         ${infoLine(t('clients.cin'), c.cin)}
         ${infoLine(t('clients.dob'), c.date_naissance)}
@@ -4130,7 +4143,7 @@ async function generateCarteAdherent(c, sports, mensuel) {
 
   const col1 = 185, col2 = 580, rY = 38;
   drawBiField(FR['clients.cin']||'CIN', AR['clients.cin']||'رقم البطاقة', c.cin || '—', col1, 175);
-  drawBiField(FR['clients.tel']||'Téléphone', AR['clients.tel']||'الهاتف', c.telephone || '—', col1, 175 + rY);
+  drawBiField(FR['clients.tel']||'Téléphone', AR['clients.tel']||'الهاتف', [c.telephone, c.telephone2].filter(Boolean).join(' / ') || '—', col1, 175 + rY);
   drawBiField(FR['clients.email']||'E-mail', AR['clients.email']||'البريد الإلكتروني', c.email || '—', col1, 175 + rY * 2);
   drawBiField(FR['clients.dob']||'Date de naissance', AR['clients.dob']||'تاريخ الازدياد', c.date_naissance || '—', col1, 175 + rY * 3);
 
@@ -4234,6 +4247,8 @@ function editClient(c) {
   document.getElementById('c-prenom').value = c.prenom;
   document.getElementById('c-nom').value = c.nom;
   document.getElementById('c-tel').value = c.telephone||'';
+  document.getElementById('c-tel2').value = c.telephone2||'';
+  window._clientEditTel2Connu = 'telephone2' in c;
   document.getElementById('c-cin').value = c.cin||'';
   document.getElementById('c-email').value = c.email||'';
   document.getElementById('c-dob').value = c.date_naissance||'';
@@ -4272,7 +4287,8 @@ function closeClientForm() {
 }
 
 function resetClientForm() {
-  ['c-id','c-prenom','c-nom','c-tel','c-email','c-cin','c-dob','c-date','c-mensuel-custom','c-inscr-custom'].forEach(i=>{
+  window._clientEditTel2Connu = false;
+  ['c-id','c-prenom','c-nom','c-tel','c-tel2','c-email','c-cin','c-dob','c-date','c-mensuel-custom','c-inscr-custom'].forEach(i=>{
     const el = document.getElementById(i); if(el) el.value='';
   });
   document.getElementById('client-form-title').textContent = t('clients.new');
@@ -4313,7 +4329,7 @@ function majBadgeDoublons(clients) {
 
 const _ligneClientDoublon = c => {
   const spts = c.sports || (c.sport ? [c.sport] : []);
-  return [c.telephone, c.cin, spts.join(', '), c.date_inscription ? `${t('doublons.inscrit')} ${c.date_inscription}` : '']
+  return [c.telephone, c.telephone2, c.cin, spts.join(', '), c.date_inscription ? `${t('doublons.inscrit')} ${c.date_inscription}` : '']
     .filter(Boolean).join(' · ') || '—';
 };
 
@@ -4520,7 +4536,7 @@ async function loadImpayes() {
           <strong>${c.prenom} ${c.nom}</strong>
           <span class="badge ${c.statut==='Actif'?'b-g':'b-d'}" style="font-size:10px;margin-left:5px">${statutLbl}</span>
         </td>
-        <td>${c.telephone||'—'}</td>
+        <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>')||'—'}</td>
         <td>${spts.map(s=>`<span class="badge b-i" style="font-size:10px;margin-right:2px">${s}</span>`).join('')||'—'}</td>
         <td>${dernierHtml}</td>
         <td>${retardHtml}</td>
@@ -4852,7 +4868,7 @@ async function genererRecuPdf(p, client, encaissePar) {
   const infos = [
     client.id ? `N° adhérent : ADH-${client.id.substring(0, 8).toUpperCase()}` : '',
     client.cin ? `CIN : ${client.cin}` : '',
-    client.telephone ? `Tél. : ${client.telephone}` : ''
+    (client.telephone || client.telephone2) ? `Tél. : ${[client.telephone, client.telephone2].filter(Boolean).join(' / ')}` : ''
   ].filter(Boolean).join('     ');
   doc.text(infos || '-', M + 5, 71);
   if (sports.length) doc.text(`Sport(s) : ${sports.join(', ')}`, M + 5, 76);
