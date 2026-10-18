@@ -923,6 +923,28 @@ tr:hover td{background:var(--blue-light)}
             <button class="btn btn-p" onclick="openPaiementChoix()" style="white-space:nowrap" id="btn-new-paie"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="paie.nouveau">Nouveau paiement</span></button>
             <input id="sp-q" placeholder="Rechercher..." oninput="loadPaiements()" style="max-width:240px">
             <select id="sp-mois" onchange="loadPaiements()"><option value="" data-i18n="msg.all_months">Tous les mois</option></select>
+            <select id="sp-sport" onchange="loadPaiements()"><option value="" data-i18n="select.all_sports">Tous les sports</option></select>
+            <select id="sp-type" onchange="loadPaiements()">
+              <option value="" data-i18n="filtre.tous_types">Tous les types</option>
+              <option value="__abo__" data-i18n="filtre.abonnements">Abonnements (tous)</option>
+              <option value="Mensualité" data-i18n="paie.t_mensualite">Mensualité</option>
+              <option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option>
+              <option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option>
+              <option value="Annuel" data-i18n="paie.t_annuel">Annuel</option>
+              <option value="Inscription" data-i18n="paie.t_inscription">Inscription</option>
+              <option value="Assurance" data-i18n="paie.t_assurance">Assurance</option>
+              <option value="Équipement" data-i18n="paie.t_equipement">Équipement</option>
+              <option value="__autre__" data-i18n="paie.t_autre">Autre</option>
+            </select>
+            <select id="sp-mode" onchange="loadPaiements()">
+              <option value="" data-i18n="filtre.tous_modes">Tous les modes</option>
+              <option value="Espèces" data-i18n="paie.m_especes">Espèces</option>
+              <option value="Virement" data-i18n="paie.m_virement">Virement</option>
+              <option value="Chèque" data-i18n="paie.m_cheque">Chèque</option>
+            </select>
+            <span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--text2)"><span data-i18n="filtre.du">Du</span> <input id="sp-du" type="date" data-vide onchange="loadPaiements()" style="width:auto"> <span data-i18n="filtre.au">au</span> <input id="sp-au" type="date" data-vide onchange="loadPaiements()" style="width:auto"></span>
+            <button class="btn btn-sm" onclick="resetFiltresPaiements()" data-i18n="filtre.reset">Réinitialiser</button>
+            <span id="sp-resultat" style="font-size:12px;color:var(--text2);margin-inline-start:auto"></span>
           </div>
           <table><thead><tr><th data-i18n="common.date">Date</th><th data-i18n="paie.client">Client</th><th data-i18n="planning.sport">Sport</th><th data-i18n="paie.montant">Montant</th><th data-i18n="paie.type">Type</th><th data-i18n="paie.mois_couverts">Mois couverts</th><th data-i18n="paie.mode">Mode</th><th data-i18n="paie.note">Note</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="paiements-tb"></tbody></table>
         </div>
@@ -2078,6 +2100,13 @@ const I18N = {
     'stats.retards':     'Clients en retard de paiement',
     'stats.recap_title': 'CA par sport et par mois',
     'recu.title':        'Reçu de paiement',
+    'filtre.tous_types': 'Tous les types',
+    'filtre.abonnements':'Abonnements (tous)',
+    'filtre.tous_modes': 'Tous les modes',
+    'filtre.du':         'Du',
+    'filtre.au':         'au',
+    'filtre.reset':      'Réinitialiser',
+    'filtre.transactions':'transaction(s)',
     'remu.title':        'Rémunération',
     'remu.mensuel':      'Mensuel — salaire fixe',
     'remu.groupe':       'Par groupe — nombre de groupes × montant unitaire',
@@ -2725,6 +2754,13 @@ const I18N = {
     'stats.retards':    'الزبناء المتأخرون في الدفع',
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
     'recu.title':       'وصل الأداء',
+    'filtre.tous_types':'جميع الأنواع',
+    'filtre.abonnements':'الاشتراكات (الكل)',
+    'filtre.tous_modes':'جميع الطرق',
+    'filtre.du':        'من',
+    'filtre.au':        'إلى',
+    'filtre.reset':     'إعادة تعيين',
+    'filtre.transactions':'عملية',
     'remu.title':       'الأجرة',
     'remu.mensuel':     'شهري — راتب ثابت',
     'remu.groupe':      'حسب المجموعة — عدد المجموعات × المبلغ',
@@ -5392,19 +5428,51 @@ async function encaisserClient(clientId, nom) {
 // ════════════════════════════════════════════════════════════
 // PAIEMENTS
 // ════════════════════════════════════════════════════════════
+function resetFiltresPaiements() {
+  ['sp-q','sp-mois','sp-sport','sp-type','sp-mode','sp-du','sp-au'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  loadPaiements();
+}
+
 async function loadPaiements() {
   const q    = document.getElementById('sp-q')?.value.toLowerCase()||'';
   const mois = document.getElementById('sp-mois')?.value||'';
-  // Charger TOUS les paiements (sans filtre mois) pour le dropdown et les résumés
-  const { data: allData } = await sb.from('paiements').select('*,clients(prenom,nom,sports,sport)').order('date_paiement',{ascending:false}).order('created_at',{ascending:false});
+  const fSport = document.getElementById('sp-sport')?.value||'';
+  const fType  = document.getElementById('sp-type')?.value||'';
+  const fMode  = document.getElementById('sp-mode')?.value||'';
+  const fDu    = document.getElementById('sp-du')?.value||'';
+  const fAu    = document.getElementById('sp-au')?.value||'';
+  // Charger TOUS les paiements (sans filtre) pour les listes déroulantes et les résumés
+  const { data: allData } = await fetchAllRows(() => sb.from('paiements').select('*,clients(prenom,nom,sports,sport)')
+    .order('date_paiement',{ascending:false}).order('created_at',{ascending:false}));
 
-  // Filtre mois + recherche appliqués côté client
+  // Liste des sports pour le filtre
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
+  const selSport = document.getElementById('sp-sport');
+  if (selSport && selSport.options.length <= 1) {
+    selSport.innerHTML = `<option value="">${t('select.all_sports')}</option>` + SPORTS_CACHE.map(sp => `<option value="${sp.nom}">${sp.nom}</option>`).join('');
+    selSport.value = fSport;
+  }
+
+  // Filtres appliqués côté client (sur chaque mouvement ; une transaction n'affiche que ses mouvements retenus)
+  const typesConnus = ['Mensualité','Trimestriel','Semestriel','Annuel','Inscription','Assurance','Équipement'];
   const list = (allData||[]).filter(p => {
-    const matchMois = !mois || p.date_paiement?.startsWith(mois);
     const spts = p.clients?.sports || (p.clients?.sport ? [p.clients.sport] : []);
-    const matchQ = !q || (p.clients?.prenom+' '+p.clients?.nom+' '+spts.join(' ')).toLowerCase().includes(q);
-    return matchMois && matchQ;
+    if (mois && !p.date_paiement?.startsWith(mois)) return false;
+    if (fDu && (p.date_paiement || '') < fDu) return false;
+    if (fAu && (p.date_paiement || '') > fAu) return false;
+    if (fSport && !spts.includes(fSport)) return false;
+    if (fMode && p.mode !== fMode) return false;
+    if (fType === '__abo__' && !DUREE_ABONNEMENT[p.type]) return false;
+    if (fType === '__autre__' && typesConnus.includes(p.type)) return false;
+    if (fType && !fType.startsWith('__') && p.type !== fType) return false;
+    if (q && !(p.clients?.prenom+' '+p.clients?.nom+' '+spts.join(' ')+' '+(p.numero_recu||'')+' '+(p.note||'')).toLowerCase().includes(q)) return false;
+    return true;
   });
+  const filtreActif = q || mois || fSport || fType || fMode || fDu || fAu;
+  const totalFiltre = list.reduce((a, p) => a + parseFloat(p.montant || 0), 0);
+  const nbTx = grouperTransactions(list).length;
+  document.getElementById('sp-resultat').innerHTML = filtreActif
+    ? `<strong>${nbTx}</strong> ${t('filtre.transactions')} · <strong style="color:var(--green)">${fmt(totalFiltre)}</strong>` : '';
 
   // Résumé
   const now = new Date(); const moisCur = thisMonth(); const year = now.getFullYear();
@@ -8109,7 +8177,8 @@ async function logAudit(action, module, detail) {
 }
 
 // Init dates par défaut
-document.querySelectorAll('input[type="date"]').forEach(el=>{ if(!el.value) el.value=today(); });
+// Dates vides = aujourd'hui, sauf les champs de filtre (data-vide) qui doivent rester vides
+document.querySelectorAll('input[type="date"]').forEach(el=>{ if(!el.value && !el.hasAttribute('data-vide')) el.value=today(); });
 document.querySelectorAll('input[type="month"]').forEach(el=>{ if(!el.value) el.value=thisMonth(); });
 function showToast(msg, type='s') {
   let container = document.getElementById('toast-container');
