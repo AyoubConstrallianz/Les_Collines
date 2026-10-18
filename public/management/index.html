@@ -626,6 +626,7 @@ tr:hover td{background:var(--blue-light)}
           <input type="month" id="db-mois" style="font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)" onchange="loadDashboard()">
           <button class="btn btn-sm" onclick="document.getElementById('db-mois').value=thisMonth();loadDashboard()" data-i18n="db.cemois">Ce mois</button>
         </div>
+        <div id="db-assur-alert" class="al al-e" style="display:none;margin-bottom:1rem;cursor:pointer" onclick="nav('clients',document.querySelector('.nav[data-page=clients]'))"></div>
 
         <!-- Stats principales -->
         <div class="sg" style="grid-template-columns:repeat(4,minmax(0,1fr))">
@@ -695,6 +696,19 @@ tr:hover td{background:var(--blue-light)}
           <div id="impayes-zone">
             <table><thead><tr><th data-i18n="common.nom">Nom</th><th data-i18n="clients.tel">Téléphone</th><th data-i18n="planning.sport">Sport</th><th data-i18n="clients.dernier_paie">Dernier paiement</th><th data-i18n="clients.retard">Retard</th><th data-i18n="clients.action_rapide">Action rapide</th></tr></thead>
             <tbody id="impayes-tb"></tbody></table>
+          </div>
+        </div>
+        <div class="card" id="assur-card" style="display:none;border-left:3px solid var(--amber);border-radius:0 var(--rl) var(--rl) 0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;gap:8px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="ct" style="margin:0;color:var(--amber-text)" data-i18n="assur.alerte_title">Assurance à payer</span>
+              <span id="assur-count" class="badge b-w">0</span>
+            </div>
+            <button class="btn btn-sm" onclick="const z=document.getElementById('assur-zone');z.style.display=z.style.display==='none'?'block':'none';this.textContent=z.style.display==='none'?t('msg.show'):t('msg.hide')" style="font-size:12px" data-i18n="msg.hide">Masquer</button>
+          </div>
+          <div id="assur-zone" style="overflow-x:auto">
+            <table><thead><tr><th data-i18n="common.nom">Nom</th><th data-i18n="clients.tel">Téléphone</th><th data-i18n="planning.sport">Sport</th><th data-i18n="assur.etat">Assurance</th><th data-i18n="clients.action_rapide">Action rapide</th></tr></thead>
+            <tbody id="assur-tb"></tbody></table>
           </div>
         </div>
         <div class="mo" id="client-form-modal">
@@ -1988,6 +2002,15 @@ const I18N = {
     'stats.retards':     'Clients en retard de paiement',
     'stats.recap_title': 'CA par sport et par mois',
     'recu.title':        'Reçu de paiement',
+    'assur.alerte_title':'Assurance à payer',
+    'assur.etat':        'Assurance',
+    'assur.jamais':      'Jamais payée',
+    'assur.expiree':     'Expirée le',
+    'assur.expire_le':   'Expire le',
+    'assur.encaisser':   'Encaisser l\'assurance',
+    'assur.db_a_payer':  '%n client(s) sans assurance valide',
+    'assur.db_bientot':  '%n expirent dans les 30 jours',
+    'assur.voir':        'Voir la liste',
     'clients.formule':   'Formule',
     'clients.f_mensuel': 'Mensuel',
     'clients.abonnement':'Abonnement (DH)',
@@ -2537,6 +2560,15 @@ const I18N = {
     'stats.retards':    'الزبناء المتأخرون في الدفع',
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
     'recu.title':       'وصل الأداء',
+    'assur.alerte_title':'تأمين مستحق',
+    'assur.etat':       'التأمين',
+    'assur.jamais':     'لم يُدفع قط',
+    'assur.expiree':    'انتهى في',
+    'assur.expire_le':  'ينتهي في',
+    'assur.encaisser':  'تحصيل التأمين',
+    'assur.db_a_payer': '%n زبون بدون تأمين صالح',
+    'assur.db_bientot': '%n ينتهي خلال 30 يوماً',
+    'assur.voir':       'عرض اللائحة',
     'clients.formule':  'الصيغة',
     'clients.f_mensuel':'شهري',
     'clients.abonnement':'الاشتراك (درهم)',
@@ -3252,6 +3284,7 @@ function nav(page, btn) {
 // DASHBOARD
 // ════════════════════════════════════════════════════════════
 async function loadDashboard() {
+  majAlerteAssuranceDashboard();
   // Mois sélectionné (défaut = mois en cours)
   const moisEl = document.getElementById('db-mois');
   if (!moisEl.value) moisEl.value = thisMonth();
@@ -4155,6 +4188,13 @@ async function showClientFiche(idx, event) {
         ${infoLine(t('clients.sports'), sports.map(s=>'<span class="badge b-i" style="font-size:10px;margin-left:3px">'+s+'</span>').join(''))}
         ${infoLine(t('clients.mensualite'), mensuel ? fmt(mensuel) : '—')}
         ${infoLine(t('clients.dernier_paie'), dernierPaie||'—')}
+        ${infoLine(t('assur.etat'), (() => {
+          const last = (paies||[]).filter(p => p.type === 'Assurance' && p.date_paiement).map(p => p.date_paiement).sort().pop();
+          const fin = last ? finAssurance(last) : null;
+          const [y, m, d] = today().split('-').map(Number);
+          const etat = !last ? 'jamais' : fin < today() ? 'expiree' : fin <= isoLocal(new Date(y, m - 1, d + 30)) ? 'bientot' : 'ok';
+          return badgeAssurance({ etat, fin });
+        })())}
       </div>
     </div>
     ${cinHtml}
@@ -4684,6 +4724,7 @@ function toggleImpayes() {
 }
 
 async function loadImpayes() {
+  loadAssuranceAlertes();
   const moisCur = thisMonth();
 
   // Récupère TOUS les clients sauf Suspendus (les impayés sont devenus Inactifs)
@@ -4758,6 +4799,80 @@ async function loadImpayes() {
           : '—'}</td>
       </tr>`;
     }).join('');
+}
+
+// ── Assurance à payer : jamais payée, expirée, ou expirant dans les 30 jours ──
+async function etatAssurances() {
+  const [{ data: clients }, { data: assur }] = await Promise.all([
+    fetchAllRows(() => sb.from('clients').select('*').neq('statut', 'Suspendu').order('id')),
+    fetchAllRows(() => sb.from('paiements').select('client_id,date_paiement').eq('type', 'Assurance').order('id'))
+  ]);
+  const derniere = {};
+  (assur || []).forEach(p => {
+    if (p.client_id && p.date_paiement && (!derniere[p.client_id] || p.date_paiement > derniere[p.client_id])) derniere[p.client_id] = p.date_paiement;
+  });
+  const auj = today();
+  const [y, m, d] = auj.split('-').map(Number);
+  const dans30 = isoLocal(new Date(y, m - 1, d + 30));
+  return (clients || []).map(c => {
+    const last = derniere[c.id];
+    const fin = last ? finAssurance(last) : null;
+    const etat = !last ? 'jamais' : fin < auj ? 'expiree' : fin <= dans30 ? 'bientot' : 'ok';
+    return { client: c, fin, etat };
+  });
+}
+
+function badgeAssurance(e) {
+  if (e.etat === 'jamais')  return `<span class="badge b-d">${t('assur.jamais')}</span>`;
+  if (e.etat === 'expiree') return `<span class="badge b-d">${t('assur.expiree')} ${dateFr(e.fin)}</span>`;
+  if (e.etat === 'bientot') return `<span class="badge b-w">${t('assur.expire_le')} ${dateFr(e.fin)}</span>`;
+  return `<span class="badge b-g">${t('paie.valable_jusqu')} ${dateFr(e.fin)}</span>`;
+}
+
+async function loadAssuranceAlertes() {
+  const card = document.getElementById('assur-card');
+  if (!card) return;
+  const ordre = { jamais: 0, expiree: 1, bientot: 2 };
+  const liste = (await etatAssurances()).filter(e => e.etat !== 'ok')
+    .sort((a, b) => ordre[a.etat] - ordre[b.etat] || (a.fin || '').localeCompare(b.fin || ''));
+  document.getElementById('assur-count').textContent = liste.length;
+  card.style.display = liste.length ? 'block' : 'none';
+  const canWrite = PERMS.paiements?.ecrire;
+  document.getElementById('assur-tb').innerHTML = liste.map(({ client: c, ...e }) => {
+    const spts = c.sports || (c.sport ? [c.sport] : []);
+    return `<tr>
+      <td><strong>${c.prenom} ${c.nom}</strong></td>
+      <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>') || '—'}</td>
+      <td>${spts.map(s => `<span class="badge b-i" style="font-size:10px;margin-right:2px">${s}</span>`).join('') || '—'}</td>
+      <td>${badgeAssurance(e)}</td>
+      <td>${canWrite ? `<button class="btn btn-sm btn-p" onclick="encaisserAssurance('${c.id}')">${t('assur.encaisser')}</button>` : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function majAlerteAssuranceDashboard() {
+  const el = document.getElementById('db-assur-alert');
+  if (!el) return;
+  const etats = await etatAssurances();
+  const liste = etats.filter(e => e.etat === 'jamais' || e.etat === 'expiree');
+  const bientot = etats.filter(e => e.etat === 'bientot').length;
+  el.style.display = liste.length || bientot ? 'block' : 'none';
+  el.className = liste.length ? 'al al-e' : 'al al-i';
+  el.innerHTML = `<strong>⚠ ${t('assur.alerte_title')}</strong> — `
+    + [liste.length ? t('assur.db_a_payer').replace('%n', liste.length) : '', bientot ? t('assur.db_bientot').replace('%n', bientot) : '']
+      .filter(Boolean).join(' · ')
+    + ` <span style="text-decoration:underline">${t('assur.voir')}</span>`;
+}
+
+// Ouvre le formulaire de paiement : client sélectionné, type Assurance
+async function encaisserAssurance(clientId) {
+  nav('paiements', document.querySelector('.nav[data-page="paiements"]'));
+  await loadClientsForSelect('p-client');
+  openPaiementForm();
+  const c = _clientsForSelect.find(x => x.id === clientId);
+  if (c) selectClient(c);
+  document.getElementById('p-type').value = 'Assurance';
+  await onPaiementTypeChange();
 }
 
 async function encaisserClient(clientId, nom) {
