@@ -4816,7 +4816,8 @@ function convertirImportSimple(lignes) {
   const vide = v => v === '' || v === null || v === undefined;
   lignes.filter(r => !/exemple/i.test(String(r['note'] ?? ''))).forEach(r => {
     const ref = 'L' + r._ligne;
-    const c = { _ligne: r._ligne, 'ref client': ref, prenom: r['prenom'], nom: r['nom'], telephone: r['telephone'],
+    const c = { _ligne: r._ligne, 'ref client': ref, prenom: r['prenom'], nom: r['nom'], telephone: r['telephone 1'] ?? r['telephone'],
+      'date de naissance': r['date de naissance'],
       'telephone 2': r['telephone 2'], cin: r['cin'], 'e-mail': r['e-mail'], sexe: r['sexe'],
       "date d'inscription": r["date d'inscription"], statut: '' };
     const sports = String(r['sports'] ?? '').split(/[,;\/+]/).map(x => x.trim()).filter(Boolean);
