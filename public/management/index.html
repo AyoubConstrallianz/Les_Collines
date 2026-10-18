@@ -738,6 +738,10 @@ tr:hover td{background:var(--blue-light)}
                 <label style="color:var(--blue-text)"><span data-i18n="clients.frais_inscr">Frais inscription (DH)</span> <span style="font-weight:400;font-size:10px" data-i18n="clients.modifiable">modifiable</span></label>
                 <input type="number" id="c-inscr-custom" min="0" style="font-size:13px;padding:6px 10px;border:1px solid rgba(59,130,246,.2);border-radius:var(--r);background:var(--bg2);width:100%">
               </div>
+              <div class="fg" style="flex:1;min-width:150px">
+                <label style="color:var(--blue-text)"><span data-i18n="clients.frais_assur">Frais d'assurance (DH)</span> <span style="font-weight:400;font-size:10px" id="c-assur-saison"></span></label>
+                <input type="number" id="c-assur-custom" min="0" oninput="this.dataset.touche='1'" style="font-size:13px;padding:6px 10px;border:1px solid rgba(59,130,246,.2);border-radius:var(--r);background:var(--bg2);width:100%">
+              </div>
             </div>
           </div>
           <div class="fr"><div class="fg"><label data-i18n="clients.statut">Statut</label><select id="c-statut"><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option></select></div></div>
@@ -1141,9 +1145,17 @@ tr:hover td{background:var(--blue-light)}
           <div class="al al-i" style="margin-bottom:1rem" data-i18n="paie.inscr_msg">Le client vient d'être créé. Voulez-vous enregistrer son paiement d'inscription maintenant ?</div>
           <div id="inscr-detail" style="margin-bottom:1rem;padding:10px 14px;background:var(--bg3);border-radius:var(--r);font-size:13px"></div>
           <div class="fr">
-            <div class="fg"><label data-i18n="paie.inscr_montant">Montant inscription (DH)</label><input id="inscr-montant" type="number" min="0"></div>
+            <div class="fg"><label data-i18n="paie.inscr_montant">Montant inscription (DH)</label><input id="inscr-montant" type="number" min="0" oninput="majTotalInscription()"></div>
             <div class="fg"><label data-i18n="paie.inscr_mode">Mode de paiement</label><select id="inscr-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
           </div>
+          <div id="inscr-assur-zone" style="margin-top:4px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r)">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:8px">
+              <input type="checkbox" id="inscr-assur-check" checked onchange="majTotalInscription()">
+              <span id="inscr-assur-label">Encaisser aussi l'assurance</span>
+            </label>
+            <div class="fg" style="margin-bottom:0"><label data-i18n="paie.assur_montant">Montant assurance (DH)</label><input id="inscr-assur-montant" type="number" min="0" oninput="majTotalInscription()"></div>
+          </div>
+          <div id="inscr-total" style="margin-top:10px;text-align:end;font-size:14px;font-weight:700"></div>
           <div class="mo-footer">
             <button class="btn" onclick="fermerInscription()" data-i18n="paie.inscr_later">Plus tard</button>
             <button class="btn btn-p" onclick="confirmerInscription()" data-i18n="paie.inscr_save">Enregistrer l'inscription</button>
@@ -1937,6 +1949,11 @@ const I18N = {
     'stats.retards':     'Clients en retard de paiement',
     'stats.recap_title': 'CA par sport et par mois',
     'recu.title':        'Reçu de paiement',
+    'clients.frais_assur':'Frais d\'assurance (DH)',
+    'paie.saison':       'saison',
+    'paie.assur_encaisser':'Encaisser aussi l\'assurance saison',
+    'paie.assur_montant':'Montant assurance (DH)',
+    'paie.total_a_encaisser':'Total à encaisser',
     'doublons.btn':      'Doublons',
     'fiche.encaissements':'Encaissements',
     'fiche.nouvel_encaissement':'Encaissement',
@@ -2470,6 +2487,11 @@ const I18N = {
     'stats.retards':    'الزبناء المتأخرون في الدفع',
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
     'recu.title':       'وصل الأداء',
+    'clients.frais_assur':'رسوم التأمين (درهم)',
+    'paie.saison':      'موسم',
+    'paie.assur_encaisser':'تحصيل التأمين أيضاً لموسم',
+    'paie.assur_montant':'مبلغ التأمين (درهم)',
+    'paie.total_a_encaisser':'المجموع المستحق',
     'doublons.btn':     'المكررات',
     'fiche.encaissements':'المداخيل',
     'fiche.nouvel_encaissement':'تحصيل',
@@ -3487,6 +3509,10 @@ function updateTarifPreview() {
   checks.forEach(cb => { mensuel += parseFloat(cb.dataset.mensuel||0); inscription = Math.max(inscription, parseFloat(cb.dataset.inscr||0)); });
   document.getElementById('c-mensuel-custom').value   = mensuel;
   document.getElementById('c-inscr-custom').value     = inscription;
+  // Assurance : montant unique de la saison (Sports & Tarifs), modifiable ; on ne l'écrase pas s'il a été saisi
+  const assurEl = document.getElementById('c-assur-custom');
+  if (assurEl.dataset.touche !== '1') assurEl.value = montantAssurance() || 0;
+  document.getElementById('c-assur-saison').textContent = `${t('clients.modifiable')} · ${t('paie.saison')} ${saisonDe().label}`;
   document.getElementById('c-tarif-preview').style.display = 'block';
 }
 
@@ -3831,26 +3857,30 @@ async function saveClient() {
   await logAudit(id?'UPDATE':'CREATE','clients',`${obj.prenom} ${obj.nom} — ${sports.join(', ')}`);
   showToast(id?t('clients.modified'):t('clients.added'),'s');
   const fromPaiement = window._paieNouveauClient;
+  const montantsSaisis = {
+    inscr: document.getElementById('c-inscr-custom').value,
+    assur: document.getElementById('c-assur-custom').value
+  };
   closeClientForm(); loadClients(); loadImpayes();
 
   // Pour un nouveau client : proposer paiement inscription
   if (!id && saved) {
     if (fromPaiement) window._paieClientCree = saved;
     await loadParametres();
-    if (!ouvrirInscriptionModal(saved)) finPaiementNouveauClient();
+    if (!ouvrirInscriptionModal(saved, montantsSaisis)) finPaiementNouveauClient();
   }
 }
 
-function ouvrirInscriptionModal(client) {
+function ouvrirInscriptionModal(client, montantsSaisis = {}) {
   const sports = client.sports || (client.sport ? [client.sport] : []);
   const sportMap = {};
   SPORTS_CACHE.forEach(s=>{ sportMap[s.nom]=s; });
 
-  // Utilise le montant personnalisé si saisi, sinon calcule
-  const customInscr = parseFloat(document.getElementById('c-inscr-custom')?.value)||0;
-  const baseInscr   = sports.reduce((a,s)=>Math.max(a,sportMap[s]?.tarif_inscription||0),0);
-  const totalInscr  = customInscr || baseInscr;
-  if (!totalInscr) return false;
+  // Montants saisis dans la fiche (s'ils existent), sinon tarifs
+  const baseInscr  = sports.reduce((a,s)=>Math.max(a,sportMap[s]?.tarif_inscription||0),0);
+  const totalInscr = montantsSaisis.inscr !== undefined && montantsSaisis.inscr !== '' ? parseFloat(montantsSaisis.inscr)||0 : baseInscr;
+  const assur      = montantsSaisis.assur !== undefined && montantsSaisis.assur !== '' ? parseFloat(montantsSaisis.assur)||0 : montantAssurance();
+  if (!totalInscr && !assur) return false;
 
   window._inscrClient = client;
 
@@ -3864,14 +3894,22 @@ function ouvrirInscriptionModal(client) {
   document.getElementById('inscr-detail').innerHTML = `
     <div style="font-weight:500;margin-bottom:6px">${client.prenom} ${client.nom}</div>
     ${lines}
-    ${sports.length > 1 ? `<div style="border-top:0.5px solid var(--border);margin-top:6px;padding-top:5px;font-size:12px;color:var(--text2)">${t('clients.total_tarif')} : ${fmt(baseInscr)}</div>` : ''}
-    ${montantAssurance() ? `<div style="border-top:0.5px solid var(--border);margin-top:6px;padding-top:5px;display:flex;justify-content:space-between;font-size:13px">
-      <span>${t('paie.frais_assur')} ${saisonDe().label}<br><span style="font-size:11px;color:var(--text3)">${t('paie.inscr_assur_rappel')}</span></span>
-      <span style="font-weight:500">${fmt(montantAssurance())}</span>
-    </div>` : ''}`;
-  document.getElementById('inscr-montant').value = totalInscr;
+    ${sports.length > 1 ? `<div style="border-top:0.5px solid var(--border);margin-top:6px;padding-top:5px;font-size:12px;color:var(--text2)">${t('clients.total_tarif')} : ${fmt(baseInscr)}</div>` : ''}`;
+  document.getElementById('inscr-montant').value = totalInscr || '';
+  document.getElementById('inscr-assur-label').textContent = `${t('paie.assur_encaisser')} ${saisonDe().label}`;
+  document.getElementById('inscr-assur-montant').value = assur || '';
+  document.getElementById('inscr-assur-check').checked = assur > 0;
+  majTotalInscription();
   document.getElementById('inscr-modal').classList.add('open');
   return true;
+}
+
+function majTotalInscription() {
+  const inscr = parseFloat(document.getElementById('inscr-montant').value) || 0;
+  const avecAssur = document.getElementById('inscr-assur-check').checked;
+  const assur = avecAssur ? parseFloat(document.getElementById('inscr-assur-montant').value) || 0 : 0;
+  document.getElementById('inscr-assur-montant').disabled = !avecAssur;
+  document.getElementById('inscr-total').textContent = `${t('paie.total_a_encaisser')} : ${fmt(inscr + assur)}`;
 }
 
 function fermerInscription() {
@@ -3881,24 +3919,32 @@ function fermerInscription() {
 
 async function confirmerInscription() {
   const client  = window._inscrClient;
-  const montant = parseFloat(document.getElementById('inscr-montant').value);
+  const montant = parseFloat(document.getElementById('inscr-montant').value) || 0;
+  const avecAssur = document.getElementById('inscr-assur-check').checked;
+  const assur   = avecAssur ? parseFloat(document.getElementById('inscr-assur-montant').value) || 0 : 0;
   const mode    = document.getElementById('inscr-mode').value;
-  if (!client || !montant) return;
-  const { data: savedPaie, error } = await sb.from('paiements').insert({
-    client_id: client.id, montant, date_paiement: today(),
-    type: 'Inscription', mode, note: 'Frais d\'inscription', created_by: ME.id
-  }).select('id').single();
+  if (!client || (!montant && !assur)) return;
+
+  // Inscription et assurance : deux lignes de paiement (stats propres), un seul reçu
+  const lignes = [];
+  if (montant) lignes.push({ client_id: client.id, montant, date_paiement: today(),
+    type: 'Inscription', mode, note: 'Frais d\'inscription', created_by: ME.id });
+  if (assur) lignes.push({ client_id: client.id, montant: assur, date_paiement: today(),
+    type: 'Assurance', mode, note: `Assurance saison ${saisonDe().label}`, created_by: ME.id });
+  const { data: saved, error } = await sb.from('paiements').insert(lignes).select('id');
   if (error) { showToast(error.message, 'e'); return; }
+
   // Paiement inscription = paiement du mois → client Actif
   await sb.from('clients').update({ statut: 'Actif', updated_at: new Date().toISOString() }).eq('id', client.id);
-  await logAudit('CREATE','paiements',`Inscription ${client.prenom} ${client.nom} — ${fmt(montant)}`);
+  await logAudit('CREATE','paiements',`Inscription ${client.prenom} ${client.nom} — ${fmt(montant + assur)}`);
   document.getElementById('inscr-modal').classList.remove('open');
-  showToast(t('clients.inscr_saved').replace('%s',fmt(montant)), 's');
+  showToast(t('clients.inscr_saved').replace('%s',fmt(montant + assur)), 's');
   loadImpayes();
-  if (savedPaie?.id) {
+  const ids = (saved || []).map(r => r.id);
+  if (ids.length) {
     // Le reçu d'inscription d'abord ; le formulaire de paiement s'ouvrira à sa fermeture
     window._recuApres = finPaiementNouveauClient;
-    ouvrirRecu(savedPaie.id);
+    ouvrirRecu(ids);
   } else finPaiementNouveauClient();
 }
 
@@ -4291,6 +4337,7 @@ function editClient(c) {
 }
 
 function openClientForm() {
+  loadParametres();
   resetClientForm();
   loadSportsCheckboxes([]);
   document.getElementById('client-form-modal').classList.add('open');
@@ -4304,7 +4351,8 @@ function closeClientForm() {
 
 function resetClientForm() {
   window._clientEditTel2Connu = false;
-  ['c-id','c-prenom','c-nom','c-tel','c-tel2','c-email','c-cin','c-dob','c-date','c-mensuel-custom','c-inscr-custom'].forEach(i=>{
+  document.getElementById('c-assur-custom').dataset.touche = '';
+  ['c-id','c-prenom','c-nom','c-tel','c-tel2','c-email','c-cin','c-dob','c-date','c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i=>{
     const el = document.getElementById(i); if(el) el.value='';
   });
   document.getElementById('client-form-title').textContent = t('clients.new');
@@ -4844,13 +4892,15 @@ function periodeRecu(p) {
   return keys.length === 1 ? nom(keys[0]) : `${nom(keys[0])} à ${nom(keys[keys.length - 1])}`;
 }
 
-async function genererRecuPdf(p, client, encaissePar) {
+async function genererRecuPdf(paies, client, encaissePar) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = 210, M = 18;
   const bleu = [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42];
   const fD = s => s ? s.split('-').reverse().join('/') : '-';
-  const numero = p.numero_recu || ('P-' + p.id.substring(0, 8).toUpperCase());
+  const p0 = paies[0];
+  const numero = numeroRecu(paies);
+  const total = paies.reduce((a, p) => a + (parseFloat(p.montant) || 0), 0);
   const sports = client.sports || (client.sport ? [client.sport] : []);
 
   // En-tête association
@@ -4870,7 +4920,7 @@ async function genererRecuPdf(p, client, encaissePar) {
   doc.setTextColor(...noir); doc.setFontSize(10);
   doc.text(`N° ${numero}`, W - M, 28, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
-  doc.text(`Date : ${fD(p.date_paiement)}`, W - M, 33, { align: 'right' });
+  doc.text(`Date : ${fD(p0.date_paiement)}`, W - M, 33, { align: 'right' });
 
   doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 43, W - M, 43);
 
@@ -4889,36 +4939,41 @@ async function genererRecuPdf(p, client, encaissePar) {
   doc.text(infos || '-', M + 5, 71);
   if (sports.length) doc.text(`Sport(s) : ${sports.join(', ')}`, M + 5, 76);
 
-  // Tableau
+  // Tableau : une ligne par paiement
   let y = 92;
   const cDes = M + 4, cPer = M + 82, cMnt = W - M - 4;
   doc.setFillColor(...bleu); doc.rect(M, y, W - 2 * M, 9, 'F');
   doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
   doc.text('Désignation', cDes, y + 6); doc.text('Période', cPer, y + 6); doc.text('Montant', cMnt, y + 6, { align: 'right' });
   y += 9;
-  const designation = ({ 'Mensualité': 'Mensualité', 'Trimestriel': 'Abonnement trimestriel', 'Semestriel': 'Abonnement 6 mois', 'Annuel': 'Abonnement annuel',
-    'Inscription': "Frais d'inscription", 'Assurance': 'Assurance', 'Équipement': 'Équipement' })[p.type] || p.type || 'Paiement';
+  const DESIGNATIONS = { 'Mensualité': 'Mensualité', 'Trimestriel': 'Abonnement trimestriel', 'Semestriel': 'Abonnement 6 mois',
+    'Annuel': 'Abonnement annuel', 'Inscription': "Frais d'inscription", 'Assurance': 'Assurance', 'Équipement': 'Équipement' };
   doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  const desLignes = doc.splitTextToSize(designation + (p.note && p.note !== designation && p.note !== "Frais d'inscription" ? ` - ${p.note}` : ''), cPer - cDes - 4);
-  const hLigne = Math.max(11, desLignes.length * 5 + 6);
-  doc.text(desLignes, cDes, y + 7);
-  doc.text(doc.splitTextToSize(periodeRecu(p), cMnt - cPer - 32), cPer, y + 7);
-  doc.text(montantPdf(p.montant), cMnt, y + 7, { align: 'right' });
-  y += hLigne;
-  doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y);
+  paies.forEach(p => {
+    const designation = DESIGNATIONS[p.type] || p.type || 'Paiement';
+    const noteUtile = p.note && p.note !== designation && p.note !== "Frais d'inscription" && !/^Assurance saison/.test(p.note);
+    const desLignes = doc.splitTextToSize(designation + (noteUtile ? ` - ${p.note}` : ''), cPer - cDes - 4);
+    const perLignes = doc.splitTextToSize(periodeRecu(p), cMnt - cPer - 32);
+    const hLigne = Math.max(11, Math.max(desLignes.length, perLignes.length) * 5 + 6);
+    doc.text(desLignes, cDes, y + 7);
+    doc.text(perLignes, cPer, y + 7);
+    doc.text(montantPdf(p.montant), cMnt, y + 7, { align: 'right' });
+    y += hLigne;
+    doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y);
+  });
 
   // Total
   doc.setFillColor(239, 246, 255); doc.rect(W - M - 80, y + 4, 80, 11, 'F');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
   doc.text('TOTAL PAYÉ', W - M - 76, y + 11.5);
-  doc.text(montantPdf(p.montant), cMnt, y + 11.5, { align: 'right' });
+  doc.text(montantPdf(total), cMnt, y + 11.5, { align: 'right' });
   y += 24;
 
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...noir);
-  doc.text(doc.splitTextToSize(`Arrêté le présent reçu à la somme de : ${montantEnLettres(p.montant)}.`, W - 2 * M), M, y);
+  doc.text(doc.splitTextToSize(`Arrêté le présent reçu à la somme de : ${montantEnLettres(total)}.`, W - 2 * M), M, y);
   y += 8;
   doc.setTextColor(...gris);
-  doc.text(`Mode de paiement : ${p.mode || '-'}`, M, y);
+  doc.text(`Mode de paiement : ${[...new Set(paies.map(p => p.mode).filter(Boolean))].join(', ') || '-'}`, M, y);
   if (encaissePar) doc.text(`Encaissé par : ${encaissePar}`, M, y + 5.5);
 
   // Signature
@@ -4936,27 +4991,43 @@ async function genererRecuPdf(p, client, encaissePar) {
   return doc;
 }
 
-async function ouvrirRecu(paiementId) {
+// N° affiché : celui du paiement, ou « R-2026-0012 / 0013 » pour un reçu groupé
+function numeroRecu(paies) {
+  const nums = paies.map(p => p.numero_recu || ('P-' + p.id.substring(0, 8).toUpperCase()));
+  if (nums.length === 1) return nums[0];
+  const prefixe = nums[0].replace(/\d+$/, '');
+  return nums.every(n => n.startsWith(prefixe)) && /\d+$/.test(nums[0])
+    ? nums[0] + ' / ' + nums.slice(1).map(n => n.slice(prefixe.length)).join(' / ')
+    : nums.join(' / ');
+}
+
+// Ouvre le reçu d'un paiement, ou d'un groupe de paiements du même client (ex. inscription + assurance)
+async function ouvrirRecu(paiementIds) {
   if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
-  const { data: p, error } = await sb.from('paiements')
-    .select('*,clients(id,prenom,nom,cin,telephone,email,sports,sport)').eq('id', paiementId).single();
-  if (error || !p) { showToast(error?.message || t('recu.pdf_ko'), 'e'); return; }
+  const ids = Array.isArray(paiementIds) ? paiementIds : [paiementIds];
+  const { data: rows, error } = await sb.from('paiements')
+    .select('*,clients(id,prenom,nom,cin,telephone,telephone2,email,sports,sport)').in('id', ids);
+  // Ordre d'affichage = ordre demandé ; jamais deux clients sur un même reçu
+  const paies = ids.map(id => (rows || []).find(r => r.id === id)).filter(Boolean)
+    .filter((p, _, arr) => p.client_id === arr[0].client_id);
+  if (error || !paies.length) { showToast(error?.message || t('recu.pdf_ko'), 'e'); return; }
+  const p0 = paies[0];
 
   let encaissePar = '';
-  if (p.created_by) {
-    const { data: prof } = await sb.from('profils').select('prenom,nom').eq('id', p.created_by).maybeSingle();
+  if (p0.created_by) {
+    const { data: prof } = await sb.from('profils').select('prenom,nom').eq('id', p0.created_by).maybeSingle();
     if (prof) encaissePar = `${prof.prenom} ${prof.nom}`;
   }
-  const client = p.clients || {};
+  const client = p0.clients || {};
   let doc;
-  try { doc = await genererRecuPdf(p, client, encaissePar); }
+  try { doc = await genererRecuPdf(paies, client, encaissePar); }
   catch (e) { console.error(e); showToast(t('recu.pdf_ko'), 'e'); return; }
 
   if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
   const blobUrl = URL.createObjectURL(doc.output('blob'));
-  _recu = { doc, blobUrl, paiement: p, client };
+  _recu = { doc, blobUrl, paiements: paies, numero: numeroRecu(paies), client };
 
-  document.getElementById('recu-title').textContent = `${t('recu.title')} ${p.numero_recu || ''}`.trim();
+  document.getElementById('recu-title').textContent = `${t('recu.title')} ${p0.numero_recu ? _recu.numero : ''}`.trim();
   document.getElementById('recu-preview').src = blobUrl;
   const btnMail = document.getElementById('btn-recu-mail');
   btnMail.disabled = !client.email;
@@ -4974,9 +5045,9 @@ function closeRecu() {
 }
 
 function nomFichierRecu() {
-  const p = _recu.paiement, c = _recu.client;
+  const c = _recu.client;
   const nom = `${c.prenom || ''}-${c.nom || ''}`.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9-]+/g, '');
-  return `${p.numero_recu || 'recu'}-${nom}.pdf`;
+  return `${(_recu.paiements[0].numero_recu ? _recu.numero : 'recu').replace(/[\s/]+/g, '_')}-${nom}.pdf`;
 }
 
 function telechargerRecu() {
@@ -5004,11 +5075,11 @@ async function envoyerRecuMail() {
     const res = await fetch('/api/envoyer-recu', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
-      body: JSON.stringify({ paiement_id: _recu.paiement.id, pdf_base64: _recu.doc.output('datauristring').split(',')[1] })
+      body: JSON.stringify({ paiement_ids: _recu.paiements.map(p => p.id), pdf_base64: _recu.doc.output('datauristring').split(',')[1] })
     });
     const out = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(out.error || `Erreur ${res.status}`);
-    await logAudit('EMAIL', 'paiements', `Reçu ${_recu.paiement.numero_recu || ''} → ${out.to}`);
+    await logAudit('EMAIL', 'paiements', `Reçu ${_recu.numero} → ${out.to}`);
     showToast(t('recu.envoye').replace('%s', out.to), 's');
   } catch (e) {
     showToast(e.message, 'e');
