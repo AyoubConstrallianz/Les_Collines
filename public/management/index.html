@@ -1442,13 +1442,16 @@ tr:hover td{background:var(--blue-light)}
             <div class="fg" style="margin-bottom:10px"><label data-i18n="coaches.notes">Notes</label><textarea id="co-notes" rows="2" style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)" placeholder="Horaires, remarques..."></textarea></div>
             <div class="btns">
               <button class="btn btn-p" onclick="saveCoach()" data-i18n="common.enregistrer">Enregistrer</button>
-              <button class="btn" onclick="resetCoachForm()" data-i18n="common.annuler">Annuler</button>
+              <button class="btn" onclick="resetCoachForm();closeCoachForm()" data-i18n="common.annuler">Annuler</button>
             </div>
           </div>
 
           <!-- Liste salariés -->
           <div class="card">
-            <div class="ct" data-i18n="coaches.equipe">Équipe</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap">
+              <div class="ct" style="margin-bottom:0" data-i18n="coaches.equipe">Équipe</div>
+              <button class="btn btn-p" id="btn-new-coach" onclick="openCoachForm()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="coaches.nouveau">Nouveau salarié</span></button>
+            </div>
             <div id="coaches-list"></div>
           </div>
         </div>
@@ -3401,6 +3404,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (el) modalHost.appendChild(el);
   });
+  // Formulaire salarié → fenêtre ouverte par « + Nouveau salarié » / « Modifier »
+  const coachCard = document.getElementById('coach-form-card');
+  if (coachCard) {
+    const grille = coachCard.parentElement;
+    const mo = document.createElement('div');
+    mo.className = 'mo'; mo.id = 'coach-form-modal';
+    mo.innerHTML = `<div class="mo-box" style="max-width:720px"><div style="display:flex;justify-content:flex-end;margin-bottom:-28px">
+      <button class="btn btn-sm" onclick="closeCoachForm()" style="font-size:18px;padding:2px 10px;line-height:1;position:relative;z-index:1">&times;</button></div></div>`;
+    mo.querySelector('.mo-box').appendChild(coachCard);
+    coachCard.classList.remove('card'); coachCard.style.cssText = 'padding:0;border:none;box-shadow:none';
+    modalHost.appendChild(mo);
+    grille.style.gridTemplateColumns = '1fr';
+  }
   initThemeIcons();
   if (LANG === 'ar') applyLang();
 });
@@ -6760,6 +6776,8 @@ async function loadCoaches() {
 
   const canWrite = PERMS.coaches?.ecrire;
   const canDel   = PERMS.coaches?.supprimer;
+  const btnNew = document.getElementById('btn-new-coach');
+  if (btnNew) btnNew.style.display = canWrite ? '' : 'none';
 
   // Sélects
   const selEmp = document.getElementById('co-sal-emp');
@@ -6865,6 +6883,7 @@ async function saveCoach() {
   await logAudit(id?'UPDATE':'CREATE','coaches',`${obj.prenom} ${obj.nom}`);
   showToast(id?t('coaches.modified'):t('coaches.added'),'s');
   resetCoachForm();
+  closeCoachForm();
   loadCoaches(); loadCoachNonPayes();
   // Recharge le select coach dans Sports si la page est ouverte
   if (document.getElementById('s-coach')) loadSports();
@@ -6905,7 +6924,17 @@ function editCoach(e) {
   document.getElementById('co-notes').value   = e.notes||'';
   document.getElementById('co-actif').value   = String(e.actif !== false);
   document.getElementById('coach-form-title').textContent = t('coaches.edit_title');
-  document.getElementById('coach-form-card').scrollIntoView({behavior:'smooth'});
+  document.getElementById('coach-form-modal').classList.add('open');
+}
+
+function openCoachForm() {
+  resetCoachForm();
+  document.getElementById('coach-form-modal').classList.add('open');
+  document.getElementById('co-prenom').focus();
+}
+
+function closeCoachForm() {
+  document.getElementById('coach-form-modal')?.classList.remove('open');
 }
 
 function resetCoachForm() {
@@ -7040,12 +7069,8 @@ async function loadCoachNonPayes() {
 function prefillPaie(empId) {
   document.getElementById('co-sal-emp').value  = empId;
   document.getElementById('co-sal-mois').value = thisMonth();
-  calculerSalaire();
-  // Auto-remplit le salaire contractuel
-  sb.from('employes').select('salaire').eq('id',empId).single().then(({data})=>{
-    if (data) document.getElementById('co-sal-mont').value = data.salaire;
-  });
-  document.getElementById('coach-form-card').parentElement.nextElementSibling.scrollIntoView({behavior:'smooth'});
+  calculerSalaire();   // montant selon le mode de rémunération (mensuel, groupe, pourcentage)
+  document.getElementById('co-sal-emp').closest('.card').scrollIntoView({behavior:'smooth'});
 }
 
 // ── Récapitulatif annuel ────────────────────────────────────
