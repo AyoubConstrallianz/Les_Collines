@@ -307,6 +307,11 @@ tr:hover td{background:var(--blue-light)}
 .pe-ligne.nouvelle{border-style:dashed;border-color:var(--blue);background:var(--blue-light)}
 @media (max-width:640px){.pe-ligne{grid-template-columns:1fr 1fr}}
 .inscr-ligne input[type=number]{width:100%;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);text-align:end}
+.sal-resultat{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;padding:14px 18px;background:var(--green-bg);border:1.5px solid var(--green);border-radius:var(--rl)}
+.sal-resultat-lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--green-text)}
+.sal-resultat-formule{font-size:12px;color:var(--text2);margin-top:2px}
+.sal-resultat-mnt{font-size:28px;font-weight:800;color:var(--green-text);letter-spacing:-.5px;white-space:nowrap}
+#co-sal-mont{font-weight:700;font-size:15px;color:var(--green-text)}
 .recap-table th,.recap-table td{padding:7px 10px;text-align:end;white-space:nowrap}
 .recap-table th:first-child,.recap-table td:first-child{text-align:start;position:sticky;inset-inline-start:0;background:var(--bg2);z-index:1}
 .recap-table th:first-child{background:var(--bg3)}
@@ -2122,6 +2127,7 @@ const I18N = {
     'remu.calcul':       'Calcul en cours…',
     'remu.groupe_court': 'Par groupe',
     'remu.mensuel_court':'Salaire mensuel',
+    'remu.a_payer':      'Montant à payer',
     'remu.discipline':   'Discipline',
     'remu.adherents':    'Adhérents',
     'remu.ca_mois':      'CA du mois',
@@ -2776,6 +2782,7 @@ const I18N = {
     'remu.calcul':      'جارٍ الحساب…',
     'remu.groupe_court':'حسب المجموعة',
     'remu.mensuel_court':'الراتب الشهري',
+    'remu.a_payer':     'المبلغ المستحق',
     'remu.discipline':  'التخصص',
     'remu.adherents':   'المنخرطون',
     'remu.ca_mois':     'رقم معاملات الشهر',
@@ -7334,18 +7341,34 @@ async function calculerSalaire() {
   zone.style.display = '';
 }
 
+// Montant avec centimes : 1 083,23 DH
+const fmtDH2 = n => {
+  const v = Math.round((parseFloat(n) || 0) * 100) / 100;
+  const txt = v.toLocaleString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${txt} ${LANG === 'ar' ? 'درهم' : 'DH'}`;
+};
+
 function detailSalaireHtml(d) {
   const boite = c => `<div style="margin-top:6px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);font-size:13px">${c}</div>`;
+  // Encadré mis en avant : montant à payer + formule
+  const resultat = formule => `
+    <div class="sal-resultat">
+      <div>
+        <div class="sal-resultat-lbl">${t('remu.a_payer')}</div>
+        <div class="sal-resultat-formule">${formule}</div>
+      </div>
+      <div class="sal-resultat-mnt">${fmtDH2(d.total)}</div>
+    </div>`;
   if (d.remuneration === 'Groupe')
-    return boite(`${t('remu.groupe_court')} : ${d.nb_groupes} × ${fmt(d.montant_groupe)} = <strong>${fmt(d.total)}</strong>`);
+    return resultat(`${t('remu.groupe_court')} : ${d.nb_groupes} × ${fmtDH2(d.montant_groupe)}`);
   if (d.remuneration === 'Pourcentage') {
     if (!d.lignes.length) return boite(`<span style="color:var(--amber-text)">${t('remu.aucune_discipline')}</span>`);
-    return boite(`<table style="font-size:12px;margin-bottom:6px"><thead><tr><th>${t('remu.discipline')}</th><th style="text-align:end">${t('remu.adherents')}</th><th style="text-align:end">${t('remu.ca_mois')}</th></tr></thead><tbody>
-      ${d.lignes.map(l => `<tr><td>${l.sport}</td><td style="text-align:end">${l.adherents}</td><td style="text-align:end">${fmt(l.ca)}</td></tr>`).join('')}
-      <tr style="font-weight:700"><td>${t('stats.recap_total')}</td><td style="text-align:end">${d.adherents_total}</td><td style="text-align:end">${fmt(d.ca_total)}</td></tr></tbody></table>
-      ${fmt(d.ca_total)} × ${d.pourcentage} % = <strong>${fmt(d.total)}</strong>`);
+    return boite(`<table style="font-size:12px;margin-bottom:0"><thead><tr><th>${t('remu.discipline')}</th><th style="text-align:end">${t('remu.adherents')}</th><th style="text-align:end">${t('remu.ca_mois')}</th></tr></thead><tbody>
+      ${d.lignes.map(l => `<tr><td>${l.sport}</td><td style="text-align:end">${l.adherents}</td><td style="text-align:end">${fmtDH2(l.ca)}</td></tr>`).join('')}
+      <tr style="font-weight:700"><td>${t('stats.recap_total')}</td><td style="text-align:end">${d.adherents_total}</td><td style="text-align:end">${fmtDH2(d.ca_total)}</td></tr></tbody></table>`)
+      + resultat(`${fmtDH2(d.ca_total)} × ${d.pourcentage} %`);
   }
-  return boite(`${t('remu.mensuel_court')} : <strong>${fmt(d.total)}</strong>`);
+  return resultat(t('remu.mensuel_court'));
 }
 
 // ── Reçu PDF du paiement de salaire (détail du calcul) ──
