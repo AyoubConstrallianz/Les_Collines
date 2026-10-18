@@ -795,7 +795,7 @@ tr:hover td{background:var(--blue-light)}
               <div id="p-client-dropdown" class="autocomplete-dropdown"></div>
             </div>
             <div class="fr">
-              <div class="fg"><label data-i18n="paie.type">Type</label><select id="p-type" onchange="onPaiementTypeChange();toggleAutre('p-type','p-type-autre')"><option value="Mensualité" data-i18n="paie.t_mensualite">Mensualité</option><option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel</option><option value="Annuel" data-i18n="paie.t_annuel">Annuel</option><option value="Inscription" data-i18n="paie.t_inscription">Inscription</option><option value="Équipement" data-i18n="paie.t_equipement">Équipement</option><option value="Autre" data-i18n="paie.t_autre">Autre</option></select><input id="p-type-autre" placeholder="Précisez..." style="display:none;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);width:100%"></div>
+              <div class="fg"><label data-i18n="paie.type">Type</label><select id="p-type" onchange="onPaiementTypeChange();toggleAutre('p-type','p-type-autre')"><option value="Mensualité" data-i18n="paie.t_mensualite">Mensualité</option><option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel</option><option value="Annuel" data-i18n="paie.t_annuel">Annuel</option><option value="Inscription" data-i18n="paie.t_inscription">Inscription</option><option value="Assurance" data-i18n="paie.t_assurance">Assurance</option><option value="Équipement" data-i18n="paie.t_equipement">Équipement</option><option value="Autre" data-i18n="paie.t_autre">Autre</option></select><input id="p-type-autre" placeholder="Précisez..." style="display:none;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);width:100%"></div>
               <div class="fg"><label data-i18n="paie.mode">Mode</label><select id="p-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
             </div>
             <div class="fr">
@@ -803,8 +803,9 @@ tr:hover td{background:var(--blue-light)}
                 <label><span data-i18n="paie.montant">Montant (DH)</span> <span id="p-montant-hint" style="font-size:11px;color:var(--blue-text);font-weight:400"></span></label>
                 <input id="p-montant" type="number" placeholder="0" min="0">
               </div>
-              <div class="fg"><label data-i18n="paie.date">Date</label><input id="p-date" type="date" onchange="updatePeriodeDetail()"></div>
+              <div class="fg"><label data-i18n="paie.date">Date</label><input id="p-date" type="date" onchange="updatePeriodeDetail();updateFraisInfo(window._paieClientCourant)"></div>
             </div>
+            <div id="p-frais-info" style="display:none;margin-bottom:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:12px"></div>
             <div id="p-sports-detail" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--r);font-size:12px;color:var(--text2)"></div>
             <div id="p-periode-detail" style="display:none;margin-bottom:10px;padding:8px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:var(--r);font-size:12px;color:var(--blue-text)"></div>
             <!-- Mini calculatrice -->
@@ -887,6 +888,13 @@ tr:hover td{background:var(--blue-light)}
             <div class="btns"><button class="btn btn-p" onclick="saveSport()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="resetSportForm()" data-i18n="common.annuler">Annuler</button></div>
           </div>
           <div class="card"><div class="ct" data-i18n="sports.disciplines">Disciplines</div><div id="sports-list"></div></div>
+        </div>
+        <div class="card" id="assurance-card" style="margin-top:1rem;max-width:520px">
+          <div class="ct" data-i18n="sports.assur_title">Frais d'assurance</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:10px" data-i18n="sports.assur_note">Montant unique pour tous les clients, valable une saison sportive (septembre → août).</p>
+          <div id="assurance-missing" class="al al-e" style="display:none;margin-bottom:10px;font-size:12px" data-i18n="sports.assur_missing"></div>
+          <div class="fg" style="margin-bottom:10px"><label data-i18n="sports.assur_montant">Montant par saison (DH)</label><input id="s-assurance" type="number" min="0" placeholder="0"></div>
+          <div class="btns"><button class="btn btn-p" id="btn-save-assurance" onclick="saveAssurance()" data-i18n="common.enregistrer">Enregistrer</button></div>
         </div>
       </div>
 
@@ -1692,6 +1700,19 @@ const I18N = {
     'paie.annee':        'Cette année',
     'paie.t_mensualite': 'Mensualité',
     'paie.t_inscription':'Inscription',
+    'paie.t_assurance':  'Assurance',
+    'paie.hint_assur':   'Assurance de la saison',
+    'paie.frais_inscr':  'Frais d\'inscription',
+    'paie.frais_assur':  'Assurance saison',
+    'paie.frais_paye':   'Payé le',
+    'paie.frais_du':     'À payer',
+    'paie.frais_non_conf':'montant non configuré (Sports & Tarifs)',
+    'paie.inscr_assur_rappel':'À encaisser aussi, avec le type « Assurance »',
+    'sports.assur_title':'Frais d\'assurance',
+    'sports.assur_montant':'Montant par saison (DH)',
+    'sports.assur_note': 'Montant unique pour tous les clients, valable une saison sportive (septembre → août).',
+    'sports.assur_saved':'Montant de l\'assurance enregistré',
+    'sports.assur_missing':'La table « parametres » n\'existe pas encore dans Supabase. Exécutez le script supabase/04_parametres_assurance.sql.',
     'paie.t_trimestriel':'Trimestriel',
     'paie.t_annuel':     'Annuel',
     'paie.t_equipement': 'Équipement',
@@ -2163,6 +2184,19 @@ const I18N = {
     'paie.t_trimestriel':'اشتراك فصلي',
     'paie.t_annuel':    'اشتراك سنوي',
     'paie.t_inscription':'تسجيل',
+    'paie.t_assurance': 'تأمين',
+    'paie.hint_assur':  'تأمين الموسم',
+    'paie.frais_inscr': 'رسوم التسجيل',
+    'paie.frais_assur': 'تأمين الموسم',
+    'paie.frais_paye':  'دُفع في',
+    'paie.frais_du':    'مستحق',
+    'paie.frais_non_conf':'المبلغ غير محدد (الرياضات والأسعار)',
+    'paie.inscr_assur_rappel':'يجب تحصيله أيضاً، بنوع « تأمين »',
+    'sports.assur_title':'رسوم التأمين',
+    'sports.assur_montant':'المبلغ لكل موسم (درهم)',
+    'sports.assur_note':'مبلغ موحد لجميع الزبائن، صالح لموسم رياضي واحد (شتنبر ← غشت).',
+    'sports.assur_saved':'تم تسجيل مبلغ التأمين',
+    'sports.assur_missing':'جدول « parametres » غير موجود بعد في Supabase. نفّذ السكريبت supabase/04_parametres_assurance.sql.',
     'paie.t_equipement':'معدات',
     'paie.t_autre':     'أخرى',
     'paie.m_especes':   'نقد',
@@ -3172,6 +3206,76 @@ function closeSidebar() {
 // Cache global des sports pour calculs
 let SPORTS_CACHE = [];
 
+// ── Paramètres (assurance) ──────────────────────────────────
+let PARAMS = null;          // { assurance_montant: '150', ... } ; null = pas encore chargé
+let PARAMS_TABLE_OK = true; // false si la table "parametres" n'existe pas encore
+
+async function loadParametres(force=false) {
+  if (PARAMS && !force) return PARAMS;
+  const { data, error } = await sb.from('parametres').select('cle,valeur');
+  PARAMS_TABLE_OK = !error;
+  PARAMS = {};
+  (data||[]).forEach(p => { PARAMS[p.cle] = p.valeur; });
+  return PARAMS;
+}
+
+function montantAssurance() {
+  return parseFloat(PARAMS?.assurance_montant) || 0;
+}
+
+// Saison sportive : septembre → août
+function saisonDe(dateStr) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  const y = d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1;
+  return { debut: `${y}-09-01`, fin: `${y+1}-08-31`, label: `${y}-${y+1}` };
+}
+
+async function saveAssurance() {
+  const valeur = String(parseFloat(document.getElementById('s-assurance').value) || 0);
+  const { error } = await sb.from('parametres')
+    .upsert({ cle: 'assurance_montant', valeur, updated_at: new Date().toISOString() });
+  if (error) { showToast(error.message, 'e'); return; }
+  await loadParametres(true);
+  await logAudit('UPDATE','parametres',`assurance_montant: ${fmt(valeur)}`);
+  showToast(t('sports.assur_saved'), 's');
+}
+
+// Encadré du formulaire de paiement : frais d'inscription et d'assurance du client
+async function updateFraisInfo(client) {
+  const box = document.getElementById('p-frais-info');
+  if (!client) { box.style.display = 'none'; return; }
+  await loadParametres();
+  if (!SPORTS_CACHE.length) {
+    const { data } = await sb.from('sports').select('*').order('nom');
+    SPORTS_CACHE = data||[];
+  }
+  const sports = client.sports || (client.sport ? [client.sport] : []);
+  const inscrMontant = sports.reduce((a,s)=>Math.max(a, SPORTS_CACHE.find(x=>x.nom===s)?.tarif_inscription||0), 0);
+  const assurMontant = montantAssurance();
+  const saison = saisonDe(document.getElementById('p-date').value);
+
+  const { data: deja } = await sb.from('paiements').select('type,date_paiement')
+    .eq('client_id', client.id).in('type', ['Inscription','Assurance'])
+    .order('date_paiement', { ascending: false });
+  // Le client a pu changer pendant le chargement
+  if (document.getElementById('p-client').value !== client.id) return;
+
+  const inscrPaye = (deja||[]).find(p => p.type === 'Inscription');
+  const assurPaye = (deja||[]).find(p => p.type === 'Assurance'
+    && p.date_paiement >= saison.debut && p.date_paiement <= saison.fin);
+  const fD = s => s.split('-').reverse().join('/');
+  const ligne = (label, montant, paye, nonConf) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0">
+      <span style="color:var(--text2)">${label} : <strong style="color:var(--text)">${nonConf ? `<span style="font-weight:400;color:var(--text3)">${t('paie.frais_non_conf')}</span>` : fmt(montant)}</strong></span>
+      ${paye
+        ? `<span class="badge b-g" style="font-size:10px">${t('paie.frais_paye')} ${fD(paye.date_paiement)}</span>`
+        : `<span class="badge b-w" style="font-size:10px">${t('paie.frais_du')}</span>`}
+    </div>`;
+  box.innerHTML = ligne(t('paie.frais_inscr'), inscrMontant, inscrPaye, false)
+    + ligne(`${t('paie.frais_assur')} ${saison.label}`, assurMontant, assurPaye, !PARAMS_TABLE_OK || !assurMontant);
+  box.style.display = 'block';
+}
+
 async function loadSportsForSelect(id, addAll=false) {
   const { data } = await sb.from('sports').select('*').order('nom');
   SPORTS_CACHE = data||[];
@@ -3255,6 +3359,8 @@ function selectClient(c) {
   document.getElementById('p-client-dropdown').classList.remove('open');
   document.getElementById('p-date').value = today();
   onPaiementTypeChange();
+  window._paieClientCourant = c;
+  updateFraisInfo(c);
 }
 
 // Fermer le dropdown quand on clique ailleurs
@@ -3272,6 +3378,17 @@ async function onPaiementTypeChange() {
   const type = document.getElementById('p-type').value;
   const searchEl = document.getElementById('p-client-search');
   if (!searchEl) return;
+
+  // Assurance : montant unique par saison, indépendant des sports
+  if (type === 'Assurance') {
+    await loadParametres();
+    const m = montantAssurance();
+    document.getElementById('p-montant').value = m || '';
+    document.getElementById('p-montant-hint').textContent = `· ${t('paie.hint_assur')} ${saisonDe(document.getElementById('p-date').value).label}`;
+    document.getElementById('p-sports-detail').style.display = 'none';
+    updatePeriodeDetail();
+    return;
+  }
 
   let sports = [];
   try { sports = JSON.parse(searchEl.dataset.sports||'[]'); } catch(_){}
@@ -3528,6 +3645,7 @@ async function saveClient() {
   // Pour un nouveau client : proposer paiement inscription
   if (!id && saved) {
     if (fromPaiement) window._paieClientCree = saved;
+    await loadParametres();
     if (!ouvrirInscriptionModal(saved)) finPaiementNouveauClient();
   }
 }
@@ -3555,7 +3673,11 @@ function ouvrirInscriptionModal(client) {
   document.getElementById('inscr-detail').innerHTML = `
     <div style="font-weight:500;margin-bottom:6px">${client.prenom} ${client.nom}</div>
     ${lines}
-    ${sports.length > 1 ? `<div style="border-top:0.5px solid var(--border);margin-top:6px;padding-top:5px;font-size:12px;color:var(--text2)">${t('clients.total_tarif')} : ${fmt(baseInscr)}</div>` : ''}`;
+    ${sports.length > 1 ? `<div style="border-top:0.5px solid var(--border);margin-top:6px;padding-top:5px;font-size:12px;color:var(--text2)">${t('clients.total_tarif')} : ${fmt(baseInscr)}</div>` : ''}
+    ${montantAssurance() ? `<div style="border-top:0.5px solid var(--border);margin-top:6px;padding-top:5px;display:flex;justify-content:space-between;font-size:13px">
+      <span>${t('paie.frais_assur')} ${saisonDe().label}<br><span style="font-size:11px;color:var(--text3)">${t('paie.inscr_assur_rappel')}</span></span>
+      <span style="font-weight:500">${fmt(montantAssurance())}</span>
+    </div>` : ''}`;
   document.getElementById('inscr-montant').value = totalInscr;
   document.getElementById('inscr-modal').classList.add('open');
   return true;
@@ -4088,7 +4210,7 @@ async function loadPaiements() {
   const recY = (allData||[]).filter(p=>p.date_paiement?.startsWith(year+'')).reduce((a,p)=>a+parseFloat(p.montant||0),0);
   document.getElementById('p-mois-total').textContent  = fmt(recM);
   document.getElementById('p-annee-total').textContent = fmt(recY);
-  const typeTr={'Mensualité':t('paie.t_mensualite'),'Trimestriel':t('paie.t_trimestriel'),'Annuel':t('paie.t_annuel'),'Inscription':t('paie.t_inscription'),'Équipement':t('paie.t_equipement'),'Autre':t('paie.t_autre')};
+  const typeTr={'Mensualité':t('paie.t_mensualite'),'Trimestriel':t('paie.t_trimestriel'),'Annuel':t('paie.t_annuel'),'Inscription':t('paie.t_inscription'),'Assurance':t('paie.t_assurance'),'Équipement':t('paie.t_equipement'),'Autre':t('paie.t_autre')};
   const modeTr={'Espèces':t('paie.m_especes'),'Virement':t('paie.m_virement'),'Chèque':t('paie.m_cheque')};
   const types = {};
   list.forEach(p=>{ const k=typeTr[p.type]||p.type; types[k]=(types[k]||0)+parseFloat(p.montant||0); });
@@ -4132,6 +4254,8 @@ function openPaiementForm() {
   document.getElementById('p-montant-hint').textContent = '';
   document.getElementById('p-sports-detail').style.display = 'none';
   document.getElementById('p-periode-detail').style.display = 'none';
+  document.getElementById('p-frais-info').style.display = 'none';
+  window._paieClientCourant = null;
   document.getElementById('p-client').value = '';
   document.getElementById('p-client-search').value = '';
   document.getElementById('p-client-search').dataset.sports = '[]';
@@ -4320,6 +4444,14 @@ async function loadSports() {
     : `<div style="color:var(--text3);font-size:13px;padding:1rem">${t('msg.no_sport')}</div>`;
   const form = document.querySelector('#page-sports .card');
   if(form) form.style.display = canWrite ? 'block' : 'none';
+
+  // Frais d'assurance (montant unique)
+  await loadParametres(true);
+  const assurInput = document.getElementById('s-assurance');
+  assurInput.value = PARAMS_TABLE_OK ? montantAssurance() || '' : '';
+  assurInput.disabled = !canWrite || !PARAMS_TABLE_OK;
+  document.getElementById('btn-save-assurance').style.display = canWrite && PARAMS_TABLE_OK ? '' : 'none';
+  document.getElementById('assurance-missing').style.display = PARAMS_TABLE_OK ? 'none' : 'block';
 }
 
 async function saveSport() {
