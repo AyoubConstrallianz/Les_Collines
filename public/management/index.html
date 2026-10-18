@@ -305,7 +305,15 @@ tr:hover td{background:var(--blue-light)}
 .pe-ligne select,.pe-ligne input{width:100%;font-size:12px;padding:6px 8px}
 .pe-ligne.supprimee{opacity:.45;text-decoration:line-through}
 .pe-ligne.nouvelle{border-style:dashed;border-color:var(--blue);background:var(--blue-light)}
-@media (max-width:640px){.pe-ligne{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){
+  /* Modifier un encaissement : type | montant | ✕  /  date | note | ✕ */
+  .pe-ligne{grid-template-columns:1fr 1fr 40px}
+  .pe-ligne > :nth-child(1){grid-column:1;grid-row:1}
+  .pe-ligne > :nth-child(2){grid-column:2;grid-row:1}
+  .pe-ligne > :nth-child(3){grid-column:1;grid-row:2}
+  .pe-ligne > :nth-child(4){grid-column:2;grid-row:2}
+  .pe-ligne > :nth-child(5){grid-column:3;grid-row:1 / span 2;align-self:stretch;padding:0;min-height:0}
+}
 .inscr-ligne input[type=number]{width:100%;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);text-align:end}
 .sal-resultat{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;padding:14px 18px;background:var(--green-bg);border:1.5px solid var(--green);border-radius:var(--rl)}
 .sal-resultat-lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--green-text)}
@@ -483,6 +491,82 @@ tr:hover td{background:var(--blue-light)}
   .login-box{width:calc(100% - 2rem);padding:1.75rem;border-radius:var(--r-xl)}
 }
 
+/* ══════════ Téléphone : barre du haut, tableaux en fiches, filtres, zones tactiles ══════════ */
+.btn-out{display:inline-flex;align-items:center;gap:6px}
+.btn-out-ico{display:none}
+/* Bloc de regroupement des cellules : sans effet sur ordinateur, mis en page seulement en fiche (téléphone) */
+.td-val{display:contents}
+@media(max-width:768px){
+  /* Barre du haut sur une ligne, sans débordement */
+  .topbar{overflow:hidden}
+  .topbar-logo{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tb-role{display:none}
+  #lang-btn{margin-inline-start:0 !important}
+  .tbu{gap:6px;flex-shrink:0}
+  .btn-out{padding:7px 9px}
+  .btn-out span{display:none}
+  .btn-out-ico{display:block}
+  .theme-toggle{flex-shrink:0}
+
+  /* Champs à 16 px : évite le zoom automatique de l'iPhone au toucher */
+  input,select,textarea{font-size:16px !important}
+  input[type=checkbox],input[type=radio]{width:20px;height:20px}
+
+  /* Zones tactiles confortables */
+  .btn{min-height:40px}
+  .btn-sm{min-height:36px;padding:7px 12px}
+
+  /* Barres d'outils / filtres : 2 par ligne, bouton principal en pleine largeur */
+  .toolbar{gap:8px}
+  .toolbar > input,.toolbar > select{flex:1 1 calc(50% - 8px);min-width:0;max-width:none !important;width:auto}
+  .toolbar > .btn-p{flex:1 1 100%;justify-content:center}
+  .toolbar > .btn:not(.btn-p){flex:1 1 calc(50% - 8px);justify-content:center}
+  .toolbar > span{flex:1 1 100%;flex-wrap:wrap}
+  .toolbar > span input[type=date]{flex:1 1 0;min-width:0}
+  #sp-resultat{margin-inline-start:0 !important;text-align:center}
+
+  /* Cartes de statistiques : 2 par ligne */
+  .sg{grid-template-columns:1fr 1fr !important}
+  .sc{padding:12px}
+  .sc-label{font-size:10px}
+
+  /* Fenêtres */
+  .mo-box{padding:1.25rem 1rem}
+  .mo-footer{flex-wrap:wrap}
+  .mo-footer .btn{flex:1 1 calc(50% - 8px);justify-content:center}
+  .sal-resultat-mnt{font-size:22px}
+  .inscr-ligne{grid-template-columns:22px 1fr 96px}
+  #recu-preview{height:62vh}
+
+  /* Tableaux → fiches empilées (une ligne = une fiche) */
+  table.tbl-cartes{min-width:0 !important;width:100%;border-collapse:separate;border-spacing:0}
+  .tbl-cartes thead{display:none}
+  .tbl-cartes tbody,.tbl-cartes tr{display:block;width:100%}
+  .tbl-cartes tr{border:1px solid var(--border);border-radius:var(--rl);padding:4px 12px;margin-bottom:10px;background:var(--bg2);box-shadow:var(--shadow-xs)}
+  .tbl-cartes td{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:7px 0 !important;border:none !important;
+    border-bottom:1px dashed var(--border) !important;text-align:end !important;min-width:0;max-width:none !important;white-space:normal !important;overflow:visible !important}
+  .tbl-cartes td > *{min-width:0}
+  .tbl-cartes td.td-vide{display:none}
+  table.tbl-compacte{min-width:0 !important;width:100%}
+  table.tbl-compacte th,table.tbl-compacte td{padding:8px 6px}
+  .ligne-form > *{flex:1 1 100% !important;min-width:0 !important}
+  .ligne-form > .btn{justify-content:center}
+  .tbl-cartes .td-val{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:end}
+  .tbl-cartes .td-val > div,.tbl-cartes .td-val > span{max-width:100%}
+  .tbl-cartes .td-val > br{display:none}
+  .tbl-cartes .td-val:not(:has(> div)):has(> .badge){flex-direction:row;flex-wrap:wrap;justify-content:flex-end}
+  .tbl-cartes td:last-child{border-bottom:none !important}
+  .tbl-cartes td::before{content:attr(data-label);flex:0 0 auto;max-width:42%;text-align:start;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;padding-top:2px}
+  .tbl-cartes td[data-label=""]::before{display:none}
+  .tbl-cartes td.cell-actions{justify-content:flex-end;flex-wrap:wrap;gap:6px;padding-top:10px !important}
+  .tbl-cartes td.cell-actions::before{display:none}
+  .tbl-cartes td.cell-actions .btn{flex:1 1 auto;justify-content:center}
+  .tbl-cartes tr.empty-row{border:none;box-shadow:none;background:none}
+  .tbl-cartes tr.empty-row td{justify-content:center}
+  .tbl-cartes tr.empty-row td::before{display:none}
+  .card:has(> table.tbl-cartes),.card:has(> div > table.tbl-cartes){overflow-x:visible}
+}
+
 /* RTL mobile */
 @media(max-width:768px){
   [dir="rtl"] .sidebar{left:auto;right:-260px;transition:right .3s var(--ease)}
@@ -522,7 +606,7 @@ tr:hover td{background:var(--blue-light)}
       <div class="avatar" id="tb-av">?</div>
       <span class="tbu-name" id="tb-name"></span>
       <span id="tb-role" class="badge"></span>
-      <button class="btn-out" onclick="doLogout()" data-i18n="logout">Déconnexion</button>
+      <button class="btn-out" onclick="doLogout()" aria-label="Déconnexion" title="Déconnexion"><svg class="btn-out-ico" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span data-i18n="logout">Déconnexion</span></button>
     </div>
   </div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -1486,7 +1570,7 @@ tr:hover td{background:var(--blue-light)}
         <!-- Section paiement salaire -->
         <div class="card">
           <div class="ct" data-i18n="salaires.enregistrer_paie">Enregistrer un paiement de salaire</div>
-          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end">
+          <div class="ligne-form" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end">
             <div class="fg" style="flex:2;min-width:160px"><label data-i18n="coaches.salarie">Salarié</label><select id="co-sal-emp" onchange="calculerSalaire()"></select></div>
             <div class="fg" style="min-width:130px"><label data-i18n="coaches.mois_concerne">Mois concerné</label><input id="co-sal-mois" type="month" onchange="calculerSalaire()"></div>
             <div class="fg" style="min-width:120px"><label data-i18n="paie.montant">Montant (DH)</label><input id="co-sal-mont" type="number" min="0"></div>
@@ -1907,7 +1991,7 @@ const I18N = {
     'clients.carte_download':'Télécharger',
     'clients.fiche_inscrit':'Inscrit le',
     'clients.fiche_paye':  'Payé ce mois',
-    'clients.fiche_impaye':'Non payé ce mois',
+    'clients.fiche_impaye':'Abonnement échu',
     'clients.retard':    'Retard',
     'clients.action_rapide':'Action rapide',
     // Paiements
@@ -2562,7 +2646,7 @@ const I18N = {
     'clients.carte_download':'تحميل',
     'clients.fiche_inscrit':'مسجل بتاريخ',
     'clients.fiche_paye':'مدفوع هذا الشهر',
-    'clients.fiche_impaye':'غير مدفوع هذا الشهر',
+    'clients.fiche_impaye':'الاشتراك منتهي',
     'clients.retard':   'التأخر',
     'clients.action_rapide':'إجراء سريع',
     // Paiements
@@ -3440,6 +3524,41 @@ function applyLang() {
 }
 
 // Applique au chargement
+// Tableaux de liste → affichage en fiches sur téléphone : chaque cellule reçoit le titre de sa colonne
+// (grilles et matrices exclues : planning, saisie des présences, CA par sport, droits)
+const TABLES_SANS_FICHES = '#planning-grid table, #pr-grid table, .recap-table, .perm-table';
+function etiqueterTableaux() {
+  document.querySelectorAll('table').forEach(tb => {
+    if (tb.matches(TABLES_SANS_FICHES)) return;
+    const ths = [...tb.querySelectorAll(':scope > thead th')];
+    if (ths.length < 4) { tb.classList.add('tbl-compacte'); return; }   // petits tableaux : ils tiennent sur l'écran
+    tb.classList.add('tbl-cartes');
+    const titres = ths.map(th => th.textContent.replace(/[▲▼↑↓⇅]/g, '').trim());
+    tb.querySelectorAll(':scope > tbody > tr').forEach(tr => {
+      if (tr.classList.contains('empty-row')) return;
+      [...tr.children].forEach((td, i) => {
+        if (td.dataset.label === undefined) td.dataset.label = titres[i] || '';
+        // Cellule ne contenant que des boutons : rangée d'actions en bas de la fiche
+        const texteHorsBoutons = [...td.childNodes].filter(n => !(n.nodeType === 1 && n.matches('button')))
+          .map(n => n.textContent).join('').trim();
+        if (td.querySelector('button') && !texteHorsBoutons) { td.classList.add('cell-actions'); return; }
+        // Cellule vide : masquée dans la fiche
+        td.classList.toggle('td-vide', !td.textContent.trim() && !td.querySelector('img,svg,input,select'));
+        // Plusieurs éléments dans la cellule : regroupés en un bloc aligné à droite de l'étiquette
+        const enfants = [...td.childNodes].filter(n => n.nodeType === 1 || n.textContent.trim());
+        if (enfants.length > 1 && !td.querySelector(':scope > .td-val')) {
+          const bloc = document.createElement('div'); bloc.className = 'td-val';
+          [...td.childNodes].forEach(n => bloc.appendChild(n));
+          td.appendChild(bloc);
+        }
+      });
+    });
+  });
+}
+let _etiqTimer = null;
+new MutationObserver(() => { cancelAnimationFrame(_etiqTimer); _etiqTimer = requestAnimationFrame(etiqueterTableaux); })
+  .observe(document.documentElement, { childList: true, subtree: true });
+
 document.addEventListener('DOMContentLoaded', () => {
   // Sortir ces modales de leur page pour pouvoir les ouvrir depuis n'importe quelle page
   const modalHost = document.getElementById('inscr-modal').parentElement;
