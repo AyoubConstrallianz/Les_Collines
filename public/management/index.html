@@ -4608,7 +4608,7 @@ function calcPress(k) {
 }
 
 let CLIENTS_CACHE = [];
-let _clientSort = { col: 'date', dir: 'desc' };
+let _clientSort = { col: 'num', dir: 'desc' };
 
 function sortClients(col) {
   if (_clientSort.col === col) _clientSort.dir = _clientSort.dir === 'asc' ? 'desc' : 'asc';
