@@ -1371,39 +1371,39 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         <p class="psubtitle" data-i18n="boutique.subtitle">Ventes d'articles (gants, T-shirts, accessoires…)</p>
         <div id="al-boutique"></div>
         <div class="sg" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-          <div class="sc"><div class="sc-label">Ventes du mois</div><div class="sc-val" id="bt-k-ventes">—</div></div>
-          <div class="sc"><div class="sc-label">Achats du mois</div><div class="sc-val" id="bt-k-achats">—</div></div>
-          <div class="sc"><div class="sc-label">Bénéfice du mois</div><div class="sc-val" id="bt-k-benef">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="bq.ventes_mois">Ventes du mois</div><div class="sc-val" id="bt-k-ventes">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="bq.achats_mois">Achats du mois</div><div class="sc-val" id="bt-k-achats">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="bq.benef_mois">Bénéfice du mois</div><div class="sc-val" id="bt-k-benef">—</div></div>
         </div>
 
         <div class="card" id="bv-form-card">
-          <div class="ct" id="bv-titre">Nouvelle vente</div>
+          <div class="ct" id="bv-titre" data-i18n="bq.nouvelle">Nouvelle vente</div>
           <input type="hidden" id="bv-id">
           <div class="g3">
-            <div class="fg"><label>Client</label><input id="bv-client" list="bv-clients" placeholder="Client de passage" autocomplete="off"><datalist id="bv-clients"></datalist></div>
-            <div class="fg"><label>Date</label><input id="bv-date" type="date"></div>
-            <div class="fg"><label>Article</label><input id="bv-article" list="bv-articles" placeholder="Ex : Gants de boxe 12 oz" autocomplete="off" oninput="bvArticleConnu()"><datalist id="bv-articles"></datalist></div>
+            <div class="fg"><label data-i18n="bq.client">Client</label><input id="bv-client" list="bv-clients" placeholder="Client de passage" data-i18n-ph="bq.client_ph" autocomplete="off"><datalist id="bv-clients"></datalist></div>
+            <div class="fg"><label data-i18n="bq.date">Date</label><input id="bv-date" type="date"></div>
+            <div class="fg"><label data-i18n="bq.article">Article</label><input id="bv-article" list="bv-articles" placeholder="Ex : Gants de boxe 12 oz" data-i18n-ph="bq.article_ph" autocomplete="off" oninput="bvArticleConnu()"><datalist id="bv-articles"></datalist></div>
           </div>
           <div class="g3">
-            <div class="fg"><label>Prix d'achat (DH)</label><input id="bv-achat" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
-            <div class="fg"><label>Prix de vente (DH)</label><input id="bv-vente" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
-            <div class="fg"><label>Bénéfice</label><div id="bv-marge" style="padding:9px 0;font-weight:700;font-size:15px">—</div></div>
+            <div class="fg"><label data-i18n="bq.prix_achat_dh">Prix d'achat (DH)</label><input id="bv-achat" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
+            <div class="fg"><label data-i18n="bq.prix_vente_dh">Prix de vente (DH)</label><input id="bv-vente" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
+            <div class="fg"><label data-i18n="bq.benefice">Bénéfice</label><div id="bv-marge" style="padding:9px 0;font-weight:700;font-size:15px">—</div></div>
           </div>
           <div class="btns">
-            <button class="btn btn-p" onclick="saveVente()">Enregistrer la vente</button>
-            <button class="btn" id="bv-annuler" style="display:none" onclick="resetVente()">Annuler la modification</button>
+            <button class="btn btn-p" onclick="saveVente()" data-i18n="bq.enregistrer">Enregistrer la vente</button>
+            <button class="btn" id="bv-annuler" style="display:none" onclick="resetVente()" data-i18n="bq.annuler_modif">Annuler la modification</button>
           </div>
         </div>
 
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
-            <div class="ct" style="margin:0">Ventes</div>
+            <div class="ct" style="margin:0" data-i18n="bq.ventes">Ventes</div>
             <div class="toolbar" style="margin:0;gap:8px">
-              <input id="bt-q" placeholder="Rechercher client ou article…" oninput="renderVentes()" style="max-width:240px">
+              <input id="bt-q" placeholder="Rechercher client ou article…" data-i18n-ph="bq.recherche_ph" oninput="renderVentes()" style="max-width:240px">
               <input id="bt-mois" type="month" onchange="loadBoutique()" style="max-width:180px">
             </div>
           </div>
-          <table><thead><tr><th>Date</th><th>Client</th><th>Article</th><th>Prix d'achat</th><th>Prix de vente</th><th>Bénéfice</th><th>Actions</th></tr></thead><tbody id="bv-tb"></tbody></table>
+          <table><thead><tr><th data-i18n="bq.date">Date</th><th data-i18n="bq.client">Client</th><th data-i18n="bq.article">Article</th><th data-i18n="bq.prix_achat">Prix d'achat</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.benefice">Bénéfice</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bv-tb"></tbody></table>
         </div>
       </div>
 
@@ -1414,18 +1414,18 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         <div id="al-associes"></div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
-            <div class="ct" style="margin:0">Associés</div>
-            <button class="btn btn-p" id="as-new" onclick="ouvrirAssocie()">+ Nouvel associé</button>
+            <div class="ct" style="margin:0" data-i18n="associes.title">Associés</div>
+            <button class="btn btn-p" id="as-new" onclick="ouvrirAssocie()" data-i18n="as.nouveau_btn">+ Nouvel associé</button>
           </div>
           <div id="as-liste"></div>
           <div id="as-total" style="margin-top:10px"></div>
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.5rem">
-            <div class="ct" style="margin:0">Répartition du bénéfice</div>
+            <div class="ct" style="margin:0" data-i18n="as.repartition_benef">Répartition du bénéfice</div>
             <div class="toolbar" style="margin:0"><select id="as-annee" onchange="loadAssocies()"></select></div>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin-bottom:10px">Bénéfice du mois = entrées encaissées − charges − salaires (même calcul que le récapitulatif entrées / sorties). Une perte est répartie de la même façon. Répartition au prorata des parts de chaque associé.</p>
+          <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="as.note">Bénéfice du mois = entrées encaissées − charges − salaires (même calcul que le récapitulatif entrées / sorties). Une perte est répartie de la même façon. Répartition au prorata des parts de chaque associé.</p>
           <div class="sg" id="as-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
           <div style="overflow-x:auto"><table id="as-table"></table></div>
         </div>
@@ -1437,10 +1437,10 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
               <button class="btn btn-sm" onclick="document.getElementById('associe-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
             </div>
             <input type="hidden" id="as-id">
-            <div class="fr"><div class="fg"><label>Prénom</label><input id="as-prenom"></div><div class="fg"><label>Nom (facultatif)</label><input id="as-nom"></div></div>
-            <div class="fr"><div class="fg"><label>Nombre de parts</label><input id="as-parts" type="number" min="0.5" step="0.5" placeholder="Ex : 1 ou 2"><span style="font-size:10px;color:var(--text3)">Part du bénéfice = ses parts ÷ total des parts (1 et 2 → 1/3 et 2/3)</span></div>
-              <div class="fg"><label>Statut</label><select id="as-actif"><option value="true">Actif</option><option value="false">Inactif</option></select></div></div>
-            <div class="btns"><button class="btn btn-p" onclick="saveAssocie()">Enregistrer</button><button class="btn" onclick="document.getElementById('associe-modal').classList.remove('open')">Annuler</button></div>
+            <div class="fr"><div class="fg"><label data-i18n="as.prenom">Prénom</label><input id="as-prenom"></div><div class="fg"><label data-i18n="as.nom">Nom (facultatif)</label><input id="as-nom"></div></div>
+            <div class="fr"><div class="fg"><label data-i18n="as.nb_parts">Nombre de parts</label><input id="as-parts" type="number" min="0.5" step="0.5" placeholder="Ex : 1 ou 2" data-i18n-ph="as.parts_ph"><span style="font-size:10px;color:var(--text3)" data-i18n="as.parts_aide">Part du bénéfice = ses parts ÷ total des parts (1 et 2 → 1/3 et 2/3)</span></div>
+              <div class="fg"><label data-i18n="as.statut">Statut</label><select id="as-actif"><option value="true" data-i18n="as.actif">Actif</option><option value="false" data-i18n="as.inactif">Inactif</option></select></div></div>
+            <div class="btns"><button class="btn btn-p" onclick="saveAssocie()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('associe-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
           </div>
         </div>
       </div>
@@ -1452,12 +1452,12 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         <div id="al-validations"></div>
         <div class="toolbar">
           <select id="va-statut" onchange="loadValidations()">
-            <option value="En attente">À valider</option>
-            <option value="Validée">Validées</option>
-            <option value="Refusée">Refusées</option>
-            <option value="">Toutes</option>
+            <option value="En attente" data-i18n="va.f_attente">À valider</option>
+            <option value="Validée" data-i18n="va.f_validees">Validées</option>
+            <option value="Refusée" data-i18n="va.f_refusees">Refusées</option>
+            <option value="" data-i18n="va.f_toutes">Toutes</option>
           </select>
-          <button class="btn" id="va-tout" onclick="validerToutesModifs()" style="display:none">Tout valider</button>
+          <button class="btn" id="va-tout" onclick="validerToutesModifs()" style="display:none" data-i18n="va.tout_valider">Tout valider</button>
         </div>
         <div id="va-liste"></div>
       </div>
@@ -2332,6 +2332,107 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "bq.ventes_mois": "Ventes du mois",
+    "bq.achats_mois": "Achats du mois",
+    "bq.benef_mois": "Bénéfice du mois",
+    "bq.nouvelle": "Nouvelle vente",
+    "bq.modifier": "Modifier la vente",
+    "bq.client": "Client",
+    "bq.client_ph": "Client de passage",
+    "bq.date": "Date",
+    "bq.article": "Article",
+    "bq.article_ph": "Ex : Gants de boxe 12 oz",
+    "bq.prix_achat_dh": "Prix d'achat (DH)",
+    "bq.prix_vente_dh": "Prix de vente (DH)",
+    "bq.prix_achat": "Prix d'achat",
+    "bq.prix_vente": "Prix de vente",
+    "bq.benefice": "Bénéfice",
+    "bq.enregistrer": "Enregistrer la vente",
+    "bq.annuler_modif": "Annuler la modification",
+    "bq.ventes": "Ventes",
+    "bq.recherche_ph": "Rechercher client ou article…",
+    "bq.passage": "Passage",
+    "bq.aucune_recherche": "Aucune vente ne correspond à la recherche",
+    "bq.aucune_mois": "Aucune vente ce mois-ci",
+    "bq.article_requis": "Indiquez l'article vendu",
+    "bq.prix_requis": "Indiquez le prix de vente",
+    "bq.sql_21": "Exécutez d'abord le script SQL 21 (Boutique simplifiée) dans Supabase.",
+    "bq.modifiee": "Vente modifiée",
+    "bq.enregistree": "Vente enregistrée",
+    "bq.suppr_confirm": "Supprimer la vente",
+    "as.nouveau_btn": "+ Nouvel associé",
+    "as.nouveau": "Nouvel associé",
+    "as.modifier": "Modifier l'associé",
+    "as.repartition_benef": "Répartition du bénéfice",
+    "as.note": "Bénéfice du mois = entrées encaissées − charges − salaires (même calcul que le récapitulatif entrées / sorties). Une perte est répartie de la même façon. Répartition au prorata des parts de chaque associé.",
+    "as.prenom": "Prénom",
+    "as.nom": "Nom (facultatif)",
+    "as.nb_parts": "Nombre de parts",
+    "as.parts_ph": "Ex : 1 ou 2",
+    "as.parts_aide": "Part du bénéfice = ses parts ÷ total des parts (1 et 2 → 1/3 et 2/3)",
+    "as.statut": "Statut",
+    "as.actif": "Actif",
+    "as.inactif": "Inactif",
+    "as.part": "part",
+    "as.parts": "parts",
+    "as.aucun": "Aucun associé — ajoutez-les avec « + Nouvel associé ».",
+    "as.total": "Total :",
+    "as.tout_reparti": "Tout le bénéfice est réparti.",
+    "as.benefice": "Bénéfice",
+    "as.benefice_mois": "Bénéfice du mois en cours",
+    "as.repartition": "Répartition",
+    "as.mois": "Mois",
+    "as.entrees": "Entrées",
+    "as.sorties": "Sorties",
+    "as.aucun_mouvement": "Aucun mouvement en",
+    "as.total_an": "Total",
+    "as.sql_22_23": "Exécutez d'abord les scripts SQL 22 puis 23 (Associés) dans Supabase.",
+    "as.sql_24": "Table des associés incomplète : exécutez le script SQL 24 dans Supabase.",
+    "as.prenom_requis": "Prénom obligatoire",
+    "as.parts_invalides": "Nombre de parts supérieur à 0",
+    "as.detail": "Détail :",
+    "as.suppr_confirm": "Supprimer l'associé",
+    "va.f_attente": "À valider",
+    "va.f_validees": "Validées",
+    "va.f_refusees": "Refusées",
+    "va.f_toutes": "Toutes",
+    "va.tout_valider": "Tout valider",
+    "va.op_INSERT": "Ajout",
+    "va.op_UPDATE": "Modification",
+    "va.op_DELETE": "Suppression",
+    "va.t_clients": "Client",
+    "va.t_paiements": "Paiement",
+    "va.t_charges": "Charge",
+    "va.t_sports": "Sport",
+    "va.t_planning": "Séance du planning",
+    "va.t_employes": "Salarié",
+    "va.t_salaires_paie": "Salaire",
+    "va.t_ventes": "Vente boutique",
+    "va.t_parametres": "Paramètre",
+    "va.t_habilitations": "Droits d'un utilisateur",
+    "va.t_associes": "Associé",
+    "va.oui": "Oui",
+    "va.non": "Non",
+    "va.fichier": "(fichier)",
+    "va.champ": "Champ",
+    "va.avant": "Avant",
+    "va.apres": "Après",
+    "va.lies": "changement(s) lié(s)",
+    "va.par": "par",
+    "va.gerant": "gérant",
+    "va.valider": "Valider",
+    "va.refuser": "Refuser",
+    "va.validee": "Validée",
+    "va.refusee": "Refusée",
+    "va.aucune": "Aucune modification.",
+    "va.rien_a_valider": "Aucune modification à valider.",
+    "va.a_valider_n": "modification(s) à valider",
+    "va.refus_confirm": "Refuser ce changement ?\nIl sera annulé : un ajout est supprimé, une modification revient aux valeurs d'avant, une suppression est rétablie.",
+    "va.toast_valide": "Changement validé",
+    "va.toast_refuse": "Changement refusé et annulé",
+    "va.tout_confirm": "Valider les %n changements en attente ?",
+    "va.toast_tout": "Tous les changements sont validés",
+    "va.sql_25": "Exécutez d'abord le script SQL 25 (validation des gérants) dans Supabase.",
     'nav.boutique_text': 'Boutique',
     'boutique.title':    'Boutique',
     'boutique.subtitle': "Ventes d'articles (gants, T-shirts, accessoires…)",
@@ -3072,6 +3173,107 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "bq.ventes_mois": "مبيعات الشهر",
+    "bq.achats_mois": "مشتريات الشهر",
+    "bq.benef_mois": "ربح الشهر",
+    "bq.nouvelle": "بيع جديد",
+    "bq.modifier": "تعديل البيع",
+    "bq.client": "الزبون",
+    "bq.client_ph": "زبون عابر",
+    "bq.date": "التاريخ",
+    "bq.article": "المنتج",
+    "bq.article_ph": "مثال : قفازات الملاكمة 12 أونصة",
+    "bq.prix_achat_dh": "ثمن الشراء (درهم)",
+    "bq.prix_vente_dh": "ثمن البيع (درهم)",
+    "bq.prix_achat": "ثمن الشراء",
+    "bq.prix_vente": "ثمن البيع",
+    "bq.benefice": "الربح",
+    "bq.enregistrer": "تسجيل البيع",
+    "bq.annuler_modif": "إلغاء التعديل",
+    "bq.ventes": "المبيعات",
+    "bq.recherche_ph": "ابحث عن زبون أو منتج…",
+    "bq.passage": "عابر",
+    "bq.aucune_recherche": "لا توجد مبيعات مطابقة للبحث",
+    "bq.aucune_mois": "لا توجد مبيعات هذا الشهر",
+    "bq.article_requis": "أدخل المنتج المباع",
+    "bq.prix_requis": "أدخل ثمن البيع",
+    "bq.sql_21": "نفّذ أولاً سكريبت SQL رقم 21 (المتجر) في Supabase.",
+    "bq.modifiee": "تم تعديل البيع",
+    "bq.enregistree": "تم تسجيل البيع",
+    "bq.suppr_confirm": "حذف البيع",
+    "as.nouveau_btn": "+ شريك جديد",
+    "as.nouveau": "شريك جديد",
+    "as.modifier": "تعديل الشريك",
+    "as.repartition_benef": "توزيع الأرباح",
+    "as.note": "ربح الشهر = المداخيل المحصلة − المصاريف − الأجور (نفس حساب ملخص المداخيل والمصاريف). تُوزَّع الخسارة بنفس الطريقة. التوزيع حسب عدد حصص كل شريك.",
+    "as.prenom": "الاسم الشخصي",
+    "as.nom": "الاسم العائلي (اختياري)",
+    "as.nb_parts": "عدد الحصص",
+    "as.parts_ph": "مثال : 1 أو 2",
+    "as.parts_aide": "حصة الربح = حصصه ÷ مجموع الحصص (1 و 2 ← 1/3 و 2/3)",
+    "as.statut": "الحالة",
+    "as.actif": "نشط",
+    "as.inactif": "غير نشط",
+    "as.part": "حصة",
+    "as.parts": "حصص",
+    "as.aucun": "لا يوجد شركاء — أضفهم عبر « + شريك جديد ».",
+    "as.total": "المجموع :",
+    "as.tout_reparti": "الربح موزع بالكامل.",
+    "as.benefice": "الربح",
+    "as.benefice_mois": "ربح الشهر الجاري",
+    "as.repartition": "التوزيع",
+    "as.mois": "الشهر",
+    "as.entrees": "المداخيل",
+    "as.sorties": "المصاريف",
+    "as.aucun_mouvement": "لا توجد حركة في",
+    "as.total_an": "مجموع",
+    "as.sql_22_23": "نفّذ أولاً سكريبتات SQL رقم 22 ثم 23 (الشركاء) في Supabase.",
+    "as.sql_24": "جدول الشركاء غير مكتمل : نفّذ سكريبت SQL رقم 24 في Supabase.",
+    "as.prenom_requis": "الاسم الشخصي إلزامي",
+    "as.parts_invalides": "يجب أن يكون عدد الحصص أكبر من 0",
+    "as.detail": "التفاصيل :",
+    "as.suppr_confirm": "حذف الشريك",
+    "va.f_attente": "للمصادقة",
+    "va.f_validees": "مصادق عليها",
+    "va.f_refusees": "مرفوضة",
+    "va.f_toutes": "الكل",
+    "va.tout_valider": "المصادقة على الكل",
+    "va.op_INSERT": "إضافة",
+    "va.op_UPDATE": "تعديل",
+    "va.op_DELETE": "حذف",
+    "va.t_clients": "زبون",
+    "va.t_paiements": "أداء",
+    "va.t_charges": "مصروف",
+    "va.t_sports": "رياضة",
+    "va.t_planning": "حصة في البرنامج",
+    "va.t_employes": "موظف",
+    "va.t_salaires_paie": "أجر",
+    "va.t_ventes": "بيع في المتجر",
+    "va.t_parametres": "إعداد",
+    "va.t_habilitations": "صلاحيات مستخدم",
+    "va.t_associes": "شريك",
+    "va.oui": "نعم",
+    "va.non": "لا",
+    "va.fichier": "(ملف)",
+    "va.champ": "الحقل",
+    "va.avant": "قبل",
+    "va.apres": "بعد",
+    "va.lies": "تغيير(ات) مرتبطة",
+    "va.par": "بواسطة",
+    "va.gerant": "المسير",
+    "va.valider": "مصادقة",
+    "va.refuser": "رفض",
+    "va.validee": "مصادق عليه",
+    "va.refusee": "مرفوض",
+    "va.aucune": "لا توجد تغييرات.",
+    "va.rien_a_valider": "لا توجد تغييرات للمصادقة.",
+    "va.a_valider_n": "تغيير(ات) للمصادقة",
+    "va.refus_confirm": "رفض هذا التغيير ؟\nسيتم إلغاؤه : تُحذف الإضافة، ويعود التعديل إلى القيم السابقة، ويُسترجع العنصر المحذوف.",
+    "va.toast_valide": "تمت المصادقة على التغيير",
+    "va.toast_refuse": "تم رفض التغيير وإلغاؤه",
+    "va.tout_confirm": "المصادقة على %n تغييرات في الانتظار ؟",
+    "va.toast_tout": "تمت المصادقة على جميع التغييرات",
+    "va.sql_25": "نفّذ أولاً سكريبت SQL رقم 25 (مصادقة المسيرين) في Supabase.",
     'nav.boutique_text': 'المتجر',
     'boutique.title':   'المتجر',
     'boutique.subtitle':'مبيعات المنتجات (قفازات، قمصان، إكسسوارات…)',
@@ -3735,7 +3937,12 @@ function toggleLang() {
     else if (pageId === 'charges') { loadCharges(); }
     else if (pageId === 'coaches') { loadCoaches(); }
     else if (pageId === 'stats') { loadStats(); }
+    else if (pageId === 'planning') { renderPlanning(); }
+    else if (pageId === 'boutique') { renderVentes(); document.getElementById('bv-titre').textContent = t(document.getElementById('bv-id').value ? 'bq.modifier' : 'bq.nouvelle'); }
+    else if (pageId === 'associes') { renderAssocies(); }
+    else if (pageId === 'validations') { renderValidations(); }
   }
+  majCompteurValidations();
 }
 
 function applyLang() {
@@ -3771,6 +3978,7 @@ function applyLang() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     el.textContent = t(el.dataset.i18n);
   });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
 
   // ── Helper : traduit le textContent d'un élément ────────────
   function tx(sel, key, root) {
@@ -7257,7 +7465,7 @@ async function loadBoutique() {
   ]);
   const err = rv.error;
   document.getElementById('al-boutique').innerHTML = err
-    ? `<div class="al al-e">${echapper(/article|prix_vente|relation|does not exist|schema cache/i.test(err.message) ? "Exécutez d'abord le script SQL 21 (Boutique simplifiée) dans Supabase." : err.message)}</div>` : '';
+    ? `<div class="al al-e">${echapper(/article|prix_vente|relation|does not exist|schema cache/i.test(err.message) ? t('bq.sql_21') : err.message)}</div>` : '';
   _bt.ventes = rv.data || [];
   _bt.clients = (rc.data || []).sort((x, y) => `${x.nom} ${x.prenom}`.localeCompare(`${y.nom} ${y.prenom}`, 'fr'));
   _bt.articles = {};
@@ -7282,11 +7490,11 @@ function renderVentes() {
   const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
   document.getElementById('bv-tb').innerHTML = liste.length ? liste.map(v => {
     const b = (parseFloat(v.prix_vente) || 0) - (parseFloat(v.prix_achat) || 0);
-    return `<tr><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || '<span style="color:var(--text3)">Passage</span>'}</td>
+    return `<tr><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || `<span style="color:var(--text3)">${t('bq.passage')}</span>`}</td>
       <td><strong>${echapper(v.article || '—')}</strong></td><td>${fmtDH2(v.prix_achat)}</td><td>${fmtDH2(v.prix_vente)}</td>
       <td style="font-weight:600;color:${b >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtDH2(b)}</td>
       <td><div style="display:flex;gap:4px">${canW ? `<button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
-  }).join('') : `<tr class="empty-row"><td colspan="7">${q ? 'Aucune vente ne correspond à la recherche' : 'Aucune vente ce mois-ci'}</td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="7">${t(q ? 'bq.aucune_recherche' : 'bq.aucune_mois')}</td></tr>`;
 }
 
 function bvMarge() {
@@ -7307,7 +7515,7 @@ function bvArticleConnu() {
 
 function resetVente() {
   ['bv-id', 'bv-client', 'bv-article', 'bv-achat', 'bv-vente'].forEach(i => { document.getElementById(i).value = ''; });
-  document.getElementById('bv-titre').textContent = 'Nouvelle vente';
+  document.getElementById('bv-titre').textContent = t('bq.nouvelle');
   document.getElementById('bv-annuler').style.display = 'none';
   bvMarge();
 }
@@ -7320,7 +7528,7 @@ function editVente(id) {
   document.getElementById('bv-article').value = v.article || '';
   document.getElementById('bv-achat').value = v.prix_achat ?? '';
   document.getElementById('bv-vente').value = v.prix_vente ?? '';
-  document.getElementById('bv-titre').textContent = 'Modifier la vente';
+  document.getElementById('bv-titre').textContent = t('bq.modifier');
   document.getElementById('bv-annuler').style.display = '';
   bvMarge();
   document.getElementById('bv-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -7330,8 +7538,8 @@ async function saveVente() {
   const id = document.getElementById('bv-id').value;
   const article = document.getElementById('bv-article').value.trim();
   const venteTxt = document.getElementById('bv-vente').value;
-  if (!article) { showToast("Indiquez l'article vendu", 'e'); return; }
-  if (venteTxt === '' || parseFloat(venteTxt) < 0) { showToast('Indiquez le prix de vente', 'e'); return; }
+  if (!article) { showToast(t('bq.article_requis'), 'e'); return; }
+  if (venteTxt === '' || parseFloat(venteTxt) < 0) { showToast(t('bq.prix_requis'), 'e'); return; }
   // Client : rattaché à la fiche si le nom correspond à un client, sinon gardé tel quel (client de passage)
   const nomClient = document.getElementById('bv-client').value.trim();
   const cle = nomClient.toLowerCase().replace(/\s+/g, ' ');
@@ -7346,18 +7554,18 @@ async function saveVente() {
   };
   const { error } = id ? await sb.from('ventes').update(obj).eq('id', id) : await sb.from('ventes').insert(obj);
   if (error) {
-    showToast(/article|prix_vente|schema cache/i.test(error.message) ? "Exécutez d'abord le script SQL 21 (Boutique simplifiée) dans Supabase." : error.message, 'e');
+    showToast(/article|prix_vente|schema cache/i.test(error.message) ? t('bq.sql_21') : error.message, 'e');
     return;
   }
   await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `${article} — ${fmtDH2(obj.prix_vente)}${nomClient ? ' — ' + nomClient : ''}`);
-  showToast(id ? 'Vente modifiée' : 'Vente enregistrée', 's');
+  showToast(t(id ? 'bq.modifiee' : 'bq.enregistree'), 's');
   resetVente();
   loadBoutique();
 }
 
 async function delVente(id) {
   const v = _bt.ventes.find(x => x.id === id);
-  if (!confirm(`Supprimer la vente « ${v?.article || ''} » ?`)) return;
+  if (!confirm(`${t('bq.suppr_confirm')} « ${v?.article || ''} » ?`)) return;
   const { error } = await sb.from('ventes').delete().eq('id', id);
   if (error) { showToast(error.message, 'e'); return; }
   await logAudit('DELETE', 'boutique', `Vente ${v?.article || id}`);
@@ -7381,6 +7589,7 @@ function fractionParts(p, total) {
 }
 const nomAssocie = a => `${a.prenom} ${a.nom || ''}`.trim();
 const estActif = a => a.actif !== false;   // colonne absente → actif
+const libParts = n => `${n} ${t(n > 1 ? 'as.parts' : 'as.part')}`;
 
 // Répartit un montant entre associés au prorata des parts, au centime près (le reste d'arrondi va au plus grand nombre de parts)
 function repartir(montant, associes) {
@@ -7404,8 +7613,8 @@ async function loadAssocies() {
   ]);
   const manqueParts = !ra.error && (ra.data || []).length && !['parts', 'actif'].every(k => k in ra.data[0]);
   document.getElementById('al-associes').innerHTML = ra.error
-    ? `<div class="al al-e">${/associes|relation|does not exist|schema cache/i.test(ra.error.message) ? "Exécutez d'abord les scripts SQL 22 puis 23 (Associés) dans Supabase." : ra.error.message}</div>`
-    : manqueParts ? `<div class="al al-e">Table des associés incomplète : exécutez le script SQL 24 dans Supabase.</div>` : '';
+    ? `<div class="al al-e">${/associes|relation|does not exist|schema cache/i.test(ra.error.message) ? t('as.sql_22_23') : ra.error.message}</div>`
+    : manqueParts ? `<div class="al al-e">${t('as.sql_24')}</div>` : '';
   _assoc.liste = ra.data || [];
   _assoc.bilan = bilan;
   renderAssocies();
@@ -7420,16 +7629,16 @@ function renderAssocies() {
   document.getElementById('as-liste').innerHTML = liste.length ? liste.map(a => `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:10px">${renderAvatar(null, nomAssocie(a), 36)}
-        <div><strong>${nomAssocie(a)}</strong> ${estActif(a) ? '' : '<span class="badge b-w" style="font-size:10px">Inactif</span>'}
-          <div style="font-size:11px;color:var(--text3)">${partsDe(a)} part${partsDe(a) > 1 ? 's' : ''}</div></div></div>
+        <div><strong>${nomAssocie(a)}</strong> ${estActif(a) ? '' : `<span class="badge b-w" style="font-size:10px">${t('as.inactif')}</span>`}
+          <div style="font-size:11px;color:var(--text3)">${libParts(partsDe(a))}</div></div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:20px;font-weight:800;font-variant-numeric:tabular-nums">${estActif(a) ? fractionParts(partsDe(a), totalParts) : '—'}</span>
+        <span style="font-size:20px;font-weight:800;font-variant-numeric:tabular-nums" dir="ltr">${estActif(a) ? fractionParts(partsDe(a), totalParts) : '—'}</span>
         ${canW ? `<button class="btn btn-sm" onclick="ouvrirAssocie('${a.id}')">${t('common.modifier')}</button>` : ''}
         ${canD ? `<button class="btn btn-sm btn-d" onclick="delAssocie('${a.id}')">${t('msg.suppr')}</button>` : ''}
       </div></div>`).join('')
-    : '<div style="font-size:13px;color:var(--text3);padding:8px 0">Aucun associé — ajoutez-les avec « + Nouvel associé ».</div>';
+    : `<div style="font-size:13px;color:var(--text3);padding:8px 0">${t('as.aucun')}</div>`;
   document.getElementById('as-total').innerHTML = actifs.length
-    ? `<div class="al al-i" style="margin:0">Total : <strong>${totalParts} part${totalParts > 1 ? 's' : ''}</strong> — ${actifs.map(a => `${a.prenom} ${fractionParts(partsDe(a), totalParts)}`).join(', ')}. Tout le bénéfice est réparti.</div>` : '';
+    ? `<div class="al al-i" style="margin:0">${t('as.total')} <strong>${libParts(totalParts)}</strong> — ${actifs.map(a => `${a.prenom} <span dir="ltr">${fractionParts(partsDe(a), totalParts)}</span>`).join(LANG === 'ar' ? '، ' : ', ')}. ${t('as.tout_reparti')}</div>` : '';
 
   // Tableau mensuel : bénéfice et part de chaque associé actif
   const b = _assoc.bilan; if (!b) return;
@@ -7441,22 +7650,23 @@ function renderAssocies() {
   const totAssoc = actifs.map((_, j) => Math.round(parts.reduce((s, p) => s + p[j], 0) * 100) / 100);
   const benefAn = lignesEchues.reduce((s, l) => s + l.solde, 0);
   const benefMois = (b.lignes.find(l => l.mois === moisCourant) || {}).solde;
+  const frac = a => `<span dir="ltr">${fractionParts(partsDe(a), totalParts)}</span>`;
   document.getElementById('as-kpis').innerHTML = `
-    <div class="sc"><div class="sc-label">Bénéfice ${b.an}</div><div class="sc-val" style="${cl(benefAn)}">${fmtDH2(benefAn)}</div></div>
-    <div class="sc"><div class="sc-label">Bénéfice du mois en cours</div><div class="sc-val" style="${cl(benefMois || 0)}">${benefMois === undefined ? '—' : fmtDH2(benefMois)}</div></div>
-    <div class="sc"><div class="sc-label">Répartition ${b.an}</div><div style="font-size:13px;line-height:1.7;margin-top:4px">${actifs.length
-      ? actifs.map((a, j) => `<div style="display:flex;justify-content:space-between;gap:8px"><span>${a.prenom} (${fractionParts(partsDe(a), totalParts)})</span><strong style="${cl(totAssoc[j])}">${fmtDH2(totAssoc[j])}</strong></div>`).join('')
+    <div class="sc"><div class="sc-label">${t('as.benefice')} ${b.an}</div><div class="sc-val" style="${cl(benefAn)}">${fmtDH2(benefAn)}</div></div>
+    <div class="sc"><div class="sc-label">${t('as.benefice_mois')}</div><div class="sc-val" style="${cl(benefMois || 0)}">${benefMois === undefined ? '—' : fmtDH2(benefMois)}</div></div>
+    <div class="sc"><div class="sc-label">${t('as.repartition')} ${b.an}</div><div style="font-size:13px;line-height:1.7;margin-top:4px">${actifs.length
+      ? actifs.map((a, j) => `<div style="display:flex;justify-content:space-between;gap:8px"><span>${a.prenom} (${frac(a)})</span><strong style="${cl(totAssoc[j])}">${fmtDH2(totAssoc[j])}</strong></div>`).join('')
       : '—'}</div></div>`;
-  const tete = `<thead><tr><th>Mois</th><th>Entrées</th><th>Sorties</th><th>Bénéfice</th>${actifs.map(a => `<th>${nomAssocie(a)} (${fractionParts(partsDe(a), totalParts)})</th>`).join('')}</tr></thead>`;
+  const tete = `<thead><tr><th>${t('as.mois')}</th><th>${t('as.entrees')}</th><th>${t('as.sorties')}</th><th>${t('as.benefice')}</th>${actifs.map(a => `<th>${nomAssocie(a)} (${frac(a)})</th>`).join('')}</tr></thead>`;
   // Mois affichés : avec au moins une entrée ou une sortie (le mois en cours est toujours affiché)
   const visibles = lignesEchues.map((l, i) => [l, parts[i]]).filter(([l]) => l.entrees || l.sorties || l.mois === moisCourant);
   const corps = !visibles.length
-    ? `<tr class="empty-row"><td colspan="${4 + actifs.length}">Aucun mouvement en ${b.an}</td></tr>`
+    ? `<tr class="empty-row"><td colspan="${4 + actifs.length}">${t('as.aucun_mouvement')} ${b.an}</td></tr>`
     : visibles.map(([l, p]) => `<tr${l.mois === moisCourant ? ' style="background:var(--blue-light)"' : ''}><td style="text-transform:capitalize;font-weight:600">${nomMois(l.mois)}</td>
         <td style="color:var(--green-text)">${fmtDH2(l.entrees)}</td><td style="color:var(--red-text)">${fmtDH2(l.sorties)}</td>
         <td style="font-weight:700;${cl(l.solde)}">${fmtDH2(l.solde)}</td>
         ${p.map(v => `<td style="font-weight:600;${cl(v)}">${fmtDH2(v)}</td>`).join('')}</tr>`).join('');
-  const tot = `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">Total ${b.an}</td>
+  const tot = `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('as.total_an')} ${b.an}</td>
     <td style="font-weight:700;color:var(--green-text)">${fmtDH2(lignesEchues.reduce((s, l) => s + l.entrees, 0))}</td>
     <td style="font-weight:700;color:var(--red-text)">${fmtDH2(lignesEchues.reduce((s, l) => s + l.sorties, 0))}</td>
     <td style="font-weight:800;${cl(benefAn)}">${fmtDH2(benefAn)}</td>
@@ -7466,7 +7676,7 @@ function renderAssocies() {
 
 function ouvrirAssocie(id) {
   const a = id ? _assoc.liste.find(x => x.id === id) : null;
-  document.getElementById('as-titre').textContent = a ? "Modifier l'associé" : 'Nouvel associé';
+  document.getElementById('as-titre').textContent = t(a ? 'as.modifier' : 'as.nouveau');
   document.getElementById('as-id').value = a?.id || '';
   document.getElementById('as-prenom').value = a?.prenom || '';
   document.getElementById('as-nom').value = a?.nom || '';
@@ -7484,12 +7694,12 @@ async function saveAssocie() {
     actif: document.getElementById('as-actif').value === 'true'
   };
   if (_assoc.liste.length && !('actif' in _assoc.liste[0])) delete obj.actif;   // table sans colonne « actif » (script 24 non exécuté)
-  if (!obj.prenom) { showToast('Prénom obligatoire', 'e'); return; }
-  if (isNaN(obj.parts) || obj.parts <= 0) { showToast('Nombre de parts supérieur à 0', 'e'); return; }
+  if (!obj.prenom) { showToast(t('as.prenom_requis'), 'e'); return; }
+  if (isNaN(obj.parts) || obj.parts <= 0) { showToast(t('as.parts_invalides'), 'e'); return; }
   const { error } = id ? await sb.from('associes').update(obj).eq('id', id) : await sb.from('associes').insert(obj);
   if (error) {
     const colonne = /column|schema cache/i.test(error.message);
-    showToast((colonne ? "Table incomplète : exécutez le script SQL 24 (Associés) dans Supabase. " : '') + `Détail : ${error.message}`, 'e');
+    showToast((colonne ? t('as.sql_24') + ' ' : '') + `${t('as.detail')} ${error.message}`, 'e');
     return;
   }
   await logAudit(id ? 'UPDATE' : 'CREATE', 'associes', `${obj.prenom} ${obj.nom} — ${obj.parts} part(s)`);
@@ -7500,7 +7710,7 @@ async function saveAssocie() {
 
 async function delAssocie(id) {
   const a = _assoc.liste.find(x => x.id === id);
-  if (!confirm(`Supprimer l'associé ${a?.prenom || ''} ${a?.nom || ''} ?`)) return;
+  if (!confirm(`${t('as.suppr_confirm')} ${a?.prenom || ''} ${a?.nom || ''} ?`)) return;
   const { error } = await sb.from('associes').delete().eq('id', id);
   if (error) { showToast(error.message, 'e'); return; }
   await logAudit('DELETE', 'associes', `${a?.prenom} ${a?.nom}`);
@@ -7510,9 +7720,9 @@ async function delAssocie(id) {
 // ════════════════════════════════════════════════════════════
 // VALIDATIONS : changements faits par les gérants, validés ou refusés par le super admin
 // ════════════════════════════════════════════════════════════
-const VA_TABLES = { clients: 'Client', paiements: 'Paiement', charges: 'Charge', sports: 'Sport', planning: 'Séance du planning',
-  employes: 'Salarié', salaires_paie: 'Salaire', ventes: 'Vente boutique', parametres: 'Paramètre', habilitations: "Droits d'un utilisateur", associes: 'Associé' };
-const VA_OPS = { INSERT: ['Ajout', 'b-g'], UPDATE: ['Modification', 'b-i'], DELETE: ['Suppression', 'b-d'] };
+const VA_OPS_CL = { INSERT: 'b-g', UPDATE: 'b-i', DELETE: 'b-d' };
+const vaOp = op => t('va.op_' + op);
+const vaTable = tb => { const k = 'va.t_' + tb, v = t(k); return v === k ? tb : v; };
 const VA_CHAMPS = { prenom: 'Prénom', nom: 'Nom', telephone: 'Téléphone', telephone2: 'Téléphone 2', email: 'E-mail', cin: 'CIN',
   date_naissance: 'Date de naissance', date_inscription: "Date d'inscription", sports: 'Sports', sport: 'Sport', statut: 'Statut', sexe: 'Sexe',
   numero_adherent: 'N° adhérent', montant: 'Montant', type: 'Type', mode: 'Mode', date_paiement: 'Date du paiement', note: 'Note',
@@ -7523,6 +7733,17 @@ const VA_CHAMPS = { prenom: 'Prénom', nom: 'Nom', telephone: 'Téléphone', tel
   tarif_inscription: "Tarif d'inscription", article: 'Article', prix_achat: "Prix d'achat", prix_vente: 'Prix de vente', date_vente: 'Date',
   valeur: 'Valeur', cle: 'Paramètre', module: 'Module', peut_lire: 'Lecture', peut_ecrire: 'Écriture', peut_supprimer: 'Suppression', parts: 'Parts', actif: 'Actif',
   photo_url: 'Photo', cin_recto_url: 'CIN (recto)', cin_verso_url: 'CIN (verso)', montant_semaine: 'Montant / semaine', nb_groupes: 'Nb de groupes', montant_groupe: 'Montant / groupe', date_embauche: "Date d'embauche" };
+const VA_CHAMPS_AR = { prenom: 'الاسم الشخصي', nom: 'الاسم العائلي', telephone: 'الهاتف', telephone2: 'الهاتف 2', email: 'البريد الإلكتروني', cin: 'البطاقة الوطنية',
+  date_naissance: 'تاريخ الازدياد', date_inscription: 'تاريخ التسجيل', sports: 'الرياضات', sport: 'الرياضة', statut: 'الحالة', sexe: 'الجنس',
+  numero_adherent: 'رقم المنخرط', montant: 'المبلغ', type: 'النوع', mode: 'طريقة الأداء', date_paiement: 'تاريخ الأداء', note: 'ملاحظة',
+  numero_recu: 'رقم الوصل', client_id: 'الزبون', employe_id: 'الموظف', libelle: 'البيان', categorie: 'الفئة', date_charge: 'التاريخ',
+  recurrence: 'التكرار', salaire: 'الأجر', poste: 'المنصب', contrat: 'العقد', remuneration: 'طريقة الأجر', pourcentage: 'النسبة',
+  mois: 'الشهر', jour: 'اليوم', heure_debut: 'البداية', heure_fin: 'النهاية', capacite: 'السعة', coaches_ids: 'المدربون', coach: 'المدرب',
+  tarif_mensuel: 'التعريفة الشهرية', tarif_trimestriel: 'تعريفة 3 أشهر', tarif_semestriel: 'تعريفة 6 أشهر', tarif_annuel: 'التعريفة السنوية',
+  tarif_inscription: 'رسوم التسجيل', article: 'المنتج', prix_achat: 'ثمن الشراء', prix_vente: 'ثمن البيع', date_vente: 'التاريخ',
+  valeur: 'القيمة', cle: 'الإعداد', module: 'الوحدة', peut_lire: 'القراءة', peut_ecrire: 'الكتابة', peut_supprimer: 'الحذف', parts: 'الحصص', actif: 'نشط',
+  photo_url: 'الصورة', cin_recto_url: 'البطاقة (الوجه)', cin_verso_url: 'البطاقة (الظهر)', montant_semaine: 'المبلغ / أسبوع', nb_groupes: 'عدد المجموعات', montant_groupe: 'المبلغ / مجموعة', date_embauche: 'تاريخ التشغيل' };
+const vaChamp = k => (LANG === 'ar' && VA_CHAMPS_AR[k]) || VA_CHAMPS[k] || k;
 const VA_CACHES = new Set(['id', 'updated_at', 'created_at', 'created_by', 'transaction_id', 'user_id', 'detail', 'client_nom']);
 let _va = { mods: [], noms: {} };
 
@@ -7533,7 +7754,7 @@ async function majCompteurValidations() {
   const n = error ? 0 : (count || 0);
   ['nav-badge-valid', 'tb-badge-valid'].forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = n > 99 ? '99+' : n; el.style.display = n ? '' : 'none'; } });
   const cloche = document.getElementById('tb-cloche');
-  if (cloche) { cloche.style.display = ''; cloche.title = n ? `${n} modification(s) à valider` : 'Aucune modification à valider'; }
+  if (cloche) { cloche.style.display = ''; cloche.title = n ? `${n} ${t('va.a_valider_n')}` : t('va.rien_a_valider'); }
 }
 
 async function loadValidations() {
@@ -7542,7 +7763,7 @@ async function loadValidations() {
   if (statut) req = req.eq('statut', statut);
   const { data, error } = await req;
   document.getElementById('al-validations').innerHTML = error
-    ? `<div class="al al-e">${/modifications|relation|does not exist|schema cache/i.test(error.message) ? "Exécutez d'abord le script SQL 25 (validation des gérants) dans Supabase." : error.message}</div>` : '';
+    ? `<div class="al al-e">${/modifications|relation|does not exist|schema cache/i.test(error.message) ? t('va.sql_25') : error.message}</div>` : '';
   _va.mods = data || [];
   // Noms des clients et salariés cités (paiements, salaires…)
   const ids = (k) => [...new Set(_va.mods.flatMap(m => [m.avant?.[k], m.apres?.[k]]).filter(Boolean))];
@@ -7575,9 +7796,9 @@ function vaValeur(k, v) {
   if ((k === 'client_id' || k === 'employe_id') && _va.noms[v]) return echapper(_va.noms[v]);
   if (k === 'coaches_ids' && Array.isArray(v)) return echapper(v.map(id => _va.noms[id] || id).join(', ') || '—');
   if (Array.isArray(v)) return echapper(v.join(', ')) || '—';
-  if (typeof v === 'boolean') return v ? 'Oui' : 'Non';
+  if (typeof v === 'boolean') return t(v ? 'va.oui' : 'va.non');
   if (typeof v === 'object') return echapper(JSON.stringify(v)).slice(0, 120);
-  if (/_url$/.test(k)) return '(fichier)';
+  if (/_url$/.test(k)) return t('va.fichier');
   if (/^(montant|salaire|prix_|tarif_)/.test(k) && !isNaN(parseFloat(v))) return fmtDH2(v);
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return dateFr(v);
   return echapper(String(v)).slice(0, 120);
@@ -7605,12 +7826,12 @@ function vaDetail(m) {
   if (m.operation === 'UPDATE') {
     Object.keys({ ...m.avant, ...m.apres }).forEach(k => {
       if (VA_CACHES.has(k) || JSON.stringify(m.avant?.[k]) === JSON.stringify(m.apres?.[k])) return;
-      lignes.push(`<tr><td>${VA_CHAMPS[k] || k}</td><td style="color:var(--red-text);text-decoration:line-through">${vaValeur(k, m.avant?.[k])}</td><td style="color:var(--green-text);font-weight:600">${vaValeur(k, m.apres?.[k])}</td></tr>`);
+      lignes.push(`<tr><td>${vaChamp(k)}</td><td style="color:var(--red-text);text-decoration:line-through">${vaValeur(k, m.avant?.[k])}</td><td style="color:var(--green-text);font-weight:600">${vaValeur(k, m.apres?.[k])}</td></tr>`);
     });
-    return lignes.length ? `<table class="va-diff"><thead><tr><th>Champ</th><th>Avant</th><th>Après</th></tr></thead><tbody>${lignes.join('')}</tbody></table>` : '';
+    return lignes.length ? `<table class="va-diff"><thead><tr><th>${t('va.champ')}</th><th>${t('va.avant')}</th><th>${t('va.apres')}</th></tr></thead><tbody>${lignes.join('')}</tbody></table>` : '';
   }
   const r = m.apres || m.avant || {};
-  Object.keys(r).forEach(k => { if (!VA_CACHES.has(k) && r[k] !== null && r[k] !== '' && !(Array.isArray(r[k]) && !r[k].length)) lignes.push(`<span><b>${VA_CHAMPS[k] || k}</b> : ${vaValeur(k, r[k])}</span>`); });
+  Object.keys(r).forEach(k => { if (!VA_CACHES.has(k) && r[k] !== null && r[k] !== '' && !(Array.isArray(r[k]) && !r[k].length)) lignes.push(`<span><b>${vaChamp(k)}</b> : ${vaValeur(k, r[k])}</span>`); });
   return `<div class="va-champs">${lignes.slice(0, 14).join('')}</div>`;
 }
 
@@ -7621,41 +7842,40 @@ function renderValidations() {
   const dt = s => { const d = new Date(s); return `${dateFr(isoLocal(d))} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
   document.getElementById('va-liste').innerHTML = groupes.length ? groupes.map(g => {
     const p = g[0], enAttente = g.some(m => m.statut === 'En attente');
-    const [opLib, opCl] = VA_OPS[p.operation] || [p.operation, 'b-i'];
-    const autres = g.length > 1 ? `<span style="font-size:11px;color:var(--text3)"> + ${g.length - 1} changement(s) lié(s)</span>` : '';
+    const autres = g.length > 1 ? `<span style="font-size:11px;color:var(--text3)"> + ${g.length - 1} ${t('va.lies')}</span>` : '';
     const ids = g.filter(m => m.statut === 'En attente').map(m => m.id).join(',');
-    const st = enAttente ? '' : `<span class="badge ${g[0].statut === 'Validée' ? 'b-g' : 'b-d'}">${g[0].statut}</span> <span style="font-size:11px;color:var(--text3)">${g[0].traite_le ? dt(g[0].traite_le) : ''}</span>`;
-    return `<div class="card va-carte" style="border-left:3px solid ${enAttente ? 'var(--amber)' : 'var(--border)'}">
+    const st = enAttente ? '' : `<span class="badge ${g[0].statut === 'Validée' ? 'b-g' : 'b-d'}">${t(g[0].statut === 'Validée' ? 'va.validee' : 'va.refusee')}</span> <span style="font-size:11px;color:var(--text3)">${g[0].traite_le ? dt(g[0].traite_le) : ''}</span>`;
+    return `<div class="card va-carte" style="border-inline-start:3px solid ${enAttente ? 'var(--amber)' : 'var(--border)'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
         <div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="badge ${opCl}">${opLib}</span>
-            <strong>${VA_TABLES[p.table_nom] || p.table_nom} : ${echapper(vaResume(p)) || '—'}</strong>${autres}</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:4px">${dt(p.created_at)} · par <b>${echapper(p.user_nom || 'gérant')}</b></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="badge ${VA_OPS_CL[p.operation] || 'b-i'}">${vaOp(p.operation)}</span>
+            <strong>${vaTable(p.table_nom)} : ${echapper(vaResume(p)) || '—'}</strong>${autres}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">${dt(p.created_at)} · ${t('va.par')} <b>${echapper(p.user_nom || t('va.gerant'))}</b></div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">${enAttente
-          ? `<button class="btn btn-sm btn-p" onclick="traiterModifs('${ids}','Validée')">Valider</button><button class="btn btn-sm btn-d" onclick="traiterModifs('${ids}','Refusée')">Refuser</button>`
+          ? `<button class="btn btn-sm btn-p" onclick="traiterModifs('${ids}','Validée')">${t('va.valider')}</button><button class="btn btn-sm btn-d" onclick="traiterModifs('${ids}','Refusée')">${t('va.refuser')}</button>`
           : st}</div>
       </div>
-      ${g.map(m => `<div style="margin-top:10px">${g.length > 1 ? `<div style="font-size:12px;font-weight:600;margin-bottom:4px">${(VA_OPS[m.operation] || [m.operation])[0]} — ${VA_TABLES[m.table_nom] || m.table_nom} : ${echapper(vaResume(m))}</div>` : ''}${vaDetail(m)}</div>`).join('')}
+      ${g.map(m => `<div style="margin-top:10px">${g.length > 1 ? `<div style="font-size:12px;font-weight:600;margin-bottom:4px">${vaOp(m.operation)} — ${vaTable(m.table_nom)} : ${echapper(vaResume(m))}</div>` : ''}${vaDetail(m)}</div>`).join('')}
     </div>`;
-  }).join('') : `<div class="al al-s" style="margin:0">${document.getElementById('va-statut').value === 'En attente' ? 'Aucune modification à valider.' : 'Aucune modification.'}</div>`;
+  }).join('') : `<div class="al al-s" style="margin:0">${t(document.getElementById('va-statut').value === 'En attente' ? 'va.rien_a_valider' : 'va.aucune')}</div>`;
 }
 
 async function traiterModifs(idsTxt, decision) {
   const ids = idsTxt.split(',').map(Number).filter(Boolean);
-  if (decision === 'Refusée' && !confirm("Refuser ce changement ?\nIl sera annulé : un ajout est supprimé, une modification revient aux valeurs d'avant, une suppression est rétablie.")) return;
+  if (decision === 'Refusée' && !confirm(t('va.refus_confirm'))) return;
   const { error } = await sb.rpc('traiter_modifications', { p_ids: ids, p_decision: decision });
   if (error) { showToast(error.message, 'e'); return; }
-  showToast(decision === 'Validée' ? 'Changement validé' : 'Changement refusé et annulé', 's');
+  showToast(t(decision === 'Validée' ? 'va.toast_valide' : 'va.toast_refuse'), 's');
   loadValidations();
 }
 
 async function validerToutesModifs() {
   const ids = _va.mods.filter(m => m.statut === 'En attente').map(m => m.id);
-  if (!ids.length || !confirm(`Valider les ${ids.length} changements en attente ?`)) return;
+  if (!ids.length || !confirm(t('va.tout_confirm').replace('%n', ids.length))) return;
   const { error } = await sb.rpc('traiter_modifications', { p_ids: ids, p_decision: 'Validée' });
   if (error) { showToast(error.message, 'e'); return; }
-  showToast('Tous les changements sont validés', 's');
+  showToast(t('va.toast_tout'), 's');
   loadValidations();
 }
 
