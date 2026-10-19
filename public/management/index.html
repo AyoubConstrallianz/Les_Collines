@@ -913,9 +913,9 @@ tr:hover td{background:var(--blue-light)}
               <span class="ct" style="margin:0;color:var(--red)" data-i18n="clients.impayes_title">Clients dont l'abonnement est échu</span>
               <span id="impayes-count" class="badge b-d">0</span>
             </div>
-            <button class="btn btn-sm" onclick="toggleImpayes()" id="btn-toggle-impayes" style="font-size:12px" data-i18n="msg.hide">Masquer</button>
+            <button class="btn btn-sm" onclick="toggleImpayes()" id="btn-toggle-impayes" style="font-size:12px" data-i18n="msg.show">Afficher</button>
           </div>
-          <div id="impayes-zone">
+          <div id="impayes-zone" style="display:none">
             <table><thead><tr><th data-i18n="common.nom">Nom</th><th data-i18n="clients.tel">Téléphone</th><th data-i18n="planning.sport">Sport</th><th data-i18n="clients.dernier_paie">Dernier paiement</th><th data-i18n="clients.retard">Retard</th><th data-i18n="clients.action_rapide">Action rapide</th></tr></thead>
             <tbody id="impayes-tb"></tbody></table>
           </div>
@@ -926,9 +926,9 @@ tr:hover td{background:var(--blue-light)}
               <span class="ct" style="margin:0;color:var(--amber-text)" data-i18n="assur.alerte_title">Assurance à payer</span>
               <span id="assur-count" class="badge b-w">0</span>
             </div>
-            <button class="btn btn-sm" onclick="const z=document.getElementById('assur-zone');z.style.display=z.style.display==='none'?'block':'none';this.textContent=z.style.display==='none'?t('msg.show'):t('msg.hide')" style="font-size:12px" data-i18n="msg.hide">Masquer</button>
+            <button class="btn btn-sm" onclick="const z=document.getElementById('assur-zone');z.style.display=z.style.display==='none'?'block':'none';this.textContent=z.style.display==='none'?t('msg.show'):t('msg.hide')" style="font-size:12px" data-i18n="msg.show">Afficher</button>
           </div>
-          <div id="assur-zone" style="overflow-x:auto">
+          <div id="assur-zone" style="overflow-x:auto;display:none">
             <table><thead><tr><th data-i18n="common.nom">Nom</th><th data-i18n="clients.tel">Téléphone</th><th data-i18n="planning.sport">Sport</th><th data-i18n="assur.etat">Assurance</th><th data-i18n="clients.action_rapide">Action rapide</th></tr></thead>
             <tbody id="assur-tb"></tbody></table>
           </div>
@@ -1005,8 +1005,7 @@ tr:hover td{background:var(--blue-light)}
         </div>
         <div class="card">
           <div class="toolbar">
-            <button class="btn btn-p" onclick="openClientForm()" style="white-space:nowrap" id="btn-new-client"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="clients.new">Nouveau client</span></button>
-            <button class="btn" onclick="openImport()" style="white-space:nowrap" id="btn-import"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> <span data-i18n="imp.btn">Importer Excel</span></button>
+            <button class="btn" onclick="openImport()" style="white-space:nowrap;display:none" id="btn-import"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> <span data-i18n="imp.btn">Importer Excel</span></button>
             <button class="btn" onclick="openDoublons()" style="white-space:nowrap;display:none" id="btn-doublons"><span data-i18n="doublons.btn">Doublons</span> <span class="badge b-w" id="doublons-count">0</span></button>
             <input id="sc-q" placeholder="Rechercher..." oninput="loadClients()" style="flex:1;max-width:260px">
             <select id="sc-sport" onchange="loadClients()"><option value="" data-i18n="select.all_sports">Tous les sports</option></select>
@@ -1019,7 +1018,6 @@ tr:hover td{background:var(--blue-light)}
             <th data-i18n="clients.tel">Téléphone</th>
             <th data-i18n="clients.sports">Sports</th>
             <th class="th-sort" onclick="sortClients('date')" data-i18n="clients.date_insc">Inscription <span id="sort-ico-date"></span></th>
-            <th class="th-sort" onclick="sortClients('mensualite')" data-i18n="clients.mensualite_th">Mensualité <span id="sort-ico-mensualite"></span></th>
             <th class="th-sort" onclick="sortClients('statut')" data-i18n="clients.statut_th">Statut <span id="sort-ico-statut"></span></th>
             <th data-i18n="common.actions">Actions</th>
           </tr></thead><tbody id="clients-tb"></tbody></table>
@@ -2409,7 +2407,7 @@ const I18N = {
     'imp.etape2':        'Choisir le fichier rempli : un aperçu s\'affiche, avec les erreurs éventuelles.',
     'imp.etape3':        'Cliquer sur « Importer ». Rien n\'est enregistré avant.',
     'imp.importer':      'Importer',
-    'imp.no_perm':       'Droits « écrire » sur les clients et les paiements nécessaires.',
+    'imp.no_perm':       'L\'import Excel est réservé au Super Admin.',
     'imp.lib_ko':        'Impossible de charger le lecteur Excel (connexion internet ?)',
     'imp.lecture':       'Lecture du fichier…',
     'imp.feuilles_ko':   'Feuilles « Clients » et « Paiements » introuvables : utilisez le modèle.',
@@ -4533,18 +4531,18 @@ async function loadClients() {
           <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>')||'—'}</td>
           <td>${badges||'—'}</td>
           <td style="font-size:12px;color:var(--text2)">${c.date_inscription||'—'}</td>
-          <td style="font-size:12px;color:var(--green);font-weight:500">${mensuel?fmt(mensuel):'—'}</td>
           <td><span class="badge ${c.statut==='Actif'?'b-g':c.statut==='Inactif'?'b-w':'b-d'}">${_statutLabel(c.statut)}</span></td>
           <td><div style="display:flex;gap:4px">
             ${canWrite?`<button class="btn btn-sm" onclick="editClient(CLIENTS_CACHE[${i}])">${t('common.modifier')}</button>`:''}
             ${canDel?`<button class="btn btn-sm btn-d" onclick="delClient('${c.id}')">${t('msg.suppr')}</button>`:''}
           </div></td></tr>`;
       }).join('')
-    : `<tr class="empty-row"><td colspan="9">${t('msg.no_client')}</td></tr>`;
-  const btnNew = document.getElementById('btn-new-client');
-  if (btnNew) btnNew.style.display = canWrite ? '' : 'none';
+    : `<tr class="empty-row"><td colspan="8">${t('msg.no_client')}</td></tr>`;
+  // Import Excel : réservé au Super Admin
+  const btnImport = document.getElementById('btn-import');
+  if (btnImport) btnImport.style.display = ME?.role === 'super_admin' ? '' : 'none';
   // Icônes tri
-  ['nom','date','mensualite','statut'].forEach(c => {
+  ['nom','date','statut'].forEach(c => {
     const el = document.getElementById('sort-ico-'+c);
     if (el) el.innerHTML = _sortIcon(c);
   });
@@ -5215,7 +5213,7 @@ function chargerSheetJS() {
 }
 
 function openImport() {
-  if (!PERMS.clients?.ecrire || !PERMS.paiements?.ecrire) { showToast(t('imp.no_perm'), 'e'); return; }
+  if (ME?.role !== 'super_admin') { showToast(t('imp.no_perm'), 'e'); return; }
   _import = null;
   document.getElementById('import-file').value = '';
   document.getElementById('import-apercu').innerHTML = '';
@@ -5607,7 +5605,7 @@ async function delClient(id) {
 }
 
 // ── Clients impayés ─────────────────────────────────────────
-let impayes_visible = true;
+let impayes_visible = false;   // replié au départ
 function toggleImpayes() {
   impayes_visible = !impayes_visible;
   document.getElementById('impayes-zone').style.display = impayes_visible ? 'block' : 'none';
