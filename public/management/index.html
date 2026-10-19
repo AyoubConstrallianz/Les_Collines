@@ -2502,6 +2502,9 @@ const I18N = {
     'imp.e_ref':         'Réf client manquante',
     'imp.e_ref_double':  'Réf « %s » utilisée deux fois',
     'imp.e_nom':         'prénom et nom obligatoires',
+    'imp.e_num_adh':     "N° adhérent « %s » invalide (nombre entier attendu)",
+    'imp.e_num_pris':    "N° adhérent %s déjà attribué à un client de l'application",
+    'imp.e_num_double':  "N° adhérent %s présent plusieurs fois dans le fichier",
     'imp.e_tel':         'téléphone obligatoire',
     'imp.e_sexe':        'sexe manquant ou invalide (Homme / Femme)',
     'imp.e_date_insc':   'date d\'inscription manquante ou invalide (JJ/MM/AAAA)',
@@ -5442,7 +5445,7 @@ function convertirImportSimple(lignes) {
     const ref = 'L' + r._ligne;
     const c = { _ligne: r._ligne, 'ref client': ref, prenom: r['prenom'], nom: r['nom'], telephone: r['telephone 1'] ?? r['telephone'],
       'date de naissance': r['date de naissance'],
-      'telephone 2': r['telephone 2'], cin: r['cin'], 'e-mail': r['e-mail'], sexe: r['sexe'],
+      'telephone 2': r['telephone 2'], 'n° adherent': r['n° adherent'], cin: r['cin'], 'e-mail': r['e-mail'], sexe: r['sexe'],
       "date d'inscription": r["date d'inscription"], statut: '' };
     const sports = String(r['sports'] ?? '').split(/[,;\/+]/).map(x => x.trim()).filter(Boolean);
     if (sports.length) sports.forEach((sp, i) => { c['sport ' + (i + 1)] = sp; }); else c['sport 1'] = '';
@@ -5464,7 +5467,9 @@ async function analyserImport(fC, fP, { LC = 'Clients', LP = 'Paiements' } = {})
   const err = (f, l, msg) => erreurs.push(`${f} ${t('imp.ligne')} ${l} : ${msg}`);
   if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
   const sportsDb = {}; SPORTS_CACHE.forEach(sp => { sportsDb[_sansAccent(sp.nom)] = sp.nom; });
-  const { data: existants } = await fetchAllRows(() => sb.from('clients').select('id,prenom,nom,telephone,telephone2').order('id'));
+  let { data: existants } = await fetchAllRows(() => sb.from('clients').select('id,prenom,nom,telephone,telephone2,numero_adherent').order('id'));
+  if (!existants) ({ data: existants } = await fetchAllRows(() => sb.from('clients').select('id,prenom,nom,telephone,telephone2').order('id')));  // colonne absente (script 17 non exécuté)
+  const numerosPris = new Set((existants || []).map(e => e.numero_adherent).filter(Boolean)), numerosFichier = new Set();
 
   // ── Clients ──
   const parRef = {}, clients = [];
@@ -5481,6 +5486,13 @@ async function analyserImport(fC, fP, { LC = 'Clients', LP = 'Paiements' } = {})
     if (!ref) err(LC, L, t('imp.e_ref'));
     else if (parRef[_sansAccent(ref)]) err(LC, L, t('imp.e_ref_double').replace('%s', ref));
     if (!c.prenom || !c.nom) err(LC, L, t('imp.e_nom'));
+    const numAdh = String(r['n° adherent'] ?? '').trim();
+    if (numAdh) {
+      const n = Number(numAdh.replace(',', '.'));
+      if (!Number.isInteger(n) || n < 1) err(LC, L, t('imp.e_num_adh').replace('%s', numAdh));
+      else if (numerosFichier.has(n)) err(LC, L, t('imp.e_num_double').replace('%s', n));
+      else { numerosFichier.add(n); c.numero_adherent = n; }
+    }
     if (!c.sexe) err(LC, L, t('imp.e_sexe'));
     if (!c.date_inscription || c.date_inscription === 'invalide') err(LC, L, t('imp.e_date_insc'));
     if (c.date_naissance === 'invalide') { err(LC, L, t('imp.e_date_naiss')); c.date_naissance = null; }
@@ -5498,6 +5510,7 @@ async function analyserImport(fC, fP, { LC = 'Clients', LP = 'Paiements' } = {})
     const cle = cleNomClient(c.prenom, c.nom), tel = _chiffres(c.telephone);
     const deja = (existants || []).find(e => cleNomClient(e.prenom, e.nom) === cle
       && tel && [e.telephone, e.telephone2].some(x => _chiffres(x) === tel));
+    if (!deja && c.numero_adherent && numerosPris.has(c.numero_adherent)) err(LC, L, t('imp.e_num_pris').replace('%s', c.numero_adherent));
     if (deja) avert.push(`${LC} ${t('imp.ligne')} ${L} : ${t('imp.a_existe').replace('%s', `${c.prenom} ${c.nom}`)}`);
     else if ((existants || []).some(e => cleNomClient(e.prenom, e.nom) === cle))
       avert.push(`${LC} ${t('imp.ligne')} ${L} : ${t('imp.a_homonyme').replace('%s', `${c.prenom} ${c.nom}`)}`);
