@@ -1514,6 +1514,11 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div id="as-total" style="margin-top:10px"></div>
         </div>
         <div class="card">
+          <div class="ct" data-i18n="as.du_titre">Ce qui revient à chaque associé</div>
+          <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="as.du_note">Capital investi (à rembourser) + part du bénéfice cumulé depuis le début de l'activité − ce qui a déjà été versé.</p>
+          <div style="overflow-x:auto"><table id="as-du"></table></div>
+        </div>
+        <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.5rem">
             <div class="ct" style="margin:0" data-i18n="as.repartition_benef">Répartition du bénéfice</div>
             <div class="toolbar" style="margin:0"><select id="as-annee" onchange="loadAssocies()"></select></div>
@@ -1533,6 +1538,8 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="fr"><div class="fg"><label data-i18n="as.prenom">Prénom</label><input id="as-prenom"></div><div class="fg"><label data-i18n="as.nom">Nom (facultatif)</label><input id="as-nom"></div></div>
             <div class="fr"><div class="fg"><label data-i18n="as.nb_parts">Nombre de parts</label><input id="as-parts" type="number" min="0.5" step="0.5" placeholder="Ex : 1 ou 2" data-i18n-ph="as.parts_ph"><span style="font-size:10px;color:var(--text3)" data-i18n="as.parts_aide">Part du bénéfice = ses parts ÷ total des parts (1 et 2 → 1/3 et 2/3)</span></div>
               <div class="fg"><label data-i18n="as.statut">Statut</label><select id="as-actif"><option value="true" data-i18n="as.actif">Actif</option><option value="false" data-i18n="as.inactif">Inactif</option></select></div></div>
+            <div class="fr"><div class="fg"><label data-i18n="as.capital_dh">Capital investi (DH)</label><input id="as-capital" type="number" min="0" step="0.01" placeholder="0"></div>
+              <div class="fg"><label data-i18n="as.deja_verse_dh">Déjà versé à l'associé (DH)</label><input id="as-verse" type="number" min="0" step="0.01" placeholder="0"><span style="font-size:10px;color:var(--text3)" data-i18n="as.deja_verse_aide">Remboursement du capital et bénéfices déjà payés</span></div></div>
             <div class="btns"><button class="btn btn-p" onclick="saveAssocie()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('associe-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
           </div>
         </div>
@@ -2425,6 +2432,21 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "as.du_titre": "Ce qui revient à chaque associé",
+    "as.du_note": "Capital investi (à rembourser) + part du bénéfice cumulé depuis le début de l'activité − ce qui a déjà été versé.",
+    "as.capital_dh": "Capital investi (DH)",
+    "as.deja_verse_dh": "Déjà versé à l'associé (DH)",
+    "as.deja_verse_aide": "Remboursement du capital et bénéfices déjà payés",
+    "as.capital": "Capital",
+    "as.capital_investi": "Capital investi",
+    "as.associe": "Associé",
+    "as.part_benef": "Part du bénéfice",
+    "as.depuis": "depuis",
+    "as.total_revient": "Total qui lui revient",
+    "as.deja_verse": "Déjà versé",
+    "as.reste": "Reste à verser",
+    "as.montant_invalide": "Montant invalide",
+    "as.sql_28": "Table des associés incomplète : exécutez le script SQL 28 (capital) dans Supabase.",
     "va.t_produits": "Article boutique",
     "va.t_stock_mouvements": "Mouvement de stock",
     "bq.valeur_stock": "Valeur du stock",
@@ -3336,6 +3358,21 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "as.du_titre": "ما يعود لكل شريك",
+    "as.du_note": "رأس المال المستثمر (للاسترجاع) + حصة الربح المتراكم منذ بداية النشاط − ما تم دفعه مسبقاً.",
+    "as.capital_dh": "رأس المال المستثمر (درهم)",
+    "as.deja_verse_dh": "المبلغ المدفوع للشريك (درهم)",
+    "as.deja_verse_aide": "استرجاع رأس المال والأرباح المدفوعة مسبقاً",
+    "as.capital": "رأس المال",
+    "as.capital_investi": "رأس المال المستثمر",
+    "as.associe": "الشريك",
+    "as.part_benef": "حصة الربح",
+    "as.depuis": "منذ",
+    "as.total_revient": "المجموع المستحق",
+    "as.deja_verse": "المدفوع",
+    "as.reste": "الباقي للدفع",
+    "as.montant_invalide": "مبلغ غير صحيح",
+    "as.sql_28": "جدول الشركاء غير مكتمل : نفّذ سكريبت SQL رقم 28 (رأس المال) في Supabase.",
     "va.t_produits": "منتج في المتجر",
     "va.t_stock_mouvements": "حركة مخزون",
     "bq.valeur_stock": "قيمة المخزون",
@@ -8003,7 +8040,7 @@ async function delMouvement(id) {
 // ════════════════════════════════════════════════════════════
 // ASSOCIÉS : bénéfice mensuel réparti par parts (ex. 1 part = 1/3, 2 parts = 2/3) — calcul seulement
 // ════════════════════════════════════════════════════════════
-let _assoc = { liste: [], bilan: null };
+let _assoc = { liste: [], bilan: null, bilans: {}, debut: null };
 
 // Nombre de parts (repli sur l'ancien pourcentage si le script 23 n'a pas encore été exécuté)
 const partsDe = a => parseFloat(a.parts ?? a.pourcentage) || 0;
@@ -8034,14 +8071,24 @@ async function loadAssocies() {
   const anCourant = new Date().getFullYear();
   if (!selAn.options.length) selAn.innerHTML = Array.from({ length: 4 }, (_, i) => anCourant - i).map(a => `<option value="${a}">${a}</option>`).join('');
   const an = selAn.value || String(anCourant);
-  const [ra, bilan] = await Promise.all([
+  // Première année d'activité (premier paiement, charge ou salaire) → bénéfice cumulé depuis le début
+  const [ra, bilan, p1, c1, s1] = await Promise.all([
     sb.from('associes').select('*').order('created_at'),
-    bilanAnnee(an)
+    bilanAnnee(an),
+    sb.from('paiements').select('date_paiement').order('date_paiement').limit(1),
+    sb.from('charges').select('date_charge').order('date_charge').limit(1),
+    sb.from('salaires_paie').select('mois').order('mois').limit(1)
   ]);
+  const premieres = [p1.data?.[0]?.date_paiement, c1.data?.[0]?.date_charge, s1.data?.[0]?.mois].filter(Boolean).map(d => parseInt(String(d).slice(0, 4), 10));
+  _assoc.debut = premieres.length ? Math.min(...premieres) : anCourant;
+  _assoc.bilans = { [an]: bilan };
+  const annees = Array.from({ length: anCourant - _assoc.debut + 1 }, (_, i) => _assoc.debut + i).filter(y => String(y) !== String(an));
+  (await Promise.all(annees.map(y => bilanAnnee(String(y))))).forEach((bl, i) => { _assoc.bilans[annees[i]] = bl; });
   const manqueParts = !ra.error && (ra.data || []).length && !['parts', 'actif'].every(k => k in ra.data[0]);
+  const manqueCapital = !ra.error && (ra.data || []).length && !('capital' in ra.data[0]);
   document.getElementById('al-associes').innerHTML = ra.error
     ? `<div class="al al-e">${/associes|relation|does not exist|schema cache/i.test(ra.error.message) ? t('as.sql_22_23') : ra.error.message}</div>`
-    : manqueParts ? `<div class="al al-e">${t('as.sql_24')}</div>` : '';
+    : manqueParts || manqueCapital ? `<div class="al al-e">${t('as.sql_28')}</div>` : '';
   _assoc.liste = ra.data || [];
   _assoc.bilan = bilan;
   renderAssocies();
@@ -8057,7 +8104,7 @@ function renderAssocies() {
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:10px">${renderAvatar(null, nomAssocie(a), 36)}
         <div><strong>${nomAssocie(a)}</strong> ${estActif(a) ? '' : `<span class="badge b-w" style="font-size:10px">${t('as.inactif')}</span>`}
-          <div style="font-size:11px;color:var(--text3)">${libParts(partsDe(a))}</div></div></div>
+          <div style="font-size:11px;color:var(--text3)">${libParts(partsDe(a))}${parseFloat(a.capital) ? ` · ${t('as.capital')} ${fmtDH2(a.capital)}` : ''}</div></div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:20px;font-weight:800;font-variant-numeric:tabular-nums" dir="ltr">${estActif(a) ? fractionParts(partsDe(a), totalParts) : '—'}</span>
         ${canW ? `<button class="btn btn-sm" onclick="ouvrirAssocie('${a.id}')">${t('common.modifier')}</button>` : ''}
@@ -8099,6 +8146,32 @@ function renderAssocies() {
     <td style="font-weight:800;${cl(benefAn)}">${fmtDH2(benefAn)}</td>
     ${totAssoc.map(v => `<td style="font-weight:800;${cl(v)}">${fmtDH2(v)}</td>`).join('')}</tr>`;
   document.getElementById('as-table').innerHTML = tete + '<tbody>' + corps + tot + '</tbody>';
+  renderDuAssocies(actifs, totalParts, cl, frac);
+}
+
+// Capital + part du bénéfice cumulé (toutes les années, jusqu'au mois en cours) − déjà versé
+function renderDuAssocies(actifs, totalParts, cl, frac) {
+  const moisCourant = thisMonth();
+  const cumul = actifs.map(() => 0);
+  Object.values(_assoc.bilans).forEach(bl => (bl?.lignes || []).filter(l => l.mois <= moisCourant)
+    .forEach(l => repartir(l.solde, actifs).forEach((v, j) => { cumul[j] += v; })));
+  const lignes = actifs.map((a, j) => {
+    const capital = parseFloat(a.capital) || 0, verse = parseFloat(a.deja_verse) || 0;
+    const part = Math.round(cumul[j] * 100) / 100, total = capital + part, reste = total - verse;
+    return { a, capital, part, total, verse, reste };
+  });
+  const somme = k => lignes.reduce((s, l) => s + l[k], 0);
+  const depuis = `${t('as.depuis')} ${_assoc.debut || ''}`;
+  document.getElementById('as-du').innerHTML = actifs.length ? `<thead><tr><th>${t('as.associe')}</th><th>${t('as.capital_investi')}</th>
+      <th>${t('as.part_benef')} (${depuis})</th><th>${t('as.total_revient')}</th><th>${t('as.deja_verse')}</th><th>${t('as.reste')}</th></tr></thead><tbody>
+    ${lignes.map(l => `<tr><td><strong>${nomAssocie(l.a)}</strong> (${frac(l.a)})</td><td>${fmtDH2(l.capital)}</td>
+      <td style="font-weight:600;${cl(l.part)}">${fmtDH2(l.part)}</td><td style="font-weight:700">${fmtDH2(l.total)}</td>
+      <td>${fmtDH2(l.verse)}</td><td style="font-weight:800;${cl(l.reste)}">${fmtDH2(l.reste)}</td></tr>`).join('')}
+    <tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('as.total_an')}</td>
+      <td style="font-weight:700">${fmtDH2(somme('capital'))}</td><td style="font-weight:700;${cl(somme('part'))}">${fmtDH2(somme('part'))}</td>
+      <td style="font-weight:800">${fmtDH2(somme('total'))}</td><td style="font-weight:700">${fmtDH2(somme('verse'))}</td>
+      <td style="font-weight:800;${cl(somme('reste'))}">${fmtDH2(somme('reste'))}</td></tr></tbody>`
+    : `<tbody><tr class="empty-row"><td>${t('as.aucun')}</td></tr></tbody>`;
 }
 
 function ouvrirAssocie(id) {
@@ -8109,6 +8182,8 @@ function ouvrirAssocie(id) {
   document.getElementById('as-nom').value = a?.nom || '';
   document.getElementById('as-parts').value = a ? partsDe(a) : 1;
   document.getElementById('as-actif').value = String(a ? estActif(a) : true);
+  document.getElementById('as-capital').value = a && parseFloat(a.capital) ? parseFloat(a.capital) : '';
+  document.getElementById('as-verse').value = a && parseFloat(a.deja_verse) ? parseFloat(a.deja_verse) : '';
   document.getElementById('associe-modal').classList.add('open');
 }
 
@@ -8118,15 +8193,19 @@ async function saveAssocie() {
     prenom: formatPrenom(document.getElementById('as-prenom').value),
     nom: formatNom(document.getElementById('as-nom').value),
     parts: parseFloat(String(document.getElementById('as-parts').value).replace(',', '.')),
-    actif: document.getElementById('as-actif').value === 'true'
+    actif: document.getElementById('as-actif').value === 'true',
+    capital: parseFloat(document.getElementById('as-capital').value) || 0,
+    deja_verse: parseFloat(document.getElementById('as-verse').value) || 0
   };
-  if (_assoc.liste.length && !('actif' in _assoc.liste[0])) delete obj.actif;   // table sans colonne « actif » (script 24 non exécuté)
+  if (_assoc.liste.length && !('actif' in _assoc.liste[0])) delete obj.actif;
+  if (_assoc.liste.length && !('capital' in _assoc.liste[0])) { delete obj.capital; delete obj.deja_verse; }   // script 28 non exécuté
+  if (obj.capital < 0 || obj.deja_verse < 0) { showToast(t('as.montant_invalide'), 'e'); return; }   // table sans colonne « actif » (script 24 non exécuté)
   if (!obj.prenom) { showToast(t('as.prenom_requis'), 'e'); return; }
   if (isNaN(obj.parts) || obj.parts <= 0) { showToast(t('as.parts_invalides'), 'e'); return; }
   const { error } = id ? await sb.from('associes').update(obj).eq('id', id) : await sb.from('associes').insert(obj);
   if (error) {
     const colonne = /column|schema cache/i.test(error.message);
-    showToast((colonne ? t('as.sql_24') + ' ' : '') + `${t('as.detail')} ${error.message}`, 'e');
+    showToast((colonne ? t('as.sql_28') + ' ' : '') + `${t('as.detail')} ${error.message}`, 'e');
     return;
   }
   await logAudit(id ? 'UPDATE' : 'CREATE', 'associes', `${obj.prenom} ${obj.nom} — ${obj.parts} part(s)`);
