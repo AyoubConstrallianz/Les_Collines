@@ -2564,6 +2564,8 @@ const I18N = {
     'remu.mensualite':   'Mensualité',
     'remu.pct_info':     'Calculé à chaque paiement : CA du mois des adhérents de ses disciplines × pourcentage.',
     'remu.du_ca':        'du CA',
+    'remu.ca_mois':      'CA du mois à ce jour',
+    'remu.sans_discipline': 'aucune discipline assignée',
     'remu.calcul':       'Calcul en cours…',
     'remu.groupe_court': 'Par groupe',
     'remu.mensuel_court':'Salaire mensuel',
@@ -3287,6 +3289,8 @@ const I18N = {
     'remu.mensualite':  'الأجرة الشهرية',
     'remu.pct_info':    'تحسب عند كل أداء : رقم معاملات الشهر لمنخرطي تخصصاته × النسبة.',
     'remu.du_ca':       'من رقم المعاملات',
+    'remu.ca_mois':     'رقم معاملات الشهر حتى الآن',
+    'remu.sans_discipline': 'لا توجد تخصصات',
     'remu.calcul':      'جارٍ الحساب…',
     'remu.groupe_court':'حسب المجموعة',
     'remu.mensuel_court':'الراتب الشهري',
@@ -8326,6 +8330,26 @@ async function loadCoachNonPayes() {
     });
   }
 
+  // Rémunération au pourcentage : montant calculé sur le CA du mois en cours (même calcul que le formulaire de paiement)
+  const montantsPct = {};
+  const pctEmps = nonPayes.filter(e => e.remuneration === 'Pourcentage');
+  if (pctEmps.length) {
+    const sportsParEmp = await Promise.all(pctEmps.map(e => sportsDuCoach(`${e.prenom} ${e.nom}`)));
+    const tousSports = [...new Set(sportsParEmp.flat().map(sp => sp.nom))];
+    const ca = tousSports.length ? await caSportsDuMois(moisCur, tousSports) : {};
+    pctEmps.forEach((e, i) => {
+      const caTotal = sportsParEmp[i].reduce((a, sp) => a + Math.round(ca[sp.nom].ca * 100) / 100, 0);
+      const pct = parseFloat(e.pourcentage) || 0;
+      montantsPct[e.id] = { pct, ca: caTotal, total: Math.round(caTotal * pct) / 100, nbSports: sportsParEmp[i].length };
+    });
+  }
+  const montantAPayer = e => {
+    const m = montantsPct[e.id];
+    if (!m) return libelleRemu(e);
+    if (!m.nbSports) return `<span style="color:var(--amber-text);font-size:11px;font-weight:400">${m.pct} % ${t('remu.du_ca')} — ${t('remu.sans_discipline')}</span>`;
+    return `${fmtDH2(m.total)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${m.pct} % × ${t('remu.ca_mois')} ${fmt(m.ca)})</span>`;
+  };
+
   document.getElementById('co-nonpayes').textContent = nonPayes.length;
   document.getElementById('co-nonpayes').style.color = nonPayes.length > 0 ? 'var(--amber)' : 'var(--green)';
 
@@ -8345,7 +8369,7 @@ async function loadCoachNonPayes() {
             ${canWrite?`<button class="btn btn-sm btn-p" onclick="prefillPaie('${e.id}','${l}')">${t('salaires.payer')}</button>`:''}
           </div>`).join('')}
         </div>` : `<div style="display:flex;align-items:center;gap:8px">
-          <span style="font-weight:500">${libelleRemu(e)}</span>
+          <span style="font-weight:500">${montantAPayer(e)}</span>
           ${canWrite?`<button class="btn btn-sm btn-p" onclick="prefillPaie('${e.id}')">${t('salaires.payer')}</button>`:''}
         </div>`}
       </div>`).join('')
