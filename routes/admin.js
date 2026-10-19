@@ -100,7 +100,8 @@ router.post('/login', (req, res) => {
 });
 
 router.get('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/admin/login'));
+  req.session = null;
+  res.redirect('/admin/login');
 });
 
 // ════════════════════════════════════════════════

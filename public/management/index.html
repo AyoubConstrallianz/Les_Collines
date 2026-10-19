@@ -2018,9 +2018,17 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 // ════════════════════════════════════════════════════════════
 // CONFIG SUPABASE — Remplacez par vos clés
 // ════════════════════════════════════════════════════════════
+// Stockage local protégé : si le navigateur bloque cookies et données de site, l'application continue de fonctionner
+const stockage = {
+  get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
+};
+
 const SUPABASE_URL = 'https://darwktarjsaameqianyi.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_ltLpJObbU2HXbbZbwA4dgg_sGFg5BAc';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
 
 // ── État global ─────────────────────────────────────────────
 let ME = null;      // utilisateur connecté
@@ -2110,8 +2118,8 @@ function showLoginErr(msg) {
 }
 
 async function doLogout() {
-  await sb.auth.signOut();
   ME = null; PERMS = {};
+  await sb.auth.signOut({ scope: 'local' }).catch(() => {});
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('l-pw').value = '';
@@ -2119,8 +2127,10 @@ async function doLogout() {
 
 async function initApp(authUser) {
   // Charge le profil + habilitations
-  const { data: profil } = await sb.from('profils').select('*').eq('id', authUser.id).single();
-  if (!profil || !profil.actif) { await sb.auth.signOut(); showLoginErr(t('login.disabled')); return; }
+  const { data: profil, error: errProfil } = await sb.from('profils').select('*').eq('id', authUser.id).single();
+  // Jeton expiré ou refusé (≠ profil introuvable) : on repart d'une session propre
+  if (errProfil && errProfil.code !== 'PGRST116') { await sb.auth.signOut({ scope: 'local' }).catch(() => {}); showLoginErr(t('login.session_expiree')); return; }
+  if (!profil || !profil.actif) { await sb.auth.signOut({ scope: 'local' }).catch(() => {}); showLoginErr(t('login.disabled')); return; }
   ME = { ...profil, email: authUser.email };
 
   // Habilitations
@@ -2172,7 +2182,7 @@ async function initApp(authUser) {
 /* ── Theme toggle ── */
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
+  stockage.set('theme', theme);
   const sun = document.getElementById('theme-icon-sun');
   const moon = document.getElementById('theme-icon-moon');
   if (sun) sun.style.display = theme === 'dark' ? 'block' : 'none';
@@ -2190,7 +2200,7 @@ function initThemeIcons() {
   if (moon) moon.style.display = theme === 'dark' ? 'none' : 'block';
 }
 
-let LANG = localStorage.getItem('lang') || 'fr';
+let LANG = stockage.get('lang') || 'fr';
 
 const I18N = {
   fr: {
@@ -2771,6 +2781,7 @@ const I18N = {
     'login.invalid':     'Email ou mot de passe incorrect',
     'login.loading':     'Connexion…',
     'login.disabled':    'Compte désactivé.',
+    'login.session_expiree': 'Votre session a expiré. Reconnectez-vous.',
     'login.noaccess':    'Aucun accès configuré. Contactez l\'administrateur.',
     // Messages communs
     'msg.confirm_delete':'Supprimer ?',
@@ -3437,6 +3448,7 @@ const I18N = {
     'login.invalid':    'البريد الإلكتروني أو كلمة المرور غير صحيحة',
     'login.loading':    'جاري الاتصال…',
     'login.disabled':   'الحساب معطل.',
+    'login.session_expiree': 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول من جديد.',
     'login.noaccess':   'لا توجد صلاحيات. تواصل مع المسؤول.',
     // Messages communs
     'msg.confirm_delete':'هل تريد الحذف؟',
@@ -3640,7 +3652,7 @@ function renderAvatar(url, name, size = 36) {
 
 function toggleLang() {
   LANG = LANG === 'fr' ? 'ar' : 'fr';
-  localStorage.setItem('lang', LANG);
+  stockage.set('lang', LANG);
   applyLang();
   // Recharger la page active pour reformater les montants avec la bonne devise
   const activePage = document.querySelector('.page.active');
@@ -3682,7 +3694,7 @@ function applyLang() {
   ROLE_LABELS = getRoleLabels();
   MODULE_LABELS = getModuleLabels();
   const tbRole = document.getElementById('tb-role');
-  if (tbRole && typeof ME!=='undefined' && ME.role) tbRole.textContent = ROLE_LABELS[ME.role]||ME.role;
+  if (tbRole && ME?.role) tbRole.textContent = ROLE_LABELS[ME.role]||ME.role;
 
   // ── Traduit tous les éléments avec data-i18n ────────────────
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -4032,11 +4044,27 @@ document.addEventListener('DOMContentLoaded', () => {
   if (LANG === 'ar') applyLang();
 });
 
-// Vérifie la session au chargement
+// Vérifie la session au chargement (session corrompue ou expirée → nettoyée, retour à l'écran de connexion)
 (async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) await initApp(session.user);
+  try {
+    const { data: { session }, error } = await sb.auth.getSession();
+    if (error) throw error;
+    if (session) await initApp(session.user);
+  } catch (_) {
+    await sb.auth.signOut({ scope: 'local' }).catch(() => {});
+  }
 })();
+
+// Session terminée pendant l'utilisation (jeton non renouvelable, déconnexion depuis un autre onglet…)
+sb.auth.onAuthStateChange(event => {
+  if (event !== 'SIGNED_OUT' || !ME) return;
+  ME = null; PERMS = {};
+  document.querySelectorAll('.mo.open').forEach(m => m.classList.remove('open'));
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('l-pw').value = '';
+  showLoginErr(t('login.session_expiree'));
+});
 
 // ════════════════════════════════════════════════════════════
 // NAVIGATION

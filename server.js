@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express    = require('express');
-const session    = require('express-session');
+const cookieSession = require('cookie-session');
+const crypto     = require('crypto');
 const path       = require('path');
 
 const indexRouter  = require('./routes/index');
@@ -10,6 +11,10 @@ const apiRouter    = require('./routes/api');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
+const PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+
+// Vercel est derrière un proxy HTTPS : nécessaire pour les cookies « secure »
+app.set('trust proxy', 1);
 
 // ── View engine ──
 app.set('view engine', 'ejs');
@@ -25,11 +30,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Alias de l'application de gestion (même page que /management/)
 app.use('/gestion', express.static(path.join(__dirname, 'public', 'management')));
 
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'lescollines_secret_key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 * 8 } // 8 heures
+// ── Session : cookie signé (le contenu est vérifié, impossible à modifier côté navigateur).
+// Pas de stockage en mémoire serveur : la connexion tient même quand Vercel change d'instance.
+let secretSession = process.env.SESSION_SECRET;
+if (!secretSession) {
+  if (PROD) console.warn('⚠ SESSION_SECRET absent : ajoutez-le dans Vercel → Settings → Environment Variables.');
+  // Secret aléatoire plutôt qu'un secret connu : sûr, mais les connexions ne survivent pas à un redémarrage
+  secretSession = PROD ? crypto.randomBytes(32).toString('hex') : 'dev-local-uniquement';
+}
+app.use(cookieSession({
+  name: 'lc_session',
+  keys: [secretSession],
+  maxAge: 1000 * 60 * 60 * 8,  // 8 heures
+  httpOnly: true,              // illisible par le JavaScript de la page
+  sameSite: 'lax',             // non envoyé par les formulaires d'autres sites
+  secure: PROD                 // HTTPS uniquement en production
 }));
 
 // ── Routes ──
