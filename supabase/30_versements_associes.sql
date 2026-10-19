@@ -4,8 +4,32 @@
 --   • « Déjà versé » = somme des versements (plus de saisie manuelle)
 --   • Les montants « déjà versé » saisis à la main avant ce script sont repris en un versement « Report »
 --   • Caisse = capital apporté + encaissements − dépenses − versements (calculée dans l'application)
+-- Une ancienne table « versements_associes » (autre version) est conservée sous le nom versements_associes_ancien.
 -- Prérequis : script 28 (et 29 pour la boutique). À exécuter une fois : SQL Editor → New query → Run
 -- ════════════════════════════════════════════════════════════════
+
+-- ── Une table « versements_associes » d'une ancienne version peut déjà exister avec d'autres colonnes ──
+--    vide      → remplacée
+--    avec des données → conservée sous le nom « versements_associes_ancien » (aucune perte)
+DO $$
+DECLARE v_nb BIGINT;
+BEGIN
+  IF to_regclass('public.versements_associes') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                     WHERE table_schema = 'public' AND table_name = 'versements_associes' AND column_name = 'activite') THEN
+    EXECUTE 'SELECT count(*) FROM public.versements_associes' INTO v_nb;
+    IF v_nb = 0 THEN
+      EXECUTE 'DROP TABLE public.versements_associes CASCADE';
+      RAISE NOTICE 'Ancienne table versements_associes (vide) remplacée.';
+    ELSE
+      IF to_regclass('public.versements_associes_ancien') IS NOT NULL THEN
+        RAISE EXCEPTION 'Une table versements_associes_ancien existe déjà : renommez-la avant de relancer ce script.';
+      END IF;
+      EXECUTE 'ALTER TABLE public.versements_associes RENAME TO versements_associes_ancien';
+      RAISE NOTICE 'Ancienne table versements_associes (% ligne(s)) conservée sous le nom versements_associes_ancien.', v_nb;
+    END IF;
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.versements_associes (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
