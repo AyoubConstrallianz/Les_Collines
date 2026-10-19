@@ -7315,6 +7315,7 @@ function fractionParts(p, total) {
   return `${Math.round(p / total * 10000) / 100} %`;
 }
 const nomAssocie = a => `${a.prenom} ${a.nom || ''}`.trim();
+const estActif = a => a.actif !== false;   // colonne absente → actif
 
 // Répartit un montant entre associés au prorata des parts, au centime près (le reste d'arrondi va au plus grand nombre de parts)
 function repartir(montant, associes) {
@@ -7336,10 +7337,10 @@ async function loadAssocies() {
     sb.from('associes').select('*').order('created_at'),
     bilanAnnee(an)
   ]);
-  const manqueParts = !ra.error && (ra.data || []).length && !('parts' in ra.data[0]);
+  const manqueParts = !ra.error && (ra.data || []).length && !['parts', 'actif'].every(k => k in ra.data[0]);
   document.getElementById('al-associes').innerHTML = ra.error
     ? `<div class="al al-e">${/associes|relation|does not exist|schema cache/i.test(ra.error.message) ? "Exécutez d'abord les scripts SQL 22 puis 23 (Associés) dans Supabase." : ra.error.message}</div>`
-    : manqueParts ? `<div class="al al-e">Exécutez le script SQL 23 (répartition par parts) dans Supabase.</div>` : '';
+    : manqueParts ? `<div class="al al-e">Table des associés incomplète : exécutez le script SQL 24 dans Supabase.</div>` : '';
   _assoc.liste = ra.data || [];
   _assoc.bilan = bilan;
   renderAssocies();
@@ -7349,15 +7350,15 @@ function renderAssocies() {
   const canW = PERMS.associes?.ecrire, canD = PERMS.associes?.supprimer;
   document.getElementById('as-new').style.display = canW ? '' : 'none';
   const liste = _assoc.liste;
-  const actifs = liste.filter(a => a.actif);
+  const actifs = liste.filter(estActif);
   const totalParts = actifs.reduce((s, a) => s + partsDe(a), 0);
   document.getElementById('as-liste').innerHTML = liste.length ? liste.map(a => `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:10px">${renderAvatar(null, nomAssocie(a), 36)}
-        <div><strong>${nomAssocie(a)}</strong> ${a.actif ? '' : '<span class="badge b-w" style="font-size:10px">Inactif</span>'}
+        <div><strong>${nomAssocie(a)}</strong> ${estActif(a) ? '' : '<span class="badge b-w" style="font-size:10px">Inactif</span>'}
           <div style="font-size:11px;color:var(--text3)">${partsDe(a)} part${partsDe(a) > 1 ? 's' : ''}</div></div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:20px;font-weight:800;font-variant-numeric:tabular-nums">${a.actif ? fractionParts(partsDe(a), totalParts) : '—'}</span>
+        <span style="font-size:20px;font-weight:800;font-variant-numeric:tabular-nums">${estActif(a) ? fractionParts(partsDe(a), totalParts) : '—'}</span>
         ${canW ? `<button class="btn btn-sm" onclick="ouvrirAssocie('${a.id}')">${t('common.modifier')}</button>` : ''}
         ${canD ? `<button class="btn btn-sm btn-d" onclick="delAssocie('${a.id}')">${t('msg.suppr')}</button>` : ''}
       </div></div>`).join('')
@@ -7405,7 +7406,7 @@ function ouvrirAssocie(id) {
   document.getElementById('as-prenom').value = a?.prenom || '';
   document.getElementById('as-nom').value = a?.nom || '';
   document.getElementById('as-parts').value = a ? partsDe(a) : 1;
-  document.getElementById('as-actif').value = a ? String(a.actif) : 'true';
+  document.getElementById('as-actif').value = String(a ? estActif(a) : true);
   document.getElementById('associe-modal').classList.add('open');
 }
 
@@ -7417,10 +7418,15 @@ async function saveAssocie() {
     parts: parseFloat(String(document.getElementById('as-parts').value).replace(',', '.')),
     actif: document.getElementById('as-actif').value === 'true'
   };
+  if (_assoc.liste.length && !('actif' in _assoc.liste[0])) delete obj.actif;   // table sans colonne « actif » (script 24 non exécuté)
   if (!obj.prenom) { showToast('Prénom obligatoire', 'e'); return; }
   if (isNaN(obj.parts) || obj.parts <= 0) { showToast('Nombre de parts supérieur à 0', 'e'); return; }
   const { error } = id ? await sb.from('associes').update(obj).eq('id', id) : await sb.from('associes').insert(obj);
-  if (error) { showToast(/parts|associes|schema cache/i.test(error.message) ? "Exécutez d'abord les scripts SQL 22 et 23 (Associés) dans Supabase." : error.message, 'e'); return; }
+  if (error) {
+    const colonne = /column|schema cache/i.test(error.message);
+    showToast((colonne ? "Table incomplète : exécutez le script SQL 24 (Associés) dans Supabase. " : '') + `Détail : ${error.message}`, 'e');
+    return;
+  }
   await logAudit(id ? 'UPDATE' : 'CREATE', 'associes', `${obj.prenom} ${obj.nom} — ${obj.parts} part(s)`);
   showToast(t('msg.saved'), 's');
   document.getElementById('associe-modal').classList.remove('open');
