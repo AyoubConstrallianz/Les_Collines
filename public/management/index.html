@@ -2399,6 +2399,12 @@ const I18N = {
     'charges.c_entretien':'Entretien',
     'charges.c_assurance':'Assurance',
     'charges.c_autre':   'Autre',
+    'charges.c_salaires': 'Salaires',
+    'charges.sal_libelle': 'Salaire',
+    'charges.sal_mois':  'mois',
+    'charges.sal_voir':  'Voir',
+    'charges.sal_gerer': 'Les salaires se gèrent dans Coaches & Salariés',
+    'charges.r_hebdo':   'Hebdomadaire',
     'charges.r_ponctuelle':'Ponctuelle',
     'charges.r_mensuelle':'Mensuelle',
     'charges.r_annuelle':'Annuelle',
@@ -3124,6 +3130,12 @@ const I18N = {
     'charges.c_entretien':'صيانة',
     'charges.c_assurance':'تأمين',
     'charges.c_autre':  'أخرى',
+    'charges.c_salaires': 'الأجور',
+    'charges.sal_libelle': 'أجر',
+    'charges.sal_mois': 'شهر',
+    'charges.sal_voir': 'عرض',
+    'charges.sal_gerer': 'تُدار الأجور من صفحة المدربين والموظفين',
+    'charges.r_hebdo':  'أسبوعية',
     'charges.r_ponctuelle':'لمرة واحدة',
     'charges.r_mensuelle':'شهرية',
     'charges.r_annuelle':'سنوية',
@@ -6861,22 +6873,41 @@ async function loadCharges() {
   const mois = document.getElementById('sch-mois')?.value||'';
   let query = sb.from('charges').select('*').order('date_charge',{ascending:false});
   if (mois) query = query.like('date_charge',mois+'%');
-  const { data } = await query;
+  const { data: chargesData } = await query;
+
+  // Salaires payés (Coaches & Salariés) : affichés avec les charges, rattachés au mois de paie (comme dans le bilan)
+  let salaires = [];
+  if (PERMS.salaires?.lire) {
+    let qs = sb.from('salaires_paie').select('id,mois,montant,mode,created_at,detail,employes(prenom,nom)').order('created_at',{ascending:false});
+    if (mois) qs = qs.eq('mois', mois);
+    const { data: sal } = await qs;
+    salaires = (sal||[]).map(s => {
+      const e = s.employes || {}, d = s.detail || {};
+      const periode = d.semaine_debut ? `${t('hebdo.semaine')} ${dateFr(d.semaine_debut).slice(0,5)} → ${dateFr(d.semaine_fin || ajouterJours(d.semaine_debut, 6)).slice(0,5)}`
+                                      : `${t('charges.sal_mois')} ${s.mois ? s.mois.slice(5,7) + '/' + s.mois.slice(0,4) : ''}`;
+      return { id: s.id, salaire: true, date_charge: (s.created_at || '').slice(0,10) || (s.mois + '-01'), mois: s.mois,
+               libelle: `${t('charges.sal_libelle')} — ${e.prenom || ''} ${e.nom || ''} (${periode})`, categorie: 'Salaires',
+               montant: s.montant, recurrence: d.semaine_debut ? 'Hebdomadaire' : 'Mensuelle' };
+    });
+  }
+  const moisDe = c => c.salaire ? c.mois : c.date_charge?.substr(0,7);
+  const data = [...(chargesData||[]), ...salaires].sort((a,b) => (b.date_charge||'').localeCompare(a.date_charge||''));
 
   // Mois filter
   const { data: allData } = await sb.from('charges').select('date_charge');
-  const allMois = [...new Set((allData||[]).map(c=>c.date_charge?.substr(0,7)).filter(Boolean))].sort().reverse();
+  const { data: allSal } = PERMS.salaires?.lire ? await sb.from('salaires_paie').select('mois') : { data: [] };
+  const allMois = [...new Set([...(allData||[]).map(c=>c.date_charge?.substr(0,7)), ...(allSal||[]).map(s=>s.mois)].filter(Boolean))].sort().reverse();
   const moisEl = document.getElementById('sch-mois'); const cur = moisEl.value;
   moisEl.innerHTML = `<option value="">${t('msg.all_months')}</option>` + allMois.map(m=>`<option value="${m}">${m}</option>`).join('');
   if (cur) moisEl.value = cur;
 
   const now = new Date(); const moisCur = thisMonth(); const year = now.getFullYear();
-  const chM = (data||[]).filter(c=>c.date_charge?.startsWith(moisCur)).reduce((a,c)=>a+parseFloat(c.montant||0),0);
-  const chY = (data||[]).filter(c=>c.date_charge?.startsWith(year+'')).reduce((a,c)=>a+parseFloat(c.montant||0),0);
+  const chM = data.filter(c=>moisDe(c) === moisCur).reduce((a,c)=>a+parseFloat(c.montant||0),0);
+  const chY = data.filter(c=>moisDe(c)?.startsWith(year+'')).reduce((a,c)=>a+parseFloat(c.montant||0),0);
   document.getElementById('ch-mois-v').textContent  = fmt(chM);
   document.getElementById('ch-annee-v').textContent = fmt(chY);
-  const catTr={'Loyer':t('charges.c_loyer'),'Électricité':t('charges.c_elec'),'Eau':t('charges.c_eau'),'Internet':t('charges.c_internet'),'Équipement':t('charges.c_equip'),'Entretien':t('charges.c_entretien'),'Assurance':t('charges.c_assurance'),'Autre':t('charges.c_autre')};
-  const recTr={'Ponctuelle':t('charges.r_ponctuelle'),'Mensuelle':t('charges.r_mensuelle'),'Annuelle':t('charges.r_annuelle')};
+  const catTr={'Loyer':t('charges.c_loyer'),'Électricité':t('charges.c_elec'),'Eau':t('charges.c_eau'),'Internet':t('charges.c_internet'),'Équipement':t('charges.c_equip'),'Entretien':t('charges.c_entretien'),'Assurance':t('charges.c_assurance'),'Autre':t('charges.c_autre'),'Salaires':t('charges.c_salaires')};
+  const recTr={'Hebdomadaire':t('charges.r_hebdo'),'Ponctuelle':t('charges.r_ponctuelle'),'Mensuelle':t('charges.r_mensuelle'),'Annuelle':t('charges.r_annuelle')};
   const cats = {};
   (data||[]).forEach(c=>{ const k=catTr[c.categorie]||c.categorie; cats[k]=(cats[k]||0)+parseFloat(c.montant||0); });
   document.getElementById('ch-par-cat').innerHTML = Object.entries(cats).map(([t,v])=>
@@ -6884,7 +6915,9 @@ async function loadCharges() {
 
   const canDel = PERMS.charges?.supprimer;
   document.getElementById('charges-tb').innerHTML = (data||[]).length
-    ? (data||[]).map(c=>`<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-w">${catTr[c.categorie]||c.categorie}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence}</td><td>${canDel?`<button class="btn btn-sm btn-d" onclick="delCharge('${c.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`).join('')
+    ? (data||[]).map(c=>c.salaire
+      ? `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-i">${catTr.Salaires}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence}</td><td><button class="btn btn-sm" onclick="nav('coaches',document.querySelector('.nav[data-page=coaches]'))" title="${t('charges.sal_gerer')}">${t('charges.sal_voir')}</button></td></tr>`
+      : `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-w">${catTr[c.categorie]||c.categorie}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence||"—"}</td><td>${canDel?`<button class="btn btn-sm btn-d" onclick="delCharge('${c.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`).join('')
     : `<tr class="empty-row"><td colspan="6">${t('msg.no_charge')}</td></tr>`;
 
   const form = document.querySelector('#page-charges .g2 .card:first-child');
