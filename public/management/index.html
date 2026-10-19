@@ -2390,7 +2390,7 @@ const I18N = {
     'remu.discipline':   'Discipline',
     'remu.adherents':    'Adhérents',
     'remu.ca_mois':      'CA du mois',
-    'remu.recu_title':   'Reçu de rémunération',
+    'remu.recu_title':   'Récapitulatif de paie',
     'remu.sql':          'Rémunération par groupe / pourcentage non activée : exécutez supabase/13_remuneration_coachs.sql dans Supabase.',
     'imp.btn':           'Importer Excel',
     'imp.title':         'Importer des clients et des paiements',
@@ -3069,7 +3069,7 @@ const I18N = {
     'remu.discipline':  'التخصص',
     'remu.adherents':   'المنخرطون',
     'remu.ca_mois':     'رقم معاملات الشهر',
-    'remu.recu_title':  'وصل الأجرة',
+    'remu.recu_title':  'ملخص الأجرة',
     'remu.sql':         'الأجرة حسب المجموعة / النسبة غير مفعلة : نفّذ supabase/13_remuneration_coachs.sql في Supabase.',
     'abo.couvert_jusqu':'مغطى إلى غاية',
     'abo.aucun':        'لم يؤد أي اشتراك',
@@ -7916,18 +7916,14 @@ async function ouvrirRecuSalaire(id) {
   const [an, mo] = (p.mois || '').split('-').map(Number);
   const moisLib = mo ? `${MOIS_LONG_FR[mo - 1]} ${an}` : (p.mois || '-');
 
-  const logo = await chargerLogoRecu();
-  if (logo) doc.addImage(logo, 'PNG', M, 14, 24, 24);
-  const xT = logo ? M + 29 : M;
-  doc.setTextColor(...noir); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text(RECU_ASSO.nom, xT, 21);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
-  doc.text(RECU_ASSO.adresse, xT, 27); doc.text(`Tél. ${RECU_ASSO.tel}`, xT, 31.5);
-  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
-  doc.text('REÇU DE RÉMUNÉRATION', W - M, 21, { align: 'right' });
-  doc.setTextColor(...noir); doc.setFontSize(10); doc.text(`Mois : ${moisLib}`, W - M, 28, { align: 'right' });
+  // En-tête neutre : aucune information sur la structure (logo, nom, adresse, téléphone),
+  // uniquement le récapitulatif de paie du salarié
+  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+  doc.text('RÉCAPITULATIF DE PAIE', M, 26);
+  doc.setTextColor(...noir); doc.setFontSize(10); doc.text(`Mois : ${moisLib}`, W - M, 21, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
-  doc.text(`Payé le : ${dateFr(String(p.created_at || '').slice(0, 10))}`, W - M, 33, { align: 'right' });
-  doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 42, W - M, 42);
+  doc.text(`Payé le : ${dateFr(String(p.created_at || '').slice(0, 10))}`, W - M, 26.5, { align: 'right' });
+  doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 36, W - M, 36);
 
   // Salarié
   doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
@@ -7980,11 +7976,10 @@ async function ouvrirRecuSalaire(id) {
   doc.setDrawColor(203, 213, 225); doc.setLineDashPattern([1.2, 1.2], 0);
   doc.roundedRect(M, y + 12, 70, 28, 2, 2, 'S'); doc.roundedRect(W - M - 70, y + 12, 70, 28, 2, 2, 'S');
   doc.setLineDashPattern([], 0); doc.setFontSize(8.5);
-  doc.text("Signature de l'association", M + 35, y + 18, { align: 'center' });
+  doc.text('Signature du responsable', M + 35, y + 18, { align: 'center' });
   doc.text('Signature du bénéficiaire', W - M - 35, y + 18, { align: 'center' });
-  doc.setDrawColor(226, 232, 240); doc.line(M, 280, W - M, 280); doc.setFontSize(8);
-  doc.text(`${RECU_ASSO.nom} - ${RECU_ASSO.adresse}`, W / 2, 285, { align: 'center' });
-  doc.setProperties({ title: `Rémunération ${e.prenom || ''} ${e.nom || ''} ${p.mois || ''}`, author: 'Association Les Collines' });
+  // Pas de pied de page ni d'auteur : le document ne mentionne pas la structure
+  doc.setProperties({ title: `Récapitulatif de paie ${e.prenom || ''} ${e.nom || ''} ${p.mois || ''}`, author: '', creator: '' });
 
   // Affichage dans la fenêtre des reçus (impression / téléchargement ; pas d'envoi au client)
   if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
