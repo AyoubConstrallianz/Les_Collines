@@ -1070,7 +1070,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             </div>
             <div id="c-tarif-total" style="margin-top:8px;text-align:end;font-weight:700;color:var(--blue-text)"></div>
           </div>
-          <div class="fr"><div class="fg"><label data-i18n="clients.statut">Statut</label><select id="c-statut"><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option></select></div></div>
+          <div class="fr"><div class="fg"><label data-i18n="clients.statut">Statut</label><select id="c-statut"><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option><option value="En attente" data-i18n="clients.attente">En attente de validation</option></select></div></div>
           <div class="mo-footer"><button class="btn" onclick="closeClientForm()" data-i18n="common.annuler">Annuler</button><button class="btn btn-p" id="btn-save-client" onclick="saveClient()" data-i18n="common.enregistrer">Enregistrer</button></div>
           </div>
         </div>
@@ -1081,7 +1081,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <button class="btn" onclick="openDoublons()" style="white-space:nowrap;display:none" id="btn-doublons"><span data-i18n="doublons.btn">Doublons</span> <span class="badge b-w" id="doublons-count">0</span></button>
             <input id="sc-q" placeholder="Rechercher..." oninput="loadClients()" style="flex:1;max-width:260px">
             <select id="sc-sport" onchange="loadClients()"><option value="" data-i18n="select.all_sports">Tous les sports</option></select>
-            <select id="sc-stat" onchange="loadClients()"><option value="" data-i18n="clients.tous_statuts">Tous statuts</option><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option></select>
+            <select id="sc-stat" onchange="loadClients()"><option value="" data-i18n="clients.tous_statuts">Tous statuts</option><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option><option value="En attente" data-i18n="clients.attente">En attente de validation</option></select>
           </div>
           <table><thead><tr>
             <th class="th-sort" onclick="sortClients('num')" data-i18n="clients.num_adh">N° adhérent <span id="sort-ico-num"></span></th>
@@ -2190,6 +2190,11 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    'clients.attente':   'En attente de validation',
+    'clients.valider':   'Valider',
+    'clients.valide_ok': 'Client validé',
+    'clients.n_attente': 'client(s) en attente de validation',
+    'clients.voir':      'Voir',
     'clients.save':      'Enregistrer',
     'clients.cancel':    'Annuler',
     'clients.modifier':  'Modifier',
@@ -2904,6 +2909,11 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    'clients.attente':  'في انتظار التأكيد',
+    'clients.valider':  'تأكيد',
+    'clients.valide_ok': 'تم تأكيد العميل',
+    'clients.n_attente': 'عميل في انتظار التأكيد',
+    'clients.voir':     'عرض',
     'clients.save':     'حفظ',
     'clients.cancel':   'إلغاء',
     'clients.modifier': 'تعديل',
@@ -3481,7 +3491,7 @@ const I18N = {
 function t(key) {
   return I18N[LANG]?.[key] || I18N['fr']?.[key] || key;
 }
-function _statutLabel(s) { return LANG==='ar' ? (s==='Actif'?'نشط':s==='Inactif'?'غير نشط':'موقوف') : s; }
+function _statutLabel(s) { return LANG==='ar' ? (s==='Actif'?'نشط':s==='Inactif'?'غير نشط':s==='En attente'?'في انتظار التأكيد':'موقوف') : s; }
 
 function toggleAutre(selectId, inputId) {
   const sel = document.getElementById(selectId);
@@ -4059,7 +4069,7 @@ async function loadDashboard() {
   const toutsClients = allClients||[];
 
   // ── Clients concernés par la règle (hors Suspendus) ──
-  const clientsConcernes = toutsClients.filter(c => c.statut !== 'Suspendu');
+  const clientsConcernes = toutsClients.filter(c => c.statut !== 'Suspendu' && c.statut !== 'En attente');
 
   // ── Statut automatique : Actif tant qu'un abonnement couvre aujourd'hui ─
   const aPasserInactif = clientsConcernes.filter(c => c.statut === 'Actif' && estEnRetard(c, sitAbo));
@@ -4096,7 +4106,7 @@ async function loadDashboard() {
     ? recent.map(c=>{
         const spts = c.sports || (c.sport?[c.sport]:[]);
         let statutFinal = c.statut;
-        if (c.statut === 'Suspendu') statutFinal = 'Suspendu';
+        if (c.statut === 'Suspendu' || c.statut === 'En attente') statutFinal = c.statut;
         else if (sitAbo[c.id]?.aJour) statutFinal = 'Actif';
         else if (estEnRetard(c, sitAbo)) statutFinal = 'Inactif';
         return `<tr>
@@ -4617,6 +4627,17 @@ function _sortIcon(col) {
   return _clientSort.dir === 'asc' ? '<span style="color:var(--blue);font-size:10px">▲</span>' : '<span style="color:var(--blue);font-size:10px">▼</span>';
 }
 
+const peutValiderClients = () => ME?.role === 'super_admin' || ME?.role === 'gerant';
+
+async function validerClient(id) {
+  const { error } = await sb.from('clients').update({ statut: 'Actif', updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  const c = (CLIENTS_CACHE || []).find(x => x.id === id);
+  await logAudit('UPDATE', 'clients', `Validation ${c ? c.prenom + ' ' + c.nom : id}`);
+  showToast(t('clients.valide_ok'), 's');
+  loadClients(); loadImpayes();
+}
+
 async function loadClients() {
   const q = document.getElementById('sc-q')?.value.toLowerCase()||'';
   const sport = document.getElementById('sc-sport')?.value||'';
@@ -4658,6 +4679,10 @@ async function loadClients() {
   });
 
   CLIENTS_CACHE = list;
+  const nAttente = (data || []).filter(c => c.statut === 'En attente').length;
+  const alAtt = document.getElementById('al-clients');
+  if (alAtt) alAtt.innerHTML = nAttente && peutValiderClients()
+    ? `<div class="al al-i" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span><strong>${nAttente}</strong> ${t('clients.n_attente')}</span><button class="btn btn-sm" onclick="document.getElementById('sc-stat').value='En attente';loadClients()">${t('clients.voir')}</button></div>` : '';
 
   const canWrite = PERMS.clients?.ecrire;
   const canDel   = PERMS.clients?.supprimer;
@@ -4673,8 +4698,9 @@ async function loadClients() {
           <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>')||'—'}</td>
           <td>${badges||'—'}</td>
           <td style="font-size:12px;color:var(--text2)">${c.date_inscription||'—'}</td>
-          <td><span class="badge ${c.statut==='Actif'?'b-g':c.statut==='Inactif'?'b-w':'b-d'}">${_statutLabel(c.statut)}</span></td>
+          <td><span class="badge ${c.statut==='Actif'?'b-g':c.statut==='Inactif'||c.statut==='En attente'?'b-w':'b-d'}">${c.statut==='En attente'?t('clients.attente'):_statutLabel(c.statut)}</span></td>
           <td><div style="display:flex;gap:4px">
+            ${c.statut==='En attente'&&peutValiderClients()?`<button class="btn btn-sm btn-p" onclick="validerClient('${c.id}')">${t('clients.valider')}</button>`:''}
             ${canWrite?`<button class="btn btn-sm" onclick="editClient(CLIENTS_CACHE[${i}])">${t('common.modifier')}</button>`:''}
             ${canDel?`<button class="btn btn-sm btn-d" onclick="delClient('${c.id}')">${t('msg.suppr')}</button>`:''}
           </div></td></tr>`;
@@ -4708,7 +4734,7 @@ async function saveClient() {
     sports:           sports,
     date_inscription: document.getElementById('c-date').value||today(),
     sexe:             document.getElementById('c-sexe').value,
-    statut:           document.getElementById('c-statut').value,
+    statut:           ME?.role === 'employe' && !id ? 'En attente' : document.getElementById('c-statut').value,
     updated_at:       new Date().toISOString()
   };
   if (!obj.prenom || !obj.nom) { showToast(t('clients.name_required'),'e'); return; }
