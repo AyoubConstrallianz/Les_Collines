@@ -432,6 +432,16 @@ tr:hover td{background:var(--blue-light)}
 .sal-resultat-formule{font-size:12px;color:var(--text2);margin-top:2px}
 .sal-resultat-mnt{font-size:28px;font-weight:800;color:var(--green-text);letter-spacing:-.5px;white-space:nowrap}
 #co-sal-mont{font-weight:700;font-size:15px;color:var(--green-text)}
+.bilan-table th,.bilan-table td{padding:8px 10px;text-align:end;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bilan-table th:first-child,.bilan-table td:first-child{text-align:start}
+.bilan-table th.bt-grp{text-align:center;font-size:10px;letter-spacing:.8px}
+.bilan-table .bt-in{color:var(--green-text)}
+.bilan-table .bt-out{color:var(--red-text)}
+.bilan-table td.bt-tot{font-weight:700}
+.bilan-table tr.bt-total td{font-weight:800;border-top:2px solid var(--border2);background:var(--bg3)}
+.bilan-table td.bt-neg{color:var(--red)}
+.bilan-table td.bt-pos{color:var(--green)}
+.bilan-table td.bt-zero{color:var(--text3)}
 .recap-table th,.recap-table td{padding:7px 10px;text-align:end;white-space:nowrap}
 .recap-table th:first-child,.recap-table td:first-child{text-align:start;position:sticky;inset-inline-start:0;background:var(--bg2);z-index:1}
 .recap-table th:first-child{background:var(--bg3)}
@@ -660,6 +670,10 @@ tr:hover td{background:var(--blue-light)}
     border-bottom:1px dashed var(--border) !important;text-align:end !important;min-width:0;max-width:none !important;white-space:normal !important;overflow:visible !important}
   .tbl-cartes td > *{min-width:0}
   .tbl-cartes td.td-vide{display:none}
+  /* Récapitulatif entrées / sorties : mois sans mouvement et lignes à zéro masqués sur téléphone */
+  .bilan-table.tbl-cartes tr.bt-vide{display:none}
+  .bilan-table.tbl-cartes td.bt-zero{display:none}
+  .bilan-table.tbl-cartes tr.bt-total{background:var(--bg3)}
   table.tbl-compacte{min-width:0 !important;width:100%}
   table.tbl-compacte th,table.tbl-compacte td{padding:8px 6px}
   .ligne-form > *{flex:1 1 100% !important;min-width:0 !important}
@@ -1408,6 +1422,23 @@ tr:hover td{background:var(--blue-light)}
         </div>
       </div>
 
+      <div class="mo" id="bilan-modal">
+        <div class="mo-box" style="max-width:1180px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:.75rem">
+            <div class="mo-title" style="margin-bottom:0" data-i18n="bilan.title">Récapitulatif mensuel des entrées et sorties</div>
+            <button class="btn btn-sm" onclick="document.getElementById('bilan-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <div class="toolbar">
+            <select id="bilan-annee" onchange="chargerBilan()" style="width:auto"></select>
+            <button class="btn" onclick="telechargerBilanExcel()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
+            <button class="btn" onclick="telechargerBilanPdf()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF</button>
+          </div>
+          <div class="sg" id="bilan-totaux" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+          <div style="overflow-x:auto"><table id="bilan-table" class="bilan-table"></table></div>
+          <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="bilan.note">Entrées = paiements encaissés dans le mois (date du paiement). Sorties = charges du mois (date de la charge) + salaires du mois concerné.</p>
+        </div>
+      </div>
+
       <div class="mo" id="paie-edit-modal">
         <div class="mo-box" style="max-width:680px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
@@ -1728,6 +1759,9 @@ tr:hover td{background:var(--blue-light)}
       <div id="page-stats" class="page">
         <p class="ptitle" data-i18n="stats.title">Statistiques & Rapports</p>
         <p class="psubtitle" data-i18n="stats.subtitle">Analysez les performances financières et sportives</p>
+        <div class="toolbar">
+          <button class="btn btn-p" onclick="openBilanMensuel()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg> <span data-i18n="bilan.btn">Récapitulatif entrées / sorties</span></button>
+        </div>
         <div class="sg">
           <div class="sc"><div class="sc-label" data-i18n="stats.total_clients">Total clients</div><div class="sc-val" id="st-tc">—</div></div>
           <div class="sc"><div class="sc-label" data-i18n="stats.total_recettes">Total recettes</div><div class="sc-val" id="st-tr">—</div></div>
@@ -2300,6 +2334,23 @@ const I18N = {
     'stats.retards':     'Clients en retard de paiement',
     'stats.recap_title': 'CA par sport et par mois',
     'recu.title':        'Reçu de paiement',
+    'bilan.btn':         'Récapitulatif entrées / sorties',
+    'bilan.title':       'Récapitulatif mensuel des entrées et sorties',
+    'bilan.note':        'Entrées = paiements encaissés dans le mois (date du paiement). Sorties = charges du mois (date de la charge) + salaires du mois concerné.',
+    'bilan.entrees':     'Entrées',
+    'bilan.sorties':     'Sorties',
+    'bilan.resultat':    'Résultat',
+    'bilan.abonnements': 'Abonnements',
+    'bilan.inscriptions':'Inscriptions',
+    'bilan.assurances':  'Assurances',
+    'bilan.autres':      'Autres',
+    'bilan.total_entrees':'Total entrées',
+    'bilan.charges':     'Charges',
+    'bilan.salaires':    'Salaires',
+    'bilan.total_sorties':'Total sorties',
+    'bilan.solde':       'Solde du mois',
+    'bilan.cumul':       'Solde cumulé',
+    'bilan.solde_annee': 'Solde de l\'année',
     'filtre.tous_types': 'Tous les types',
     'filtre.abonnements':'Abonnements (tous)',
     'filtre.tous_modes': 'Tous les modes',
@@ -2955,6 +3006,23 @@ const I18N = {
     'stats.retards':    'الزبناء المتأخرون في الدفع',
     'stats.recap_title':'رقم المعاملات حسب الرياضة والشهر',
     'recu.title':       'وصل الأداء',
+    'bilan.btn':        'ملخص المداخيل / المصاريف',
+    'bilan.title':      'الملخص الشهري للمداخيل والمصاريف',
+    'bilan.note':       'المداخيل = الدفعات المحصلة خلال الشهر. المصاريف = تكاليف الشهر + أجور الشهر المعني.',
+    'bilan.entrees':    'المداخيل',
+    'bilan.sorties':    'المصاريف',
+    'bilan.resultat':   'النتيجة',
+    'bilan.abonnements':'الاشتراكات',
+    'bilan.inscriptions':'التسجيلات',
+    'bilan.assurances': 'التأمينات',
+    'bilan.autres':     'أخرى',
+    'bilan.total_entrees':'مجموع المداخيل',
+    'bilan.charges':    'التكاليف',
+    'bilan.salaires':   'الأجور',
+    'bilan.total_sorties':'مجموع المصاريف',
+    'bilan.solde':      'رصيد الشهر',
+    'bilan.cumul':      'الرصيد التراكمي',
+    'bilan.solde_annee':'رصيد السنة',
     'filtre.tous_types':'جميع الأنواع',
     'filtre.abonnements':'الاشتراكات (الكل)',
     'filtre.tous_modes':'جميع الطرق',
@@ -3641,7 +3709,8 @@ const TABLES_SANS_FICHES = '#planning-grid table, #pr-grid table, .recap-table, 
 function etiqueterTableaux() {
   document.querySelectorAll('table').forEach(tb => {
     if (tb.matches(TABLES_SANS_FICHES)) return;
-    const ths = [...tb.querySelectorAll(':scope > thead th')];
+    // Dernière ligne d'en-tête = titres des colonnes (la première peut regrouper des colonnes)
+    const ths = [...tb.querySelectorAll(':scope > thead > tr:last-child > th')];
     if (ths.length < 4) { tb.classList.add('tbl-compacte'); return; }   // petits tableaux : ils tiennent sur l'écran
     tb.classList.add('tbl-cartes');
     const titres = ths.map(th => th.textContent.replace(/[▲▼↑↓⇅]/g, '').trim());
@@ -6705,6 +6774,187 @@ async function loadStats() {
   document.getElementById('st-retards').innerHTML = retards.length ? retards.join('') : `<div class="al al-s">${t('select.no_late')}</div>`;
 
   loadRecapSports();
+}
+
+// ── Récapitulatif mensuel des entrées et sorties (trésorerie) ──
+let _bilan = null;
+
+async function openBilanMensuel() {
+  const sel = document.getElementById('bilan-annee');
+  const an = new Date().getFullYear();
+  const { data: premier } = await sb.from('paiements').select('date_paiement').order('date_paiement', { ascending: true }).limit(1);
+  const debut = Math.min(parseInt(premier?.[0]?.date_paiement?.slice(0, 4)) || an, an);
+  sel.innerHTML = Array.from({ length: an - debut + 1 }, (_, i) => an - i).map(y => `<option value="${y}">${y}</option>`).join('');
+  document.getElementById('bilan-modal').classList.add('open');
+  await chargerBilan();
+}
+
+async function chargerBilan() {
+  const an = document.getElementById('bilan-annee').value || String(new Date().getFullYear());
+  const [{ data: paies }, { data: charges }, { data: salaires }] = await Promise.all([
+    fetchAllRows(() => sb.from('paiements').select('montant,date_paiement,type').gte('date_paiement', `${an}-01-01`).lte('date_paiement', `${an}-12-31`).order('id')),
+    fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie').gte('date_charge', `${an}-01-01`).lte('date_charge', `${an}-12-31`).order('id')),
+    fetchAllRows(() => sb.from('salaires_paie').select('montant,mois').gte('mois', `${an}-01`).lte('mois', `${an}-12`).order('id'))
+  ]);
+  const mois = Array.from({ length: 12 }, (_, i) => `${an}-${String(i + 1).padStart(2, '0')}`);
+  const ligne = () => ({ abonnements: 0, inscriptions: 0, assurances: 0, autres_entrees: 0, charges: 0, salaires: 0 });
+  const parMois = Object.fromEntries(mois.map(m => [m, ligne()]));
+  const parCategorie = {};   // sorties détaillées : catégorie → mois → montant
+  (paies || []).forEach(p => {
+    const l = parMois[(p.date_paiement || '').slice(0, 7)]; if (!l) return;
+    const v = parseFloat(p.montant) || 0;
+    if (DUREE_ABONNEMENT[p.type]) l.abonnements += v;
+    else if (p.type === 'Inscription') l.inscriptions += v;
+    else if (p.type === 'Assurance') l.assurances += v;
+    else l.autres_entrees += v;
+  });
+  (charges || []).forEach(c => {
+    const m = (c.date_charge || '').slice(0, 7), l = parMois[m]; if (!l) return;
+    const v = parseFloat(c.montant) || 0;
+    l.charges += v;
+    const cat = c.categorie || 'Autre';
+    (parCategorie[cat] ??= {})[m] = (parCategorie[cat][m] || 0) + v;
+  });
+  (salaires || []).forEach(sa => {
+    const l = parMois[sa.mois]; if (!l) return;
+    const v = parseFloat(sa.montant) || 0;
+    l.salaires += v;
+    (parCategorie['Salaires'] ??= {})[sa.mois] = (parCategorie['Salaires'][sa.mois] || 0) + v;
+  });
+  let cumul = 0;
+  const lignes = mois.map(m => {
+    const l = parMois[m];
+    const entrees = l.abonnements + l.inscriptions + l.assurances + l.autres_entrees;
+    const sorties = l.charges + l.salaires;
+    cumul += entrees - sorties;
+    return { mois: m, ...l, entrees, sorties, solde: entrees - sorties, cumul };
+  });
+  const somme = k => lignes.reduce((a, l) => a + l[k], 0);
+  const total = { mois: 'Total', ...Object.fromEntries(['abonnements','inscriptions','assurances','autres_entrees','entrees','charges','salaires','sorties','solde'].map(k => [k, somme(k)])), cumul };
+  _bilan = { an, lignes, total, parCategorie };
+  afficherBilan();
+}
+
+const BILAN_COLS = [
+  ['abonnements', 'bilan.abonnements', 'in'], ['inscriptions', 'bilan.inscriptions', 'in'], ['assurances', 'bilan.assurances', 'in'],
+  ['autres_entrees', 'bilan.autres', 'in'], ['entrees', 'bilan.total_entrees', 'in tot'],
+  ['charges', 'bilan.charges', 'out'], ['salaires', 'bilan.salaires', 'out'], ['sorties', 'bilan.total_sorties', 'out tot'],
+  ['solde', 'bilan.solde', 'solde'], ['cumul', 'bilan.cumul', 'solde']
+];
+const nomMoisLong = m => { const [y, mo] = m.split('-').map(Number); return `${(LANG === 'ar' ? MOIS_AR : MOIS_LONG_FR)[mo - 1]} ${y}`; };
+
+function afficherBilan() {
+  const { lignes, total } = _bilan;
+  const carte = (lbl, v, cls) => `<div class="sc"><div class="sc-label">${lbl}</div><div class="sc-val" style="color:var(--${cls})">${fmt(v)}</div></div>`;
+  document.getElementById('bilan-totaux').innerHTML =
+    carte(t('bilan.total_entrees'), total.entrees, 'green') + carte(t('bilan.total_sorties'), total.sorties, 'red')
+    + carte(t('bilan.solde_annee'), total.solde, total.solde >= 0 ? 'green' : 'red');
+  const cell = (v, type) => {
+    const cls = type.includes('solde') ? (v > 0.004 ? 'bt-pos' : v < -0.004 ? 'bt-neg' : 'bt-zero') : (!v ? 'bt-zero' : type.includes('in') ? 'bt-in' : 'bt-out');
+    return `<td class="${cls}${type.includes('tot') || type.includes('solde') ? ' bt-tot' : ''}">${v ? fmt(v) : '—'}</td>`;
+  };
+  const tr = (l, lib, cls = '') => `<tr class="${cls}"><td><strong>${lib}</strong></td>${BILAN_COLS.map(([k, , type]) => cell(l[k], type)).join('')}</tr>`;
+  document.getElementById('bilan-table').innerHTML = `
+    <thead>
+      <tr><th></th><th class="bt-grp bt-in" colspan="5">${t('bilan.entrees')}</th><th class="bt-grp bt-out" colspan="3">${t('bilan.sorties')}</th><th class="bt-grp" colspan="2">${t('bilan.resultat')}</th></tr>
+      <tr><th>${t('common.mois')}</th>${BILAN_COLS.map(([, lbl]) => `<th>${t(lbl)}</th>`).join('')}</tr>
+    </thead>
+    <tbody>${lignes.map(l => tr(l, nomMoisLong(l.mois), !l.entrees && !l.sorties ? 'bt-vide' : '')).join('')}${tr(total, t('stats.recap_total'), 'bt-total')}</tbody>`;
+}
+
+// ── Téléchargement Excel (2 feuilles : récapitulatif + sorties par catégorie) ──
+async function telechargerBilanExcel() {
+  if (!_bilan) return;
+  try { await chargerSheetJS(); } catch (e) { showToast(e.message, 'e'); return; }
+  const { an, lignes, total, parCategorie } = _bilan;
+  const r2 = v => Math.round((v || 0) * 100) / 100;
+  const entete = ['Mois', 'Abonnements', 'Inscriptions', 'Assurances', 'Autres entrées', 'TOTAL ENTRÉES', 'Charges', 'Salaires', 'TOTAL SORTIES', 'Solde du mois', 'Solde cumulé'];
+  const cles = ['abonnements','inscriptions','assurances','autres_entrees','entrees','charges','salaires','sorties','solde','cumul'];
+  const aoa = [[`Association Les Collines — Récapitulatif des entrées et sorties ${an}`], [], entete,
+    ...lignes.map(l => [nomMoisLong(l.mois), ...cles.map(k => r2(l[k]))]),
+    ['TOTAL', ...cles.map(k => r2(total[k]))]];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 16 }, ...cles.map(() => ({ wch: 14 }))];
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }];
+  // Format numérique « 1 234,00 »
+  for (let r = 3; r < aoa.length; r++) for (let c = 1; c <= 10; c++) { const ref = XLSX.utils.encode_cell({ r, c }); if (ws[ref]) ws[ref].z = '#,##0.00'; }
+
+  const mois = lignes.map(l => l.mois);
+  const cats = Object.keys(parCategorie).sort((a, b) => a === 'Salaires' ? 1 : b === 'Salaires' ? -1 : a.localeCompare(b));
+  const aoa2 = [[`Sorties par catégorie — ${an}`], [], ['Catégorie', ...mois.map(nomMoisLong), 'TOTAL'],
+    ...cats.map(c => { const v = mois.map(m => r2(parCategorie[c][m])); return [c, ...v, r2(v.reduce((a, b) => a + b, 0))]; })];
+  aoa2.push(['TOTAL', ...mois.map((m, i) => r2(cats.reduce((a, c) => a + (parCategorie[c][m] || 0), 0))), r2(total.sorties)]);
+  const ws2 = XLSX.utils.aoa_to_sheet(aoa2);
+  ws2['!cols'] = [{ wch: 18 }, ...mois.map(() => ({ wch: 13 })), { wch: 14 }];
+  for (let r = 3; r < aoa2.length; r++) for (let c = 1; c <= 13; c++) { const ref = XLSX.utils.encode_cell({ r, c }); if (ws2[ref]) ws2[ref].z = '#,##0.00'; }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Récapitulatif');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Sorties par catégorie');
+  XLSX.writeFile(wb, `entrees-sorties-${an}.xlsx`);
+}
+
+// ── Téléchargement PDF (A4 paysage) ──
+async function telechargerBilanPdf() {
+  if (!_bilan || !window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  const { an, lignes, total } = _bilan;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+  const W = 297, M = 12, noir = [15, 23, 42], gris = [100, 116, 139];
+  const logo = await chargerLogoRecu();
+  if (logo) doc.addImage(logo, 'PNG', M, 9, 18, 18);
+  const xT = logo ? M + 22 : M;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(...noir);
+  doc.text(RECU_ASSO.nom, xT, 16);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris); doc.text(RECU_ASSO.adresse, xT, 21.5);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(37, 99, 235);
+  doc.text(`RÉCAPITULATIF DES ENTRÉES ET SORTIES ${an}`, W - M, 16, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...gris);
+  doc.text(`Édité le ${dateFr(today())}`, W - M, 21.5, { align: 'right' });
+
+  // Totaux de l'année
+  let y = 31;
+  [['Total entrées', total.entrees, [5, 150, 105]], ['Total sorties', total.sorties, [220, 38, 38]], ['Solde de l\'année', total.solde, total.solde >= 0 ? [5, 150, 105] : [220, 38, 38]]]
+    .forEach(([lbl, v, coul], i) => {
+      const x = M + i * 92;
+      doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.roundedRect(x, y, 86, 15, 2, 2, 'FD');
+      doc.setFontSize(8); doc.setTextColor(...gris); doc.text(lbl.toUpperCase(), x + 4, y + 5.5);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...coul); doc.text(montantPdf(v), x + 4, y + 12);
+      doc.setFont('helvetica', 'normal');
+    });
+
+  // Tableau
+  y = 53;
+  const cols = [['Mois', 30], ['Abonnements', 25], ['Inscriptions', 23], ['Assurances', 23], ['Autres', 21], ['Total entrées', 26], ['Charges', 23], ['Salaires', 23], ['Total sorties', 26], ['Solde', 25], ['Cumul', 28]];
+  const cles = [null, 'abonnements', 'inscriptions', 'assurances', 'autres_entrees', 'entrees', 'charges', 'salaires', 'sorties', 'solde', 'cumul'];
+  const xs = []; cols.reduce((x, [, w]) => { xs.push(x); return x + w; }, M);
+  // En-têtes de groupe
+  doc.setFillColor(16, 185, 129); doc.rect(xs[1], y, cols.slice(1, 6).reduce((a, c) => a + c[1], 0), 6, 'F');
+  doc.setFillColor(239, 68, 68); doc.rect(xs[6], y, cols.slice(6, 9).reduce((a, c) => a + c[1], 0), 6, 'F');
+  doc.setFillColor(37, 99, 235); doc.rect(xs[9], y, cols[9][1] + cols[10][1], 6, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(255, 255, 255);
+  doc.text('ENTRÉES', xs[1] + 2, y + 4.2); doc.text('SORTIES', xs[6] + 2, y + 4.2); doc.text('RÉSULTAT', xs[9] + 2, y + 4.2);
+  y += 6;
+  doc.setFillColor(15, 23, 42); doc.rect(M, y, W - 2 * M, 8, 'F');
+  cols.forEach(([lbl, w], i) => doc.text(lbl, i === 0 ? xs[i] + 2 : xs[i] + w - 2, y + 5.3, i === 0 ? undefined : { align: 'right' }));
+  y += 8;
+  const ligneTab = (l, lib, gras) => {
+    if (gras) { doc.setFillColor(241, 245, 249); doc.rect(M, y, W - 2 * M, 8, 'F'); }
+    doc.setFont('helvetica', gras ? 'bold' : 'normal'); doc.setFontSize(8.5);
+    cols.forEach(([, w], i) => {
+      if (i === 0) { doc.setTextColor(...noir); doc.text(lib, xs[i] + 2, y + 5.3); return; }
+      const v = l[cles[i]] || 0;
+      if (cles[i] === 'solde' || cles[i] === 'cumul') doc.setTextColor(...(v < -0.004 ? [220, 38, 38] : v > 0.004 ? [5, 150, 105] : gris));
+      else doc.setTextColor(...(v ? noir : gris));
+      doc.text(v ? montantPdf(v).replace(' DH', '') : '-', xs[i] + w - 2, y + 5.3, { align: 'right' });
+    });
+    y += 8; doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y);
+  };
+  lignes.forEach(l => ligneTab(l, nomMoisLong(l.mois), false));
+  ligneTab(total, 'TOTAL', true);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gris);
+  doc.text('Montants en dirhams (DH). Entrées = paiements encaissés dans le mois ; sorties = charges du mois + salaires du mois concerné.', M, y + 6);
+  doc.save(`entrees-sorties-${an}.pdf`);
 }
 
 // ── Récapitulatif CA / adhérents par sport et par mois ──────
