@@ -442,6 +442,16 @@ tr:hover td{background:var(--blue-light)}
 .bilan-table td.bt-neg{color:var(--red)}
 .bilan-table td.bt-pos{color:var(--green)}
 .bilan-table td.bt-zero{color:var(--text3)}
+.jours-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.jour-chip{position:relative;cursor:pointer;user-select:none}
+.jour-chip input{position:absolute;opacity:0;pointer-events:none}
+.jour-chip span{display:inline-flex;align-items:center;justify-content:center;min-width:92px;padding:8px 14px;border:1px solid var(--border2);border-radius:var(--r-full);font-size:13px;font-weight:600;color:var(--text2);background:var(--bg2);transition:all var(--dur) var(--ease)}
+.jour-chip:hover span{border-color:var(--blue)}
+.jour-chip input:checked + span{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:var(--shadow-blue)}
+html[data-theme="dark"] .jour-chip input:checked + span{color:#0b0c0f}
+.jour-chip input:focus-visible + span{outline:2px solid var(--blue);outline-offset:2px}
+.jours-raccourcis{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+@media(max-width:768px){.jour-chip span{min-width:0;padding:8px 12px}.jour-chip{flex:1 1 calc(25% - 6px)}.jour-chip span{width:100%}}
 .recap-table th,.recap-table td{padding:7px 10px;text-align:end;white-space:nowrap}
 .recap-table th:first-child,.recap-table td:first-child{text-align:start;position:sticky;inset-inline-start:0;background:var(--bg2);z-index:1}
 .recap-table th:first-child{background:var(--bg3)}
@@ -1226,9 +1236,18 @@ tr:hover td{background:var(--blue-light)}
           <div class="ct" data-i18n="planning.add">Ajouter une séance</div>
           <div class="g3">
             <div class="fg"><label data-i18n="planning.sport">Sport</label><select id="pl-sport"></select></div>
-            <div class="fg"><label data-i18n="planning.jour">Jour</label><select id="pl-jour"><option value="Lundi" data-i18n="jour.lundi">Lundi</option><option value="Mardi" data-i18n="jour.mardi">Mardi</option><option value="Mercredi" data-i18n="jour.mercredi">Mercredi</option><option value="Jeudi" data-i18n="jour.jeudi">Jeudi</option><option value="Vendredi" data-i18n="jour.vendredi">Vendredi</option><option value="Samedi" data-i18n="jour.samedi">Samedi</option><option value="Dimanche" data-i18n="jour.dimanche">Dimanche</option></select></div>
             <div class="fg"><label data-i18n="planning.heure_debut">Heure début</label><input id="pl-deb" type="time" value="09:00"></div>
             <div class="fg"><label data-i18n="planning.heure_fin">Heure fin</label><input id="pl-fin" type="time" value="10:30"></div>
+            <div class="fg" style="grid-column:1 / -1">
+              <label><span data-i18n="planning.jours">Jours</span> <span style="font-weight:400;color:var(--text3)" data-i18n="planning.jours_hint">(un ou plusieurs : une séance est créée pour chaque jour coché)</span></label>
+              <div class="jours-chips" id="pl-jours"><label class="jour-chip"><input type="checkbox" value="Lundi"><span data-i18n="jour.lundi">Lundi</span></label><label class="jour-chip"><input type="checkbox" value="Mardi"><span data-i18n="jour.mardi">Mardi</span></label><label class="jour-chip"><input type="checkbox" value="Mercredi"><span data-i18n="jour.mercredi">Mercredi</span></label><label class="jour-chip"><input type="checkbox" value="Jeudi"><span data-i18n="jour.jeudi">Jeudi</span></label><label class="jour-chip"><input type="checkbox" value="Vendredi"><span data-i18n="jour.vendredi">Vendredi</span></label><label class="jour-chip"><input type="checkbox" value="Samedi"><span data-i18n="jour.samedi">Samedi</span></label><label class="jour-chip"><input type="checkbox" value="Dimanche"><span data-i18n="jour.dimanche">Dimanche</span></label></div>
+              <div class="jours-raccourcis">
+                <button type="button" class="btn btn-sm" onclick="cocherJours([0,1,2,3,4])" data-i18n="planning.lun_ven">Lun → Ven</button>
+                <button type="button" class="btn btn-sm" onclick="cocherJours([0,1,2,3,4,5])" data-i18n="planning.lun_sam">Lun → Sam</button>
+                <button type="button" class="btn btn-sm" onclick="cocherJours([0,1,2,3,4,5,6])" data-i18n="planning.tous">Tous</button>
+                <button type="button" class="btn btn-sm" onclick="cocherJours([])" data-i18n="planning.aucun">Aucun</button>
+              </div>
+            </div>
             <div class="fg"><label data-i18n="planning.capacite">Capacité max</label><input id="pl-cap" type="number" placeholder="20"></div>
             <div class="fg"><label data-i18n="planning.coaches">Coach(es) assigné(s)</label><select id="pl-coach" multiple style="height:80px;font-size:12px"></select><span style="font-size:10px;color:var(--text3)" data-i18n="planning.coaches_hint">Ctrl+clic pour sélectionner plusieurs</span></div>
           </div>
@@ -2646,6 +2665,15 @@ const I18N = {
     'planning.coaches_hint': 'Ctrl+clic pour sélectionner plusieurs',
     'planning.add_btn':      'Ajouter la séance',
     'planning.added':        'Séance ajoutée',
+    'planning.added_n':      '%n séances ajoutées',
+    'planning.jours':        'Jours',
+    'planning.jours_hint':   '(un ou plusieurs : une séance est créée pour chaque jour coché)',
+    'planning.lun_ven':      'Lun → Ven',
+    'planning.lun_sam':      'Lun → Sam',
+    'planning.tous':         'Tous',
+    'planning.aucun':        'Aucun',
+    'planning.jour_requis':  'Cochez au moins un jour.',
+    'planning.heures_invalides':'L\'heure de fin doit être après l\'heure de début.',
     'planning.delete_confirm':'Supprimer cette séance ?',
     'planning.entretien_title':'Séance d\'entretien hebdomadaire',
     'planning.desc':         'Description',
@@ -3277,6 +3305,15 @@ const I18N = {
     'planning.coaches_hint': 'Ctrl+نقر لتحديد عدة مدربين',
     'planning.add_btn':      'إضافة الحصة',
     'planning.added':        'تمت إضافة الحصة',
+    'planning.added_n':      'تمت إضافة %n حصص',
+    'planning.jours':        'الأيام',
+    'planning.jours_hint':   '(يوم أو أكثر : تُنشأ حصة لكل يوم محدد)',
+    'planning.lun_ven':      'الإثنين ← الجمعة',
+    'planning.lun_sam':      'الإثنين ← السبت',
+    'planning.tous':         'الكل',
+    'planning.aucun':        'لا شيء',
+    'planning.jour_requis':  'اختر يوماً واحداً على الأقل.',
+    'planning.heures_invalides':'يجب أن تكون ساعة النهاية بعد ساعة البداية.',
     'planning.delete_confirm':'هل تريد حذف هذه الحصة؟',
     'planning.entretien_title':'حصة تنظيف أسبوعية',
     'planning.desc':         'الوصف',
@@ -6632,21 +6669,31 @@ async function loadPlanning() {
   if(form) form.style.display = PERMS.planning?.ecrire ? 'block' : 'none';
 }
 
+function cocherJours(indices) {
+  document.querySelectorAll('#pl-jours input').forEach((cb, i) => { cb.checked = indices.includes(i); });
+}
+
 async function savePlanning() {
   const sel = document.getElementById('pl-coach');
   const coachesIds = sel ? [...sel.selectedOptions].map(o=>o.value).filter(Boolean) : [];
-  const obj = {
+  const jours = [...document.querySelectorAll('#pl-jours input:checked')].map(cb => cb.value);
+  const base = {
     sport:       document.getElementById('pl-sport').value,
-    jour:        document.getElementById('pl-jour').value,
     heure_debut: document.getElementById('pl-deb').value,
     heure_fin:   document.getElementById('pl-fin').value,
     coaches_ids: coachesIds,  // array d'IDs
     coach:       coachesIds.join(','), // compatibilité ancien champ texte
     capacite:    parseInt(document.getElementById('pl-cap').value)||20
   };
-  const { error } = await sb.from('planning').insert(obj);
+  if (!jours.length) { showToast(t('planning.jour_requis'),'e'); return; }
+  if (!base.heure_debut || !base.heure_fin || base.heure_fin <= base.heure_debut) { showToast(t('planning.heures_invalides'),'e'); return; }
+  // Une séance par jour coché, même plage horaire
+  const { error } = await sb.from('planning').insert(jours.map(jour => ({ ...base, jour })));
   if (error) { showToast(error.message,'e'); return; }
-  showToast(t('planning.added'),'s'); loadPlanning();
+  await logAudit('CREATE','planning',`${base.sport} ${base.heure_debut}-${base.heure_fin} : ${jours.join(', ')}`);
+  showToast(jours.length > 1 ? t('planning.added_n').replace('%n', jours.length) : t('planning.added'),'s');
+  cocherJours([]);
+  loadPlanning();
 }
 
 async function delPlanning(id) { await sb.from('planning').delete().eq('id',id); loadPlanning(); }
