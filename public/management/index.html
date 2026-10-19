@@ -1376,10 +1376,11 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div class="sc"><div class="sc-label" data-i18n="bq.valeur_stock">Valeur du stock</div><div class="sc-val" id="bt-k-valeur">—</div></div>
           <div class="sc" style="cursor:pointer" onclick="boutiqueOnglet('stock');document.getElementById('bp-filtre').value='bas';renderProduits()"><div class="sc-label" data-i18n="bq.a_reappro">À réapprovisionner</div><div class="sc-val" id="bt-k-bas">—</div></div>
         </div>
-        <div class="plan-vues" style="margin-bottom:14px">
+        <div class="plan-vues" style="margin-bottom:14px;flex-wrap:wrap">
           <button id="bt-tab-ventes" class="on" onclick="boutiqueOnglet('ventes')" data-i18n="bq.ventes">Ventes</button>
           <button id="bt-tab-stock" onclick="boutiqueOnglet('stock')" data-i18n="bq.stock">Stock</button>
           <button id="bt-tab-mvts" onclick="boutiqueOnglet('mvts')" data-i18n="bq.mouvements">Mouvements</button>
+          <button id="bt-tab-bilan" onclick="boutiqueOnglet('bilan')" data-i18n="bb.onglet">Bilan &amp; associés</button>
         </div>
 
         <!-- Onglet Ventes -->
@@ -1456,6 +1457,44 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             </div>
             <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bq.mvts_note">Mouvements du mois choisi dans l'onglet Ventes. Les sorties « Vente » se gèrent depuis la vente.</p>
             <table><thead><tr><th data-i18n="bq.date">Date</th><th data-i18n="bq.article">Article</th><th data-i18n="bq.type">Type</th><th data-i18n="bq.quantite">Quantité</th><th data-i18n="bq.prix_unitaire">Prix unitaire</th><th data-i18n="bq.note">Note</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bm-tb"></tbody></table>
+          </div>
+        </div>
+
+        <!-- Onglet Bilan & associés (propre à la boutique) -->
+        <div id="bt-bilan" style="display:none">
+          <div class="al al-i" style="margin-bottom:12px" data-i18n="bb.separe">Bilan propre à la boutique : il n'est mélangé ni à la caisse du club, ni au bénéfice des associés du club.</div>
+          <div class="sg">
+            <div class="sc"><div class="sc-label" data-i18n="bb.capital">Capital investi (boutique)</div><div class="sc-val" id="bb-k-capital">—</div></div>
+            <div class="sc"><div class="sc-label" data-i18n="bb.ventes_total">Ventes depuis le début</div><div class="sc-val" id="bb-k-ventes">—</div></div>
+            <div class="sc"><div class="sc-label" data-i18n="bb.benef_total">Bénéfice depuis le début</div><div class="sc-val" id="bb-k-benef">—</div></div>
+            <div class="sc"><div class="sc-label" data-i18n="bq.valeur_stock">Valeur du stock</div><div class="sc-val" id="bb-k-stock">—</div></div>
+          </div>
+          <p id="bb-detail" style="font-size:12px;color:var(--text2);margin:-6px 0 14px"></p>
+          <div class="card" id="bb-assoc-card">
+            <div class="ct" data-i18n="bb.revient_titre">Ce qui revient à chaque associé (boutique)</div>
+            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bb.revient_note">Capital investi dans la boutique (à rembourser) + part du bénéfice de la boutique depuis le début − ce qui a déjà été versé. Mêmes parts que le club.</p>
+            <div style="overflow-x:auto"><table id="bb-du"></table></div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.5rem">
+              <div class="ct" style="margin:0" data-i18n="bb.par_mois">Bénéfice de la boutique par mois</div>
+              <div class="toolbar" style="margin:0"><select id="bb-annee" onchange="renderBilanBoutique()"></select></div>
+            </div>
+            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bb.benef_note">Bénéfice = ventes − prix d'achat des articles vendus.</p>
+            <div style="overflow-x:auto"><table id="bb-mois"></table></div>
+          </div>
+
+          <div class="mo" id="bb-modal">
+            <div class="mo-box" style="max-width:440px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+                <div class="mo-title" style="margin-bottom:0" id="bb-titre"></div>
+                <button class="btn btn-sm" onclick="document.getElementById('bb-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+              </div>
+              <input type="hidden" id="bb-id">
+              <div class="fg" style="margin-bottom:10px"><label data-i18n="bb.capital_dh">Capital investi dans la boutique (DH)</label><input id="bb-capital" type="number" min="0" step="0.01" placeholder="0"></div>
+              <div class="fg" style="margin-bottom:10px"><label data-i18n="bb.verse_dh">Déjà versé (boutique) (DH)</label><input id="bb-verse" type="number" min="0" step="0.01" placeholder="0"></div>
+              <div class="btns"><button class="btn btn-p" onclick="saveCapitalBoutique()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('bb-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
+            </div>
           </div>
         </div>
 
@@ -2432,6 +2471,23 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "bb.onglet": "Bilan & associés",
+    "bb.separe": "Bilan propre à la boutique : il n'est mélangé ni à la caisse du club, ni au bénéfice des associés du club.",
+    "bb.capital": "Capital investi (boutique)",
+    "bb.ventes_total": "Ventes depuis le début",
+    "bb.benef_total": "Bénéfice depuis le début",
+    "bb.revient_titre": "Ce qui revient à chaque associé (boutique)",
+    "bb.revient_note": "Capital investi dans la boutique (à rembourser) + part du bénéfice de la boutique depuis le début − ce qui a déjà été versé. Mêmes parts que le club.",
+    "bb.par_mois": "Bénéfice de la boutique par mois",
+    "bb.benef_note": "Bénéfice = ventes − prix d'achat des articles vendus.",
+    "bb.capital_dh": "Capital investi dans la boutique (DH)",
+    "bb.verse_dh": "Déjà versé (boutique) (DH)",
+    "bb.achats_total": "Achats de stock depuis le début",
+    "bb.capital_court": "Capital boutique",
+    "bb.part_benef": "Part du bénéfice boutique",
+    "bb.aucun_associe": "Aucun associé (page Associés).",
+    "bb.cout": "Coût des articles",
+    "bb.sql_29": "Exécutez le script SQL 29 (boutique et associés) dans Supabase pour saisir le capital de la boutique.",
     "as.du_titre": "Ce qui revient à chaque associé",
     "as.du_note": "Capital investi (à rembourser) + part du bénéfice cumulé depuis le début de l'activité − ce qui a déjà été versé.",
     "as.capital_dh": "Capital investi (DH)",
@@ -3358,6 +3414,23 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "bb.onglet": "الحصيلة والشركاء",
+    "bb.separe": "حصيلة خاصة بالمتجر : لا تختلط بصندوق النادي ولا بأرباح شركاء النادي.",
+    "bb.capital": "رأس المال المستثمر (المتجر)",
+    "bb.ventes_total": "المبيعات منذ البداية",
+    "bb.benef_total": "الربح منذ البداية",
+    "bb.revient_titre": "ما يعود لكل شريك (المتجر)",
+    "bb.revient_note": "رأس المال المستثمر في المتجر (للاسترجاع) + حصة ربح المتجر منذ البداية − ما تم دفعه مسبقاً. نفس حصص النادي.",
+    "bb.par_mois": "ربح المتجر حسب الشهر",
+    "bb.benef_note": "الربح = المبيعات − ثمن شراء المنتجات المباعة.",
+    "bb.capital_dh": "رأس المال المستثمر في المتجر (درهم)",
+    "bb.verse_dh": "المدفوع (المتجر) (درهم)",
+    "bb.achats_total": "مشتريات المخزون منذ البداية",
+    "bb.capital_court": "رأس مال المتجر",
+    "bb.part_benef": "حصة ربح المتجر",
+    "bb.aucun_associe": "لا يوجد شركاء (صفحة الشركاء).",
+    "bb.cout": "تكلفة المنتجات",
+    "bb.sql_29": "نفّذ سكريبت SQL رقم 29 (المتجر والشركاء) في Supabase لإدخال رأس مال المتجر.",
     "as.du_titre": "ما يعود لكل شريك",
     "as.du_note": "رأس المال المستثمر (للاسترجاع) + حصة الربح المتراكم منذ بداية النشاط − ما تم دفعه مسبقاً.",
     "as.capital_dh": "رأس المال المستثمر (درهم)",
@@ -7726,10 +7799,11 @@ const etatStock = p => p.stock <= 0 ? ['b-d', t('bq.rupture')] : p.stock <= (p.s
 
 function boutiqueOnglet(o) {
   _bt.onglet = o;
-  [['ventes', 'bt-ventes'], ['stock', 'bt-stock'], ['mvts', 'bt-mvts']].forEach(([k, id]) => {
+  [['ventes', 'bt-ventes'], ['stock', 'bt-stock'], ['mvts', 'bt-mvts'], ['bilan', 'bt-bilan']].forEach(([k, id]) => {
     document.getElementById(id).style.display = k === o ? '' : 'none';
     document.getElementById('bt-tab-' + k).classList.toggle('on', k === o);
   });
+  if (o === 'bilan') loadBilanBoutique();
 }
 
 async function loadBoutique() {
@@ -7781,6 +7855,7 @@ function renderBoutique() {
   document.getElementById('bt-k-valeur').textContent = fmtDH2(valeur);
   const kr = document.getElementById('bt-k-bas'); kr.textContent = bas; kr.style.color = bas ? 'var(--red)' : 'var(--green)';
   renderVentes(); renderProduits(); renderMouvements(); bvArticleConnu(true);
+  if (_bt.onglet === 'bilan') loadBilanBoutique();
 }
 
 // ── Ventes ───────────────────────────────────────────────────
@@ -8035,6 +8110,121 @@ async function delMouvement(id) {
   if (error) { showToast(error.message, 'e'); return; }
   await logAudit('DELETE', 'boutique', `Mouvement ${m?.type} ${produitDe(m?.produit_id)?.nom || ''} ${m?.quantite}`);
   loadBoutique();
+}
+
+// ── Bilan & associés de la boutique (indépendant du club) ────
+let _bb = { ventes: [], achats: 0, associes: [], charge: false };
+
+async function loadBilanBoutique() {
+  const voitAssocies = !!PERMS.associes?.lire;
+  const [rv, ra, rs] = await Promise.all([
+    fetchAllRows(() => sb.from('ventes').select('date_vente,quantite,prix_achat,prix_vente').order('id')),
+    voitAssocies ? sb.from('associes').select('*').order('created_at') : { data: [] },
+    fetchAllRows(() => sb.from('stock_mouvements').select('type,quantite,prix_unitaire').eq('type', 'Achat').order('id'))
+  ]);
+  _bb.ventes = rv.data || [];
+  _bb.associes = (ra.data || []).filter(estActif);
+  _bb.achats = (rs.data || []).reduce((s, m) => s + (m.quantite || 0) * (parseFloat(m.prix_unitaire) || 0), 0);
+  _bb.manqueSql = !ra.error && (ra.data || []).length && !('capital_boutique' in ra.data[0]);
+  _bb.charge = true;
+  // Années disponibles (de la première vente à aujourd'hui)
+  const an = new Date().getFullYear();
+  const premiere = _bb.ventes.reduce((m, v) => Math.min(m, parseInt(String(v.date_vente).slice(0, 4), 10) || an), an);
+  const sel = document.getElementById('bb-annee'), choisi = sel.value;
+  sel.innerHTML = Array.from({ length: an - premiere + 1 }, (_, i) => an - i).map(a => `<option value="${a}">${a}</option>`).join('');
+  sel.value = choisi || String(an);
+  if (!sel.value) sel.value = String(an);
+  document.getElementById('bb-assoc-card').style.display = voitAssocies ? '' : 'none';
+  renderBilanBoutique();
+}
+
+function renderBilanBoutique() {
+  if (!_bb.charge) return;
+  const moisCourant = thisMonth();
+  const cl = v => v < 0 ? 'color:var(--red)' : v > 0 ? 'color:var(--green)' : 'color:var(--text3)';
+  // Ventes et bénéfice par mois (toute l'histoire)
+  const parMois = {};
+  _bb.ventes.forEach(v => {
+    const m = String(v.date_vente).slice(0, 7), q = parseInt(v.quantite, 10) || 1;
+    const pv = parseFloat(v.prix_vente) || 0, pa = parseFloat(v.prix_achat) || 0;
+    const l = parMois[m] ??= { ventes: 0, cout: 0 };
+    l.ventes += q * pv; l.cout += q * pa;
+  });
+  const moisTries = Object.keys(parMois).filter(m => m <= moisCourant).sort();
+  const ventesTot = moisTries.reduce((s, m) => s + parMois[m].ventes, 0);
+  const benefTot = moisTries.reduce((s, m) => s + parMois[m].ventes - parMois[m].cout, 0);
+  const associes = _bb.associes, totalParts = associes.reduce((s, a) => s + partsDe(a), 0);
+  const capitalTot = associes.reduce((s, a) => s + (parseFloat(a.capital_boutique) || 0), 0);
+  const valeurStock = (_bt.produits || []).filter(p => p.actif !== false).reduce((s, p) => s + Math.max(p.stock, 0) * (parseFloat(p.prix_achat) || 0), 0);
+  document.getElementById('bb-k-capital').textContent = fmtDH2(capitalTot);
+  document.getElementById('bb-k-ventes').textContent = fmtDH2(ventesTot);
+  const kb = document.getElementById('bb-k-benef'); kb.textContent = fmtDH2(benefTot); kb.style.cssText = cl(benefTot);
+  document.getElementById('bb-k-stock').textContent = fmtDH2(valeurStock);
+  document.getElementById('bb-detail').textContent = `${t('bb.achats_total')} : ${fmtDH2(_bb.achats)}`;
+
+  // Ce qui revient à chaque associé (boutique)
+  const frac = a => `<span dir="ltr">${fractionParts(partsDe(a), totalParts)}</span>`;
+  const cumul = associes.map(() => 0);
+  moisTries.forEach(m => repartir(parMois[m].ventes - parMois[m].cout, associes).forEach((v, j) => { cumul[j] += v; }));
+  const canW = PERMS.associes?.ecrire;
+  const lignes = associes.map((a, j) => {
+    const capital = parseFloat(a.capital_boutique) || 0, verse = parseFloat(a.deja_verse_boutique) || 0;
+    const part = Math.round(cumul[j] * 100) / 100;
+    return { a, capital, part, total: capital + part, verse, reste: capital + part - verse };
+  });
+  const somme = k => lignes.reduce((s, l) => s + l[k], 0);
+  document.getElementById('bb-du').innerHTML = (_bb.manqueSql ? `<caption style="caption-side:top;text-align:start"><div class="al al-e" style="margin-bottom:8px">${t('bb.sql_29')}</div></caption>` : '')
+    + (associes.length ? `<thead><tr><th>${t('as.associe')}</th><th>${t('bb.capital_court')}</th><th>${t('bb.part_benef')}</th><th>${t('as.total_revient')}</th><th>${t('as.deja_verse')}</th><th>${t('as.reste')}</th><th></th></tr></thead><tbody>
+      ${lignes.map(l => `<tr><td><strong>${nomAssocie(l.a)}</strong> (${frac(l.a)})</td><td>${fmtDH2(l.capital)}</td>
+        <td style="font-weight:600;${cl(l.part)}">${fmtDH2(l.part)}</td><td style="font-weight:700">${fmtDH2(l.total)}</td>
+        <td>${fmtDH2(l.verse)}</td><td style="font-weight:800;${cl(l.reste)}">${fmtDH2(l.reste)}</td>
+        <td>${canW && !_bb.manqueSql ? `<button class="btn btn-sm" onclick="ouvrirCapitalBoutique('${l.a.id}')">${t('common.modifier')}</button>` : ''}</td></tr>`).join('')}
+      <tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('as.total_an')}</td>
+        <td style="font-weight:700">${fmtDH2(somme('capital'))}</td><td style="font-weight:700;${cl(somme('part'))}">${fmtDH2(somme('part'))}</td>
+        <td style="font-weight:800">${fmtDH2(somme('total'))}</td><td style="font-weight:700">${fmtDH2(somme('verse'))}</td>
+        <td style="font-weight:800;${cl(somme('reste'))}">${fmtDH2(somme('reste'))}</td><td></td></tr></tbody>`
+      : `<tbody><tr class="empty-row"><td>${t('bb.aucun_associe')}</td></tr></tbody>`);
+
+  // Bénéfice par mois de l'année choisie
+  const an = document.getElementById('bb-annee').value;
+  const nomMois = m => new Date(m + '-01T12:00:00').toLocaleDateString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { month: 'long' });
+  const moisAn = moisTries.filter(m => m.startsWith(an + '-'));
+  const tete = `<thead><tr><th>${t('as.mois')}</th><th>${t('bq.ventes')}</th><th>${t('bb.cout')}</th><th>${t('bq.benefice')}</th>${associes.map(a => `<th>${nomAssocie(a)} (${frac(a)})</th>`).join('')}</tr></thead>`;
+  const tot = { ventes: 0, cout: 0, parts: associes.map(() => 0) };
+  const corps = moisAn.map(m => {
+    const l = parMois[m], b = l.ventes - l.cout, p = repartir(b, associes);
+    tot.ventes += l.ventes; tot.cout += l.cout; p.forEach((v, j) => { tot.parts[j] += v; });
+    return `<tr${m === moisCourant ? ' style="background:var(--blue-light)"' : ''}><td style="text-transform:capitalize;font-weight:600">${nomMois(m)}</td>
+      <td style="color:var(--green-text)">${fmtDH2(l.ventes)}</td><td style="color:var(--red-text)">${fmtDH2(l.cout)}</td>
+      <td style="font-weight:700;${cl(b)}">${fmtDH2(b)}</td>${p.map(v => `<td style="font-weight:600;${cl(v)}">${fmtDH2(v)}</td>`).join('')}</tr>`;
+  }).join('');
+  const bt = tot.ventes - tot.cout;
+  document.getElementById('bb-mois').innerHTML = tete + '<tbody>' + (corps || `<tr class="empty-row"><td colspan="${4 + associes.length}">${t('bq.aucune_mois')}</td></tr>`)
+    + (corps ? `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('as.total_an')} ${an}</td>
+      <td style="font-weight:700;color:var(--green-text)">${fmtDH2(tot.ventes)}</td><td style="font-weight:700;color:var(--red-text)">${fmtDH2(tot.cout)}</td>
+      <td style="font-weight:800;${cl(bt)}">${fmtDH2(bt)}</td>${tot.parts.map(v => `<td style="font-weight:800;${cl(v)}">${fmtDH2(Math.round(v * 100) / 100)}</td>`).join('')}</tr>` : '') + '</tbody>';
+}
+
+function ouvrirCapitalBoutique(id) {
+  const a = _bb.associes.find(x => x.id === id); if (!a) return;
+  document.getElementById('bb-id').value = id;
+  document.getElementById('bb-titre').textContent = `${nomAssocie(a)} — ${t('boutique.title')}`;
+  document.getElementById('bb-capital').value = parseFloat(a.capital_boutique) || '';
+  document.getElementById('bb-verse').value = parseFloat(a.deja_verse_boutique) || '';
+  document.getElementById('bb-modal').classList.add('open');
+}
+
+async function saveCapitalBoutique() {
+  const id = document.getElementById('bb-id').value;
+  const obj = { capital_boutique: parseFloat(document.getElementById('bb-capital').value) || 0, deja_verse_boutique: parseFloat(document.getElementById('bb-verse').value) || 0 };
+  if (obj.capital_boutique < 0 || obj.deja_verse_boutique < 0) { showToast(t('as.montant_invalide'), 'e'); return; }
+  const { error } = await sb.from('associes').update(obj).eq('id', id);
+  if (error) { showToast(/column|schema cache/i.test(error.message) ? t('bb.sql_29') : error.message, 'e'); return; }
+  const a = _bb.associes.find(x => x.id === id);
+  await logAudit('UPDATE', 'boutique', `Capital boutique ${a ? nomAssocie(a) : id} : ${fmtDH2(obj.capital_boutique)}, versé ${fmtDH2(obj.deja_verse_boutique)}`);
+  showToast(t('msg.saved'), 's');
+  document.getElementById('bb-modal').classList.remove('open');
+  loadBilanBoutique();
 }
 
 // ════════════════════════════════════════════════════════════
