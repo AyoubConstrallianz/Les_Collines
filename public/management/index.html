@@ -1411,7 +1411,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="ct" style="margin:0">Répartition du bénéfice</div>
             <div class="toolbar" style="margin:0"><select id="as-annee" onchange="loadAssocies()"></select></div>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin-bottom:10px">Bénéfice du mois = entrées encaissées − charges − salaires (même calcul que le récapitulatif entrées / sorties). Une perte est répartie de la même façon.</p>
+          <p style="font-size:11px;color:var(--text3);margin-bottom:10px">Bénéfice du mois = entrées encaissées − charges − salaires (même calcul que le récapitulatif entrées / sorties). Une perte est répartie de la même façon. Répartition au prorata des parts de chaque associé.</p>
           <div class="sg" id="as-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
           <div style="overflow-x:auto"><table id="as-table"></table></div>
         </div>
@@ -1423,8 +1423,8 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
               <button class="btn btn-sm" onclick="document.getElementById('associe-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
             </div>
             <input type="hidden" id="as-id">
-            <div class="fr"><div class="fg"><label>Prénom</label><input id="as-prenom"></div><div class="fg"><label>Nom</label><input id="as-nom"></div></div>
-            <div class="fr"><div class="fg"><label>Pourcentage du bénéfice (%)</label><input id="as-pct" type="number" min="0" max="100" step="0.01" placeholder="Ex : 50"></div>
+            <div class="fr"><div class="fg"><label>Prénom</label><input id="as-prenom"></div><div class="fg"><label>Nom (facultatif)</label><input id="as-nom"></div></div>
+            <div class="fr"><div class="fg"><label>Nombre de parts</label><input id="as-parts" type="number" min="0.5" step="0.5" placeholder="Ex : 1 ou 2"><span style="font-size:10px;color:var(--text3)">Part du bénéfice = ses parts ÷ total des parts (1 et 2 → 1/3 et 2/3)</span></div>
               <div class="fg"><label>Statut</label><select id="as-actif"><option value="true">Actif</option><option value="false">Inactif</option></select></div></div>
             <div class="btns"><button class="btn btn-p" onclick="saveAssocie()">Enregistrer</button><button class="btn" onclick="document.getElementById('associe-modal').classList.remove('open')">Annuler</button></div>
           </div>
@@ -7301,9 +7301,31 @@ async function delVente(id) {
 }
 
 // ════════════════════════════════════════════════════════════
-// ASSOCIÉS : pourcentage du bénéfice mensuel (calcul seulement)
+// ASSOCIÉS : bénéfice mensuel réparti par parts (ex. 1 part = 1/3, 2 parts = 2/3) — calcul seulement
 // ════════════════════════════════════════════════════════════
 let _assoc = { liste: [], bilan: null };
+
+// Nombre de parts (repli sur l'ancien pourcentage si le script 23 n'a pas encore été exécuté)
+const partsDe = a => parseFloat(a.parts ?? a.pourcentage) || 0;
+const pgcd = (a, b) => b ? pgcd(b, a % b) : a;
+// Fraction lisible : 1 part sur 3 → « 1/3 » ; parts non entières → pourcentage
+function fractionParts(p, total) {
+  if (!total) return '—';
+  if (Number.isInteger(p) && Number.isInteger(total)) { const g = pgcd(p, total) || 1; return `${p / g}/${total / g}`; }
+  return `${Math.round(p / total * 10000) / 100} %`;
+}
+const nomAssocie = a => `${a.prenom} ${a.nom || ''}`.trim();
+
+// Répartit un montant entre associés au prorata des parts, au centime près (le reste d'arrondi va au plus grand nombre de parts)
+function repartir(montant, associes) {
+  const total = associes.reduce((s, a) => s + partsDe(a), 0);
+  if (!total) return associes.map(() => 0);
+  const cents = Math.round(montant * 100);
+  const parts = associes.map(a => Math.round(cents * partsDe(a) / total));
+  const ecart = cents - parts.reduce((s, v) => s + v, 0);
+  if (ecart) { let iMax = 0; associes.forEach((a, i) => { if (partsDe(a) > partsDe(associes[iMax])) iMax = i; }); parts[iMax] += ecart; }
+  return parts.map(c => c / 100);
+}
 
 async function loadAssocies() {
   const selAn = document.getElementById('as-annee');
@@ -7311,11 +7333,13 @@ async function loadAssocies() {
   if (!selAn.options.length) selAn.innerHTML = Array.from({ length: 4 }, (_, i) => anCourant - i).map(a => `<option value="${a}">${a}</option>`).join('');
   const an = selAn.value || String(anCourant);
   const [ra, bilan] = await Promise.all([
-    sb.from('associes').select('*').order('nom'),
+    sb.from('associes').select('*').order('created_at'),
     bilanAnnee(an)
   ]);
+  const manqueParts = !ra.error && (ra.data || []).length && !('parts' in ra.data[0]);
   document.getElementById('al-associes').innerHTML = ra.error
-    ? `<div class="al al-e">${/associes|relation|does not exist|schema cache/i.test(ra.error.message) ? "Exécutez d'abord le script SQL 22 (Associés) dans Supabase." : ra.error.message}</div>` : '';
+    ? `<div class="al al-e">${/associes|relation|does not exist|schema cache/i.test(ra.error.message) ? "Exécutez d'abord les scripts SQL 22 puis 23 (Associés) dans Supabase." : ra.error.message}</div>`
+    : manqueParts ? `<div class="al al-e">Exécutez le script SQL 23 (répartition par parts) dans Supabase.</div>` : '';
   _assoc.liste = ra.data || [];
   _assoc.bilan = bilan;
   renderAssocies();
@@ -7325,55 +7349,52 @@ function renderAssocies() {
   const canW = PERMS.associes?.ecrire, canD = PERMS.associes?.supprimer;
   document.getElementById('as-new').style.display = canW ? '' : 'none';
   const liste = _assoc.liste;
+  const actifs = liste.filter(a => a.actif);
+  const totalParts = actifs.reduce((s, a) => s + partsDe(a), 0);
   document.getElementById('as-liste').innerHTML = liste.length ? liste.map(a => `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:10px">${renderAvatar(null, a.prenom + ' ' + a.nom, 36)}
-        <div><strong>${a.prenom} ${a.nom}</strong> ${a.actif ? '' : '<span class="badge b-w" style="font-size:10px">Inactif</span>'}</div></div>
+      <div style="display:flex;align-items:center;gap:10px">${renderAvatar(null, nomAssocie(a), 36)}
+        <div><strong>${nomAssocie(a)}</strong> ${a.actif ? '' : '<span class="badge b-w" style="font-size:10px">Inactif</span>'}
+          <div style="font-size:11px;color:var(--text3)">${partsDe(a)} part${partsDe(a) > 1 ? 's' : ''}</div></div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:18px;font-weight:800;font-variant-numeric:tabular-nums">${parseFloat(a.pourcentage)} %</span>
+        <span style="font-size:20px;font-weight:800;font-variant-numeric:tabular-nums">${a.actif ? fractionParts(partsDe(a), totalParts) : '—'}</span>
         ${canW ? `<button class="btn btn-sm" onclick="ouvrirAssocie('${a.id}')">${t('common.modifier')}</button>` : ''}
         ${canD ? `<button class="btn btn-sm btn-d" onclick="delAssocie('${a.id}')">${t('msg.suppr')}</button>` : ''}
       </div></div>`).join('')
     : '<div style="font-size:13px;color:var(--text3);padding:8px 0">Aucun associé — ajoutez-les avec « + Nouvel associé ».</div>';
-
-  // Contrôle du total des pourcentages (associés actifs)
-  const actifs = liste.filter(a => a.actif);
-  const totalPct = Math.round(actifs.reduce((s, a) => s + (parseFloat(a.pourcentage) || 0), 0) * 100) / 100;
-  const zt = document.getElementById('as-total');
-  zt.innerHTML = !actifs.length ? '' : totalPct > 100
-    ? `<div class="al al-e" style="margin:0">Total des pourcentages : <strong>${totalPct} %</strong> — dépasse 100 %.</div>`
-    : totalPct < 100
-      ? `<div class="al al-i" style="margin:0">Total des pourcentages : <strong>${totalPct} %</strong> — ${Math.round((100 - totalPct) * 100) / 100} % du bénéfice reste à l'association.</div>`
-      : `<div class="al al-s" style="margin:0">Total des pourcentages : <strong>100 %</strong> — tout le bénéfice est réparti.</div>`;
+  document.getElementById('as-total').innerHTML = actifs.length
+    ? `<div class="al al-i" style="margin:0">Total : <strong>${totalParts} part${totalParts > 1 ? 's' : ''}</strong> — ${actifs.map(a => `${a.prenom} ${fractionParts(partsDe(a), totalParts)}`).join(', ')}. Tout le bénéfice est réparti.</div>` : '';
 
   // Tableau mensuel : bénéfice et part de chaque associé actif
   const b = _assoc.bilan; if (!b) return;
   const moisCourant = thisMonth();
-  const futur = m => m > moisCourant;
-  const part = (benef, a) => Math.round(benef * (parseFloat(a.pourcentage) || 0)) / 100;
   const cl = v => v < 0 ? 'color:var(--red)' : v > 0 ? 'color:var(--green)' : 'color:var(--text3)';
   const nomMois = m => new Date(m + '-01T12:00:00').toLocaleDateString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { month: 'long' });
-  const lignesEchues = b.lignes.filter(l => !futur(l.mois));
+  const lignesEchues = b.lignes.filter(l => l.mois <= moisCourant);
+  const parts = lignesEchues.map(l => repartir(l.solde, actifs));            // [mois][associé]
+  const totAssoc = actifs.map((_, j) => Math.round(parts.reduce((s, p) => s + p[j], 0) * 100) / 100);
   const benefAn = lignesEchues.reduce((s, l) => s + l.solde, 0);
   const benefMois = (b.lignes.find(l => l.mois === moisCourant) || {}).solde;
   document.getElementById('as-kpis').innerHTML = `
     <div class="sc"><div class="sc-label">Bénéfice ${b.an}</div><div class="sc-val" style="${cl(benefAn)}">${fmtDH2(benefAn)}</div></div>
     <div class="sc"><div class="sc-label">Bénéfice du mois en cours</div><div class="sc-val" style="${cl(benefMois || 0)}">${benefMois === undefined ? '—' : fmtDH2(benefMois)}</div></div>
-    <div class="sc"><div class="sc-label">Part des associés ${b.an}</div><div class="sc-val">${fmtDH2(actifs.reduce((s, a) => s + lignesEchues.reduce((x, l) => x + part(l.solde, a), 0), 0))}</div></div>`;
-  const tete = `<thead><tr><th>Mois</th><th>Entrées</th><th>Sorties</th><th>Bénéfice</th>${actifs.map(a => `<th>${a.prenom} ${a.nom} (${parseFloat(a.pourcentage)} %)</th>`).join('')}</tr></thead>`;
-  // Mois affichés : passés ou en cours, avec au moins une entrée ou une sortie (le mois en cours est toujours affiché)
-  const visibles = lignesEchues.filter(l => l.entrees || l.sorties || l.mois === moisCourant);
+    <div class="sc"><div class="sc-label">Répartition ${b.an}</div><div style="font-size:13px;line-height:1.7;margin-top:4px">${actifs.length
+      ? actifs.map((a, j) => `<div style="display:flex;justify-content:space-between;gap:8px"><span>${a.prenom} (${fractionParts(partsDe(a), totalParts)})</span><strong style="${cl(totAssoc[j])}">${fmtDH2(totAssoc[j])}</strong></div>`).join('')
+      : '—'}</div></div>`;
+  const tete = `<thead><tr><th>Mois</th><th>Entrées</th><th>Sorties</th><th>Bénéfice</th>${actifs.map(a => `<th>${nomAssocie(a)} (${fractionParts(partsDe(a), totalParts)})</th>`).join('')}</tr></thead>`;
+  // Mois affichés : avec au moins une entrée ou une sortie (le mois en cours est toujours affiché)
+  const visibles = lignesEchues.map((l, i) => [l, parts[i]]).filter(([l]) => l.entrees || l.sorties || l.mois === moisCourant);
   const corps = !visibles.length
     ? `<tr class="empty-row"><td colspan="${4 + actifs.length}">Aucun mouvement en ${b.an}</td></tr>`
-    : visibles.map(l => `<tr${l.mois === moisCourant ? ' style="background:var(--blue-light)"' : ''}><td style="text-transform:capitalize;font-weight:600">${nomMois(l.mois)}</td>
+    : visibles.map(([l, p]) => `<tr${l.mois === moisCourant ? ' style="background:var(--blue-light)"' : ''}><td style="text-transform:capitalize;font-weight:600">${nomMois(l.mois)}</td>
         <td style="color:var(--green-text)">${fmtDH2(l.entrees)}</td><td style="color:var(--red-text)">${fmtDH2(l.sorties)}</td>
         <td style="font-weight:700;${cl(l.solde)}">${fmtDH2(l.solde)}</td>
-        ${actifs.map(a => { const v = part(l.solde, a); return `<td style="font-weight:600;${cl(v)}">${fmtDH2(v)}</td>`; }).join('')}</tr>`).join('');
+        ${p.map(v => `<td style="font-weight:600;${cl(v)}">${fmtDH2(v)}</td>`).join('')}</tr>`).join('');
   const tot = `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">Total ${b.an}</td>
     <td style="font-weight:700;color:var(--green-text)">${fmtDH2(lignesEchues.reduce((s, l) => s + l.entrees, 0))}</td>
     <td style="font-weight:700;color:var(--red-text)">${fmtDH2(lignesEchues.reduce((s, l) => s + l.sorties, 0))}</td>
     <td style="font-weight:800;${cl(benefAn)}">${fmtDH2(benefAn)}</td>
-    ${actifs.map(a => { const v = lignesEchues.reduce((s, l) => s + part(l.solde, a), 0); return `<td style="font-weight:800;${cl(v)}">${fmtDH2(v)}</td>`; }).join('')}</tr>`;
+    ${totAssoc.map(v => `<td style="font-weight:800;${cl(v)}">${fmtDH2(v)}</td>`).join('')}</tr>`;
   document.getElementById('as-table').innerHTML = tete + '<tbody>' + corps + tot + '</tbody>';
 }
 
@@ -7383,7 +7404,7 @@ function ouvrirAssocie(id) {
   document.getElementById('as-id').value = a?.id || '';
   document.getElementById('as-prenom').value = a?.prenom || '';
   document.getElementById('as-nom').value = a?.nom || '';
-  document.getElementById('as-pct').value = a ? parseFloat(a.pourcentage) : '';
+  document.getElementById('as-parts').value = a ? partsDe(a) : 1;
   document.getElementById('as-actif').value = a ? String(a.actif) : 'true';
   document.getElementById('associe-modal').classList.add('open');
 }
@@ -7393,17 +7414,14 @@ async function saveAssocie() {
   const obj = {
     prenom: formatPrenom(document.getElementById('as-prenom').value),
     nom: formatNom(document.getElementById('as-nom').value),
-    pourcentage: parseFloat(document.getElementById('as-pct').value),
+    parts: parseFloat(String(document.getElementById('as-parts').value).replace(',', '.')),
     actif: document.getElementById('as-actif').value === 'true'
   };
-  if (!obj.prenom || !obj.nom) { showToast('Prénom et nom obligatoires', 'e'); return; }
-  if (isNaN(obj.pourcentage) || obj.pourcentage < 0 || obj.pourcentage > 100) { showToast('Pourcentage entre 0 et 100', 'e'); return; }
-  const autres = _assoc.liste.filter(a => a.actif && a.id !== id).reduce((s, a) => s + (parseFloat(a.pourcentage) || 0), 0);
-  if (obj.actif && autres + obj.pourcentage > 100.001
-      && !confirm(`Le total des pourcentages atteindrait ${Math.round((autres + obj.pourcentage) * 100) / 100} % (plus de 100 %). Enregistrer quand même ?`)) return;
+  if (!obj.prenom) { showToast('Prénom obligatoire', 'e'); return; }
+  if (isNaN(obj.parts) || obj.parts <= 0) { showToast('Nombre de parts supérieur à 0', 'e'); return; }
   const { error } = id ? await sb.from('associes').update(obj).eq('id', id) : await sb.from('associes').insert(obj);
-  if (error) { showToast(/associes|schema cache/i.test(error.message) ? "Exécutez d'abord le script SQL 22 (Associés) dans Supabase." : error.message, 'e'); return; }
-  await logAudit(id ? 'UPDATE' : 'CREATE', 'associes', `${obj.prenom} ${obj.nom} — ${obj.pourcentage} %`);
+  if (error) { showToast(/parts|associes|schema cache/i.test(error.message) ? "Exécutez d'abord les scripts SQL 22 et 23 (Associés) dans Supabase." : error.message, 'e'); return; }
+  await logAudit(id ? 'UPDATE' : 'CREATE', 'associes', `${obj.prenom} ${obj.nom} — ${obj.parts} part(s)`);
   showToast(t('msg.saved'), 's');
   document.getElementById('associe-modal').classList.remove('open');
   loadAssocies();
