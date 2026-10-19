@@ -1301,7 +1301,8 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         <p class="ptitle" data-i18n="planning.title">Planning des séances</p>
         <p class="psubtitle" data-i18n="planning.subtitle">Organisez les créneaux horaires par sport et par coach</p>
         <div id="al-planning"></div>
-        <div class="card">
+        <div style="margin-bottom:14px"><button class="btn btn-p" id="pl-add-btn" onclick="basculerFormPlanning()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="planning.add">Ajouter une séance</span></button></div>
+        <div class="card" id="pl-form-card" style="display:none">
           <div class="ct" data-i18n="planning.add">Ajouter une séance</div>
           <div class="g3">
             <div class="fg"><label data-i18n="planning.sport">Sport</label><select id="pl-sport"></select></div>
@@ -1321,6 +1322,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="fg"><label data-i18n="planning.coaches">Coach(es) assigné(s)</label><select id="pl-coach" multiple style="height:80px;font-size:12px"></select><span style="font-size:10px;color:var(--text3)" data-i18n="planning.coaches_hint">Ctrl+clic pour sélectionner plusieurs</span></div>
           </div>
           <button class="btn btn-p" style="margin-top:8px" onclick="savePlanning()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="planning.add_btn">Ajouter la séance</span></button>
+          <button class="btn" style="margin-top:8px" onclick="basculerFormPlanning(false)" data-i18n="common.annuler">Annuler</button>
         </div>
         <div class="card" id="planning-card">
           <div class="plan-toolbar">
@@ -6955,7 +6957,16 @@ async function savePlanning() {
   await logAudit('CREATE','planning',`${base.sport} ${base.heure_debut}-${base.heure_fin} : ${jours.join(', ')}`);
   showToast(jours.length > 1 ? t('planning.added_n').replace('%n', jours.length) : t('planning.added'),'s');
   cocherJours([]);
+  basculerFormPlanning(false);
   loadPlanning();
+}
+
+function basculerFormPlanning(ouvrir) {
+  const c = document.getElementById('pl-form-card');
+  const o = typeof ouvrir === 'boolean' ? ouvrir : c.style.display === 'none';
+  c.style.display = o ? '' : 'none';
+  document.getElementById('pl-add-btn').style.display = o ? 'none' : '';
+  if (o) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 async function delPlanning(id) {
