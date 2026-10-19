@@ -8265,6 +8265,9 @@ async function saveUser() {
       });
       const result = await res.json();
       if (result.error) { showMoAl(result.error,'e'); btn.disabled=false; btn.textContent=t('common.enregistrer'); return; }
+      // Droits réenregistrés depuis l'application (tous les modules, erreurs affichées)
+      const nouvelId = result.user?.id || result.user_id || result.id;
+      if (nouvelId) { try { await saveHabilitations(nouvelId, role); } catch (e) { showToast(e.message, 'e'); } }
       await logAudit('CREATE','utilisateurs', email);
       showToast('Utilisateur créé avec succès','s');
 
@@ -8297,17 +8300,19 @@ async function saveUser() {
   btn.disabled=false; btn.textContent=t('common.enregistrer');
 }
 
+// Enregistre les droits de tous les modules en une fois ; une erreur n'est plus ignorée
 async function saveHabilitations(uid, role) {
   if (role === 'super_admin') return;
-  for (const m of MODULES) {
-    const l = document.getElementById(`pm-${m}-l`)?.checked||false;
-    const e = document.getElementById(`pm-${m}-e`)?.checked||false;
-    const s = document.getElementById(`pm-${m}-s`)?.checked||false;
-    await sb.from('habilitations').upsert(
-      { user_id:uid, module:m, peut_lire:l, peut_ecrire:e, peut_supprimer:s },
-      { onConflict:'user_id,module' }
-    );
-  }
+  const lignes = MODULES.map(m => ({
+    user_id: uid, module: m,
+    peut_lire:      document.getElementById(`pm-${m}-l`)?.checked || false,
+    peut_ecrire:    document.getElementById(`pm-${m}-e`)?.checked || false,
+    peut_supprimer: document.getElementById(`pm-${m}-s`)?.checked || false
+  }));
+  const { error } = await sb.from('habilitations').upsert(lignes, { onConflict: 'user_id,module' });
+  if (error) throw new Error(/check constraint|violates check/i.test(error.message)
+    ? "Droits NON enregistrés : la base refuse les nouveaux modules (Coaches, Boutique, Associés…). Exécutez le script SQL 26 dans Supabase, puis enregistrez à nouveau."
+    : `Droits NON enregistrés : ${error.message}`);
 }
 
 function showMoAl(msg, type) {
