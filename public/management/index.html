@@ -795,10 +795,6 @@ tr:hover td{background:var(--blue-light)}
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             <span data-i18n="nav.presence_text">Présence & Absences</span>
           </button>
-          <button class="nav" data-page="salaires" onclick="nav('salaires',this)">
-            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            <span data-i18n="nav.salaires_text">Salaires</span>
-          </button>
         </div>
       </div>
 
@@ -869,7 +865,7 @@ tr:hover td{background:var(--blue-light)}
             <div class="sc-label" data-i18n="db.rec_annee">Recettes cette année</div>
             <div class="sc-val" id="db-rec-annee">—</div>
           </div>
-          <div class="sc" style="cursor:pointer" onclick="nav('salaires',document.querySelector('.nav[data-page=salaires]'))">
+          <div class="sc" style="cursor:pointer" onclick="nav('coaches',document.querySelector('.nav[data-page=coaches]'))">
             <div class="sc-label" data-i18n="db.salaires_mois">Salaires du mois</div>
             <div class="sc-val" id="db-sal-mois">—</div>
           </div>
@@ -1221,41 +1217,6 @@ tr:hover td{background:var(--blue-light)}
         </div>
       </div>
 
-      <!-- SALAIRES -->
-      <div id="page-salaires" class="page">
-        <p class="ptitle" data-i18n="salaires.title">Salaires</p>
-        <p class="psubtitle" data-i18n="salaires.subtitle">Gestion de la paie mensuelle des employés</p>
-        <div id="al-salaires"></div>
-
-        <!-- Lien vers gestion employés -->
-        <div class="al al-i" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-          <span id="salaires-info-text">Pour ajouter ou modifier un salarié, rendez-vous dans <strong>Coaches & Salariés</strong>.</span>
-          <button class="btn btn-sm" onclick="nav('coaches',document.querySelector('.nav[data-page=coaches]'))" data-i18n="salaires.goto_coaches">Aller à Coaches & Salariés</button>
-        </div>
-
-        <!-- Masse salariale + liste -->
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem">
-            <div class="ct" style="margin:0" data-i18n="salaires.masse_mensuelle">Masse salariale mensuelle</div>
-            <div class="sc-val" id="masse-sal" style="font-size:18px;font-weight:500">—</div>
-          </div>
-          <div id="emp-list"></div>
-        </div>
-
-        <!-- Enregistrer un paiement -->
-        <div class="card">
-          <div class="ct" data-i18n="salaires.enregistrer_paie">Enregistrer un paiement de salaire</div>
-          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end">
-            <div class="fg" style="flex:1;min-width:160px"><label data-i18n="salaires.employe">Employé</label><select id="sal-emp"></select></div>
-            <div class="fg" style="min-width:120px"><label data-i18n="common.mois">Mois</label><input id="sal-mois" type="month"></div>
-            <div class="fg" style="min-width:110px"><label data-i18n="paie.montant">Montant (DH)</label><input id="sal-mont" type="number"></div>
-            <div class="fg" style="min-width:120px"><label data-i18n="paie.mode">Mode</label><select id="sal-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
-            <button class="btn btn-p" onclick="saveSalairePaie()" data-i18n="salaires.payer">Payer</button>
-          </div>
-          <table><thead><tr><th data-i18n="salaires.employe">Employé</th><th data-i18n="coaches.poste">Poste</th><th data-i18n="common.mois">Mois</th><th data-i18n="paie.montant">Montant</th><th data-i18n="paie.mode">Mode</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="salaires-tb"></tbody></table>
-        </div>
-      </div>
-
       <!-- PLANNING -->
       <div id="page-planning" class="page">
         <p class="ptitle" data-i18n="planning.title">Planning des séances</p>
@@ -1593,8 +1554,8 @@ tr:hover td{background:var(--blue-light)}
         <div class="sg" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:1.25rem">
           <div class="sc"><div class="sc-label" data-i18n="coaches.total_salaries">Total salariés</div><div class="sc-val" id="co-nb">—</div></div>
           <div class="sc"><div class="sc-label" data-i18n="coaches.masse_mois">Masse salariale / mois</div><div class="sc-val" id="co-masse">—</div></div>
-          <div class="sc" style="border-left:3px solid var(--amber);border-radius:0 var(--r) var(--r) 0"><div class="sc-label" style="color:var(--amber-text)" data-i18n="coaches.non_payes">Salaires non payés ce mois</div><div class="sc-val" id="co-nonpayes" style="color:var(--amber)">—</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="coaches.paye_mois">Total payé ce mois</div><div class="sc-val" id="co-paye-mois">—</div></div>
+          <div class="sc sect-salaires" style="border-left:3px solid var(--amber);border-radius:0 var(--r) var(--r) 0"><div class="sc-label" style="color:var(--amber-text)" data-i18n="coaches.non_payes">Salaires non payés ce mois</div><div class="sc-val" id="co-nonpayes" style="color:var(--amber)">—</div></div>
+          <div class="sc sect-salaires"><div class="sc-label" data-i18n="coaches.paye_mois">Total payé ce mois</div><div class="sc-val" id="co-paye-mois">—</div></div>
         </div>
 
         <!-- Formulaire ajout/modif -->
@@ -1713,7 +1674,7 @@ tr:hover td{background:var(--blue-light)}
         </div>
 
         <!-- Section paiement salaire -->
-        <div class="card">
+        <div class="card sect-salaires sect-salaires-ecrire">
           <div class="ct" data-i18n="salaires.enregistrer_paie">Enregistrer un paiement de salaire</div>
           <div class="ligne-form" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end">
             <div class="fg" style="flex:2;min-width:160px"><label data-i18n="coaches.salarie">Salarié</label><select id="co-sal-emp" onchange="calculerSalaire()"></select></div>
@@ -1729,7 +1690,7 @@ tr:hover td{background:var(--blue-light)}
         </div>
 
         <!-- Historique des paiements + alertes non payés -->
-        <div class="g2">
+        <div class="g2 sect-salaires">
           <div class="card">
             <div class="ct" style="color:var(--amber-text)" data-i18n="coaches.non_payes">Salaires non payés ce mois</div>
             <div id="co-nonpayes-list"></div>
@@ -1748,7 +1709,7 @@ tr:hover td{background:var(--blue-light)}
         </div>
 
         <!-- Fiche individuelle par salarié -->
-        <div class="card">
+        <div class="card sect-salaires">
           <div class="ct" data-i18n="coaches.recap_annuel">Récapitulatif annuel par salarié</div>
           <div class="toolbar">
             <select id="co-recap-emp" onchange="loadCoachRecap()"><option value="" data-i18n="select.choose_employee">Choisir un salarié</option></select>
@@ -1872,7 +1833,7 @@ function getRoleLabels() {
 let MODULE_LABELS = {
   dashboard:'Tableau de bord', clients:'Clients', paiements:'Paiements',
   sports:'Sports & Tarifs', charges:'Charges', coaches:'Coaches & Salariés',
-  presence:'Présence & Absences', salaires:'Salaires',
+  presence:'Présence & Absences', salaires:'Paiement des salaires',
   planning:'Planning', stats:'Statistiques', utilisateurs:'Utilisateurs'
 };
 let ROLE_LABELS = {super_admin:'Super Admin', gerant:'Gérant', receptionniste:'Réceptionniste', employe:'Employé'};
@@ -2036,7 +1997,7 @@ const I18N = {
     'nav.rh':          'Ressources humaines',
     'nav.coaches':     'Coaches & Salariés',
     'nav.presence':    'Présence & Absences',
-    'nav.salaires':    'Salaires',
+    'nav.salaires':    'Paiement des salaires',
     'nav.finances':    'Finances',
     'nav.charges':     'Charges',
     'nav.stats':       'Statistiques',
@@ -2720,7 +2681,7 @@ const I18N = {
     'nav.rh':           'الموارد البشرية',
     'nav.coaches':      'المدربون والموظفون',
     'nav.presence':     'الحضور والغياب',
-    'nav.salaires':     'الرواتب',
+    'nav.salaires':     'أداء الرواتب',
     'nav.finances':     'المالية',
     'nav.charges':      'المصاريف',
     'nav.stats':        'الإحصاءات',
@@ -3408,7 +3369,6 @@ function toggleLang() {
     else if (pageId === 'clients') { loadClients(); }
     else if (pageId === 'paiements') { loadPaiements(); }
     else if (pageId === 'charges') { loadCharges(); }
-    else if (pageId === 'salaires') { loadEmployes(); loadSalairesPaie(); }
     else if (pageId === 'coaches') { loadCoaches(); }
     else if (pageId === 'stats') { loadStats(); }
   }
@@ -3499,7 +3459,7 @@ function applyLang() {
     'page-dashboard':'db.title','page-clients':'clients.title',
     'page-paiements':'paie.title','page-sports':'sports.title',
     'page-charges':'charges.title','page-coaches':'coaches.title',
-    'page-presence':'presence.title','page-salaires':'salaires.title',
+    'page-presence':'presence.title',
     'page-planning':'planning.title','page-stats':'stats.title',
     'page-utilisateurs':'users.title'
   };
@@ -3850,8 +3810,13 @@ function nav(page, btn) {
   if (page==='sports')      { loadSports(); }
   if (page==='charges')     loadCharges();
   if (page==='presence')    { loadPresenceInit(); }
-  if (page==='coaches')     { loadCoaches(); loadCoachPaies(); loadCoachNonPayes(); loadCoachRecapSelects(); onPosteChange(); }
-  if (page==='salaires')    { loadEmployes(); loadSalaires(); }
+  if (page==='coaches')     {
+    // Sections salaires : visibles avec le droit « Paiement des salaires » (le formulaire avec le droit d'écriture)
+    document.querySelectorAll('#page-coaches .sect-salaires').forEach(el => el.style.display = PERMS.salaires?.lire ? '' : 'none');
+    document.querySelectorAll('#page-coaches .sect-salaires-ecrire').forEach(el => { if (!PERMS.salaires?.ecrire) el.style.display = 'none'; });
+    loadCoaches(); onPosteChange();
+    if (PERMS.salaires?.lire) { loadCoachPaies(); loadCoachNonPayes(); loadCoachRecapSelects(); }
+  }
   if (page==='planning')    { loadSportsForSelect('pl-sport'); loadCoachesForPlanningSelect(); loadPlanning(); }
   if (page==='stats')       loadStats();
   if (page==='utilisateurs') { loadUsers(); if(ME.role==='super_admin') loadAudit(); else document.getElementById('audit-card').style.display='none'; }
@@ -6627,69 +6592,6 @@ async function delCharge(id) { if(!confirm(t('msg.confirm_delete')))return; awai
 // ════════════════════════════════════════════════════════════
 // SALAIRES
 // ════════════════════════════════════════════════════════════
-async function loadEmployes() {
-  const { data } = await sb.from('employes').select('*').eq('actif', true).order('nom');
-  const total = (data||[]).reduce((a,e)=>a+parseFloat(e.salaire||0),0);
-  document.getElementById('masse-sal').textContent = fmt(total);
-
-  // Liste lecture seule — redirection vers Coaches pour modifier
-  const typeColors = { CDI:'b-g', CDD:'b-i', Vacataire:'b-w', Bénévole:'b-gray', 'Par séance':'b-p', 'Par séance entretien':'b-w' };
-  const contratTr={'CDI':t('coaches.c_cdi'),'CDD':t('coaches.c_cdd'),'Vacataire':t('coaches.c_vacataire'),'Bénévole':t('coaches.c_benevole'),'Par séance':t('coaches.c_par_seance'),'Par séance entretien':t('coaches.c_par_seance_entretien')};
-  const posteTr={'Coach sportif':t('coaches.p_coach'),'Coach':t('coaches.p_coach'),'Agent d\'entretien':t('coaches.p_entretien'),'Réceptionniste':t('coaches.p_receptionniste'),'Comptable':t('coaches.p_comptable'),'Directeur':t('coaches.p_directeur'),'Gérant':t('coaches.p_directeur'),'Administratif':t('coaches.p_comptable')};
-  document.getElementById('emp-list').innerHTML = (data||[]).length
-    ? (data||[]).map(e=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:13px">
-        <div>
-          <div style="font-weight:500">${e.prenom} ${e.nom}
-            <span class="badge ${typeColors[e.contrat]||'b-gray'}" style="font-size:10px;margin-left:6px">${contratTr[e.contrat]||e.contrat||'—'}</span>
-          </div>
-          <div style="font-size:11px;color:var(--text2)">${posteTr[e.poste]||e.poste||'—'}</div>
-        </div>
-        <span style="font-weight:500">${e.contrat?.startsWith('Par séance') ? fmt(e.salaire)+' / '+t('salaires.seance') : fmt(e.salaire)+' / '+t('salaires.mois')}</span>
-      </div>`).join('')
-    : `<div style="color:var(--text3);font-size:13px;padding:.5rem">${t('salaires.no_employee')}</div>`;
-
-  // Select paiement
-  const sel = document.getElementById('sal-emp');
-  if (sel) sel.innerHTML = (data||[]).map(e=>`<option value="${e.id}">${e.prenom} ${e.nom} — ${e.poste||''}</option>`).join('');
-}
-
-async function loadSalaires() {
-  const { data } = await sb.from('salaires_paie').select('*,employes(prenom,nom,poste)').order('created_at',{ascending:false});
-  const canDel = PERMS.salaires?.supprimer;
-  const _spTr={'Coach sportif':t('coaches.p_coach'),'Coach':t('coaches.p_coach'),'Agent d\'entretien':t('coaches.p_entretien'),'Réceptionniste':t('coaches.p_receptionniste'),'Comptable':t('coaches.p_comptable'),'Directeur':t('coaches.p_directeur'),'Gérant':t('coaches.p_directeur')};
-  const _smTr={'Espèces':t('paie.m_especes'),'Virement':t('paie.m_virement'),'Chèque':t('paie.m_cheque')};
-  document.getElementById('salaires-tb').innerHTML = (data||[]).length
-    ? (data||[]).map(s=>`<tr>
-        <td><strong>${s.employes?.prenom||'?'} ${s.employes?.nom||''}</strong></td>
-        <td style="color:var(--text2)">${_spTr[s.employes?.poste]||s.employes?.poste||'—'}</td>
-        <td><span class="badge b-i">${s.mois}</span></td>
-        <td style="font-weight:500;color:var(--green)">${fmt(s.montant)}</td>
-        <td style="color:var(--text2)">${_smTr[s.mode]||s.mode||t('paie.m_especes')}</td>
-        <td>${canDel?`<button class="btn btn-sm btn-d" onclick="delSalairePaie('${s.id}')">${t('msg.suppr')}</button>`:''}</td>
-      </tr>`).join('')
-    : `<tr class="empty-row"><td colspan="6">${t('msg.no_payment')}</td></tr>`;
-}
-
-async function saveSalairePaie() {
-  const mode = document.getElementById('sal-mode')?.value || 'Espèces';
-  const obj = {
-    employe_id: document.getElementById('sal-emp').value,
-    mois:       document.getElementById('sal-mois').value,
-    montant:    parseFloat(document.getElementById('sal-mont').value),
-    mode,
-    created_by: ME.id
-  };
-  if (!obj.employe_id||!obj.mois||!obj.montant) { showToast(t('salaires.required'),'e'); return; }
-  const { error } = await sb.from('salaires_paie').insert(obj);
-  if (error) { showToast(error.message,'e'); return; }
-  await logAudit('CREATE','salaires',`${fmt(obj.montant)} — ${obj.mois}`);
-  showToast(t('salaires.saved'),'s');
-  document.getElementById('sal-mont').value='';
-  loadSalaires(); loadEmployes();
-}
-
-async function delSalairePaie(id) { if(!confirm(t('msg.confirm_delete')))return; await sb.from('salaires_paie').delete().eq('id',id); loadSalaires(); }
 
 // ════════════════════════════════════════════════════════════
 // PLANNING
