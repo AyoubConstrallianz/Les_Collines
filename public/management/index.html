@@ -1484,6 +1484,19 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div style="overflow-x:auto"><table id="bb-mois"></table></div>
           </div>
 
+        <div class="card" id="bb-vs-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+              <div class="ct" style="margin:0" data-i18n="vs.titre">Versements aux associés et caisse</div>
+              <button class="btn btn-p" id="bb-vs-new" onclick="ouvrirVersement('boutique')" data-i18n="vs.nouveau">+ Nouveau versement</button>
+            </div>
+            <div id="bb-vs-sql"></div>
+            <div class="sg" id="bb-vs-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+            <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px" data-i18n="vs.note_boutique">Caisse de la boutique = capital apporté + ventes − achats de stock − versements aux associés. Mois de l'année choisie ci-dessus.</p>
+            <div style="overflow-x:auto"><table id="bb-vs-mois"></table></div>
+            <div class="ct" style="margin:16px 0 8px;font-size:13px" data-i18n="vs.historique">Historique des versements</div>
+            <table id="bb-vs-hist"></table>
+          </div>
+
           <div class="mo" id="bb-modal">
             <div class="mo-box" style="max-width:440px">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
@@ -1492,7 +1505,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
               </div>
               <input type="hidden" id="bb-id">
               <div class="fg" style="margin-bottom:10px"><label data-i18n="bb.capital_dh">Capital investi dans la boutique (DH)</label><input id="bb-capital" type="number" min="0" step="0.01" placeholder="0"></div>
-              <div class="fg" style="margin-bottom:10px"><label data-i18n="bb.verse_dh">Déjà versé (boutique) (DH)</label><input id="bb-verse" type="number" min="0" step="0.01" placeholder="0"></div>
+              <div class="fg" id="bb-verse-wrap" style="margin-bottom:10px"><label data-i18n="bb.verse_dh">Déjà versé (boutique) (DH)</label><input id="bb-verse" type="number" min="0" step="0.01" placeholder="0"></div>
               <div class="btns"><button class="btn btn-p" onclick="saveCapitalBoutique()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('bb-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
             </div>
           </div>
@@ -1567,6 +1580,19 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div style="overflow-x:auto"><table id="as-table"></table></div>
         </div>
 
+        <div class="card" id="as-vs-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+            <div class="ct" style="margin:0" data-i18n="vs.titre">Versements aux associés et caisse</div>
+            <button class="btn btn-p" id="as-vs-new" onclick="ouvrirVersement('club')" data-i18n="vs.nouveau">+ Nouveau versement</button>
+          </div>
+          <div id="as-vs-sql"></div>
+          <div class="sg" id="as-vs-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+          <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px" data-i18n="vs.note_club">Caisse = capital apporté + encaissements − charges − salaires − versements aux associés. Mois de l'année choisie ci-dessus.</p>
+          <div style="overflow-x:auto"><table id="as-vs-mois"></table></div>
+          <div class="ct" style="margin:16px 0 8px;font-size:13px" data-i18n="vs.historique">Historique des versements</div>
+          <table id="as-vs-hist"></table>
+        </div>
+
         <div class="mo" id="associe-modal">
           <div class="mo-box" style="max-width:460px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
@@ -1578,7 +1604,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="fr"><div class="fg"><label data-i18n="as.nb_parts">Nombre de parts</label><input id="as-parts" type="number" min="0.5" step="0.5" placeholder="Ex : 1 ou 2" data-i18n-ph="as.parts_ph"><span style="font-size:10px;color:var(--text3)" data-i18n="as.parts_aide">Part du bénéfice = ses parts ÷ total des parts (1 et 2 → 1/3 et 2/3)</span></div>
               <div class="fg"><label data-i18n="as.statut">Statut</label><select id="as-actif"><option value="true" data-i18n="as.actif">Actif</option><option value="false" data-i18n="as.inactif">Inactif</option></select></div></div>
             <div class="fr"><div class="fg"><label data-i18n="as.capital_dh">Capital investi (DH)</label><input id="as-capital" type="number" min="0" step="0.01" placeholder="0"></div>
-              <div class="fg"><label data-i18n="as.deja_verse_dh">Déjà versé à l'associé (DH)</label><input id="as-verse" type="number" min="0" step="0.01" placeholder="0"><span style="font-size:10px;color:var(--text3)" data-i18n="as.deja_verse_aide">Remboursement du capital et bénéfices déjà payés</span></div></div>
+              <div class="fg" id="as-verse-wrap"><label data-i18n="as.deja_verse_dh">Déjà versé à l'associé (DH)</label><input id="as-verse" type="number" min="0" step="0.01" placeholder="0"><span style="font-size:10px;color:var(--text3)" data-i18n="as.deja_verse_aide">Remboursement du capital et bénéfices déjà payés</span></div></div>
             <div class="btns"><button class="btn btn-p" onclick="saveAssocie()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('associe-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
           </div>
         </div>
@@ -2151,6 +2177,25 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
   </div><!-- /layout -->
 </div><!-- /app -->
 
+<!-- ══ MODAL VERSEMENT À UN ASSOCIÉ ══════════════════════════ -->
+<div class="mo" id="vs-modal">
+  <div class="mo-box" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div class="mo-title" style="margin-bottom:0" id="vs-titre">Nouveau versement</div>
+      <button class="btn btn-sm" onclick="document.getElementById('vs-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+    </div>
+    <input type="hidden" id="vs-activite">
+    <div class="fr"><div class="fg"><label data-i18n="as.associe">Associé</label><select id="vs-associe" onchange="majInfoVersement()"></select></div>
+      <div class="fg"><label data-i18n="bq.date">Date</label><input id="vs-date" type="date"></div></div>
+    <div class="fr"><div class="fg"><label data-i18n="vs.nature">Nature</label><select id="vs-nature"><option value="Bénéfice" data-i18n="vs.nat_benefice">Part du bénéfice</option><option value="Capital" data-i18n="vs.nat_capital">Remboursement du capital</option></select></div>
+      <div class="fg"><label data-i18n="vs.montant_dh">Montant versé (DH)</label><input id="vs-montant" type="number" min="0" step="0.01" placeholder="0"></div></div>
+    <div class="fr"><div class="fg"><label data-i18n="vs.mode">Mode</label><select id="vs-mode"><option value="Espèces">Espèces</option><option value="Virement">Virement</option><option value="Chèque">Chèque</option></select></div>
+      <div class="fg"><label data-i18n="bq.note">Note</label><input id="vs-note"></div></div>
+    <div id="vs-info" style="font-size:12px;color:var(--text2);margin:4px 0 12px"></div>
+    <div class="btns"><button class="btn btn-p" onclick="saveVersement()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('vs-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
+  </div>
+</div>
+
 <!-- ══ MODAL UTILISATEUR ════════════════════════════════════ -->
 <div class="mo" id="user-modal">
   <div class="mo-box">
@@ -2471,6 +2516,34 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "vs.titre": "Versements aux associés et caisse",
+    "vs.nouveau": "+ Nouveau versement",
+    "vs.historique": "Historique des versements",
+    "vs.note_club": "Caisse = capital apporté + encaissements − charges − salaires − versements aux associés. Mois de l'année choisie ci-dessus.",
+    "vs.note_boutique": "Caisse de la boutique = capital apporté + ventes − achats de stock − versements aux associés. Mois de l'année choisie ci-dessus.",
+    "vs.caisse_actuelle": "Caisse actuelle",
+    "vs.verse_mois": "Versé ce mois",
+    "vs.verse_total": "Versé depuis le début",
+    "vs.verse_a": "Versé à",
+    "vs.total_verse": "Total versé",
+    "vs.caisse_fin": "Caisse en fin de mois",
+    "vs.benef_mois": "Bénéfice du mois",
+    "vs.ventes_moins_achats": "Ventes − achats du mois",
+    "vs.nature": "Nature",
+    "vs.montant": "Montant",
+    "vs.montant_dh": "Montant versé (DH)",
+    "vs.mode": "Mode",
+    "vs.nat_benefice": "Part du bénéfice",
+    "vs.nat_capital": "Remboursement du capital",
+    "vs.aucun": "Aucun versement en",
+    "vs.titre_club": "Versement à un associé (club)",
+    "vs.titre_boutique": "Versement à un associé (boutique)",
+    "vs.caisse_dispo": "Caisse disponible",
+    "vs.depasse_caisse": "Ce versement dépasse la caisse disponible (%s). Enregistrer quand même ?",
+    "vs.depasse_reste": "Ce versement dépasse ce qui reste à verser à cet associé (%s). Enregistrer quand même ?",
+    "vs.enregistre": "Versement enregistré",
+    "vs.suppr_confirm": "Supprimer ce versement de %s ?",
+    "vs.sql_30": "Exécutez le script SQL 30 (versements aux associés) dans Supabase pour enregistrer les versements.",
     "bb.onglet": "Bilan & associés",
     "bb.separe": "Bilan propre à la boutique : il n'est mélangé ni à la caisse du club, ni au bénéfice des associés du club.",
     "bb.capital": "Capital investi (boutique)",
@@ -3414,6 +3487,34 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "vs.titre": "الدفعات للشركاء والصندوق",
+    "vs.nouveau": "+ دفعة جديدة",
+    "vs.historique": "سجل الدفعات",
+    "vs.note_club": "الصندوق = رأس المال المقدم + المداخيل − المصاريف − الأجور − الدفعات للشركاء. أشهر السنة المختارة أعلاه.",
+    "vs.note_boutique": "صندوق المتجر = رأس المال المقدم + المبيعات − مشتريات المخزون − الدفعات للشركاء. أشهر السنة المختارة أعلاه.",
+    "vs.caisse_actuelle": "الصندوق الحالي",
+    "vs.verse_mois": "المدفوع هذا الشهر",
+    "vs.verse_total": "المدفوع منذ البداية",
+    "vs.verse_a": "مدفوع لـ",
+    "vs.total_verse": "مجموع المدفوع",
+    "vs.caisse_fin": "الصندوق في نهاية الشهر",
+    "vs.benef_mois": "ربح الشهر",
+    "vs.ventes_moins_achats": "المبيعات − المشتريات",
+    "vs.nature": "النوع",
+    "vs.montant": "المبلغ",
+    "vs.montant_dh": "المبلغ المدفوع (درهم)",
+    "vs.mode": "طريقة الأداء",
+    "vs.nat_benefice": "حصة الربح",
+    "vs.nat_capital": "استرجاع رأس المال",
+    "vs.aucun": "لا توجد دفعات في",
+    "vs.titre_club": "دفعة لشريك (النادي)",
+    "vs.titre_boutique": "دفعة لشريك (المتجر)",
+    "vs.caisse_dispo": "الصندوق المتوفر",
+    "vs.depasse_caisse": "هذه الدفعة تتجاوز الصندوق المتوفر (%s). تسجيلها رغم ذلك ؟",
+    "vs.depasse_reste": "هذه الدفعة تتجاوز الباقي للدفع لهذا الشريك (%s). تسجيلها رغم ذلك ؟",
+    "vs.enregistre": "تم تسجيل الدفعة",
+    "vs.suppr_confirm": "حذف هذه الدفعة بمبلغ %s ؟",
+    "vs.sql_30": "نفّذ سكريبت SQL رقم 30 (الدفعات للشركاء) في Supabase لتسجيل الدفعات.",
     "bb.onglet": "الحصيلة والشركاء",
     "bb.separe": "حصيلة خاصة بالمتجر : لا تختلط بصندوق النادي ولا بأرباح شركاء النادي.",
     "bb.capital": "رأس المال المستثمر (المتجر)",
@@ -8120,8 +8221,10 @@ async function loadBilanBoutique() {
   const [rv, ra, rs] = await Promise.all([
     fetchAllRows(() => sb.from('ventes').select('date_vente,quantite,prix_achat,prix_vente').order('id')),
     voitAssocies ? sb.from('associes').select('*').order('created_at') : { data: [] },
-    fetchAllRows(() => sb.from('stock_mouvements').select('type,quantite,prix_unitaire').eq('type', 'Achat').order('id'))
+    fetchAllRows(() => sb.from('stock_mouvements').select('type,quantite,prix_unitaire,date_mouvement').eq('type', 'Achat').order('id')),
+    chargerVersements('boutique')
   ]);
+  _bb.achatsListe = rs.data || [];
   _bb.ventes = rv.data || [];
   _bb.associes = (ra.data || []).filter(estActif);
   _bb.achats = (rs.data || []).reduce((s, m) => s + (m.quantite || 0) * (parseFloat(m.prix_unitaire) || 0), 0);
@@ -8168,8 +8271,9 @@ function renderBilanBoutique() {
   moisTries.forEach(m => repartir(parMois[m].ventes - parMois[m].cout, associes).forEach((v, j) => { cumul[j] += v; }));
   const canW = PERMS.associes?.ecrire;
   const lignes = associes.map((a, j) => {
-    const capital = parseFloat(a.capital_boutique) || 0, verse = parseFloat(a.deja_verse_boutique) || 0;
+    const capital = parseFloat(a.capital_boutique) || 0, verse = verseA('boutique', a);
     const part = Math.round(cumul[j] * 100) / 100;
+    _vs.reste.boutique[a.id] = capital + part - verse;
     return { a, capital, part, total: capital + part, verse, reste: capital + part - verse };
   });
   const somme = k => lignes.reduce((s, l) => s + l[k], 0);
@@ -8199,6 +8303,11 @@ function renderBilanBoutique() {
       <td style="font-weight:700;${cl(b)}">${fmtDH2(b)}</td>${p.map(v => `<td style="font-weight:600;${cl(v)}">${fmtDH2(v)}</td>`).join('')}</tr>`;
   }).join('');
   const bt = tot.ventes - tot.cout;
+  // Caisse de la boutique : ventes − achats de stock de chaque mois
+  const soldesCaisse = {};
+  Object.entries(parMois).forEach(([m, l]) => { soldesCaisse[m] = (soldesCaisse[m] || 0) + l.ventes; });
+  (_bb.achatsListe || []).forEach(x => { const m = String(x.date_mouvement).slice(0, 7); soldesCaisse[m] = (soldesCaisse[m] || 0) - (x.quantite || 0) * (parseFloat(x.prix_unitaire) || 0); });
+  renderVersementsCaisse('boutique', associes, soldesCaisse, capitalTot, an, t('vs.ventes_moins_achats'));
   document.getElementById('bb-mois').innerHTML = tete + '<tbody>' + (corps || `<tr class="empty-row"><td colspan="${4 + associes.length}">${t('bq.aucune_mois')}</td></tr>`)
     + (corps ? `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('as.total_an')} ${an}</td>
       <td style="font-weight:700;color:var(--green-text)">${fmtDH2(tot.ventes)}</td><td style="font-weight:700;color:var(--red-text)">${fmtDH2(tot.cout)}</td>
@@ -8211,6 +8320,7 @@ function ouvrirCapitalBoutique(id) {
   document.getElementById('bb-titre').textContent = `${nomAssocie(a)} — ${t('boutique.title')}`;
   document.getElementById('bb-capital').value = parseFloat(a.capital_boutique) || '';
   document.getElementById('bb-verse').value = parseFloat(a.deja_verse_boutique) || '';
+  document.getElementById('bb-verse-wrap').style.display = versementsActifs('boutique') ? 'none' : '';
   document.getElementById('bb-modal').classList.add('open');
 }
 
@@ -8218,6 +8328,7 @@ async function saveCapitalBoutique() {
   const id = document.getElementById('bb-id').value;
   const obj = { capital_boutique: parseFloat(document.getElementById('bb-capital').value) || 0, deja_verse_boutique: parseFloat(document.getElementById('bb-verse').value) || 0 };
   if (obj.capital_boutique < 0 || obj.deja_verse_boutique < 0) { showToast(t('as.montant_invalide'), 'e'); return; }
+  if (versementsActifs('boutique')) delete obj.deja_verse_boutique;   // « déjà versé » = somme des versements
   const { error } = await sb.from('associes').update(obj).eq('id', id);
   if (error) { showToast(/column|schema cache/i.test(error.message) ? t('bb.sql_29') : error.message, 'e'); return; }
   const a = _bb.associes.find(x => x.id === id);
@@ -8267,7 +8378,8 @@ async function loadAssocies() {
     bilanAnnee(an),
     sb.from('paiements').select('date_paiement').order('date_paiement').limit(1),
     sb.from('charges').select('date_charge').order('date_charge').limit(1),
-    sb.from('salaires_paie').select('mois').order('mois').limit(1)
+    sb.from('salaires_paie').select('mois').order('mois').limit(1),
+    chargerVersements('club')
   ]);
   const premieres = [p1.data?.[0]?.date_paiement, c1.data?.[0]?.date_charge, s1.data?.[0]?.mois].filter(Boolean).map(d => parseInt(String(d).slice(0, 4), 10));
   _assoc.debut = premieres.length ? Math.min(...premieres) : anCourant;
@@ -8346,10 +8458,16 @@ function renderDuAssocies(actifs, totalParts, cl, frac) {
   Object.values(_assoc.bilans).forEach(bl => (bl?.lignes || []).filter(l => l.mois <= moisCourant)
     .forEach(l => repartir(l.solde, actifs).forEach((v, j) => { cumul[j] += v; })));
   const lignes = actifs.map((a, j) => {
-    const capital = parseFloat(a.capital) || 0, verse = parseFloat(a.deja_verse) || 0;
+    const capital = parseFloat(a.capital) || 0, verse = verseA('club', a);
     const part = Math.round(cumul[j] * 100) / 100, total = capital + part, reste = total - verse;
+    _vs.reste.club[a.id] = reste;
     return { a, capital, part, total, verse, reste };
   });
+  // Caisse du club : solde de chaque mois depuis le début (encaissements − charges − salaires)
+  const soldes = {};
+  Object.values(_assoc.bilans).forEach(bl => (bl?.lignes || []).forEach(l => { if (l.entrees || l.sorties) soldes[l.mois] = l.solde; }));
+  renderVersementsCaisse('club', actifs, soldes, actifs.reduce((s, a) => s + (parseFloat(a.capital) || 0), 0),
+    document.getElementById('as-annee').value || String(new Date().getFullYear()), t('vs.benef_mois'));
   const somme = k => lignes.reduce((s, l) => s + l[k], 0);
   const depuis = `${t('as.depuis')} ${_assoc.debut || ''}`;
   document.getElementById('as-du').innerHTML = actifs.length ? `<thead><tr><th>${t('as.associe')}</th><th>${t('as.capital_investi')}</th>
@@ -8374,6 +8492,7 @@ function ouvrirAssocie(id) {
   document.getElementById('as-actif').value = String(a ? estActif(a) : true);
   document.getElementById('as-capital').value = a && parseFloat(a.capital) ? parseFloat(a.capital) : '';
   document.getElementById('as-verse').value = a && parseFloat(a.deja_verse) ? parseFloat(a.deja_verse) : '';
+  document.getElementById('as-verse-wrap').style.display = versementsActifs('club') ? 'none' : '';   // calculé à partir des versements
   document.getElementById('associe-modal').classList.add('open');
 }
 
@@ -8389,6 +8508,7 @@ async function saveAssocie() {
   };
   if (_assoc.liste.length && !('actif' in _assoc.liste[0])) delete obj.actif;
   if (_assoc.liste.length && !('capital' in _assoc.liste[0])) { delete obj.capital; delete obj.deja_verse; }   // script 28 non exécuté
+  if (versementsActifs('club')) delete obj.deja_verse;   // « déjà versé » = somme des versements
   if (obj.capital < 0 || obj.deja_verse < 0) { showToast(t('as.montant_invalide'), 'e'); return; }   // table sans colonne « actif » (script 24 non exécuté)
   if (!obj.prenom) { showToast(t('as.prenom_requis'), 'e'); return; }
   if (isNaN(obj.parts) || obj.parts <= 0) { showToast(t('as.parts_invalides'), 'e'); return; }
@@ -8411,6 +8531,130 @@ async function delAssocie(id) {
   if (error) { showToast(error.message, 'e'); return; }
   await logAudit('DELETE', 'associes', `${a?.prenom} ${a?.nom}`);
   loadAssocies();
+}
+
+// ════════════════════════════════════════════════════════════
+// VERSEMENTS AUX ASSOCIÉS (club / boutique, séparés) ET CAISSE
+// Caisse = capital apporté + encaissements − dépenses − versements aux associés
+// ════════════════════════════════════════════════════════════
+let _vs = { club: null, boutique: null, reste: { club: {}, boutique: {} }, caisse: { club: 0, boutique: 0 }, associes: { club: [], boutique: [] } };
+
+// null = table absente (script 30 non exécuté) → repli sur l'ancien champ « déjà versé »
+async function chargerVersements(activite) {
+  if (!PERMS.associes?.lire) { _vs[activite] = null; return null; }
+  const { data, error } = await sb.from('versements_associes').select('*').eq('activite', activite)
+    .order('date_versement', { ascending: false }).order('created_at', { ascending: false });
+  _vs[activite] = error ? null : (data || []);
+  return _vs[activite];
+}
+const versementsActifs = activite => Array.isArray(_vs[activite]);
+const verseA = (activite, a) => versementsActifs(activite)
+  ? _vs[activite].filter(v => v.associe_id === a.id).reduce((s, v) => s + (parseFloat(v.montant) || 0), 0)
+  : (parseFloat(activite === 'club' ? a.deja_verse : a.deja_verse_boutique) || 0);
+
+// soldes : { 'AAAA-MM': encaissements − dépenses du mois } → caisse en fin de chaque mois
+function serieCaisse(activite, soldes, capital) {
+  const moisCourant = thisMonth(), vers = _vs[activite] || [];
+  const parMois = {};
+  vers.forEach(v => { const m = String(v.date_versement).slice(0, 7), o = parMois[m] ??= {}; o[v.associe_id] = (o[v.associe_id] || 0) + (parseFloat(v.montant) || 0); });
+  const mois = [...new Set([...Object.keys(soldes), ...Object.keys(parMois)])].filter(m => m <= moisCourant).sort();
+  let caisse = capital; const serie = {};
+  mois.forEach(m => {
+    const verses = parMois[m] || {}, totalVerse = Object.values(verses).reduce((s, v) => s + v, 0);
+    caisse += (soldes[m] || 0) - totalVerse;
+    serie[m] = { solde: soldes[m] || 0, verses, totalVerse, caisse: Math.round(caisse * 100) / 100 };
+  });
+  return { serie, caisse: Math.round(caisse * 100) / 100 };
+}
+
+// Carte « Versements et caisse » (club : préfixe as-vs, boutique : bb-vs)
+function renderVersementsCaisse(activite, associes, soldes, capital, an, libSolde) {
+  const pre = activite === 'club' ? 'as-vs' : 'bb-vs';
+  const carte = document.getElementById(pre + '-card'); if (!carte) return;
+  carte.style.display = PERMS.associes?.lire ? '' : 'none';
+  document.getElementById(pre + '-new').style.display = PERMS.associes?.ecrire && versementsActifs(activite) ? '' : 'none';
+  const cl = v => v < 0 ? 'color:var(--red)' : v > 0 ? 'color:var(--green)' : 'color:var(--text3)';
+  const { serie, caisse } = serieCaisse(activite, soldes, capital);
+  _vs.caisse[activite] = caisse; _vs.associes[activite] = associes;
+  const moisCourant = thisMonth(), vers = _vs[activite] || [];
+  const verseMois = (serie[moisCourant] || {}).totalVerse || 0;
+  const verseTotal = vers.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
+  document.getElementById(pre + '-kpis').innerHTML = `
+    <div class="sc"><div class="sc-label">${t('vs.caisse_actuelle')}</div><div class="sc-val" style="${cl(caisse)}">${fmtDH2(caisse)}</div></div>
+    <div class="sc"><div class="sc-label">${t('vs.verse_mois')}</div><div class="sc-val">${fmtDH2(verseMois)}</div></div>
+    <div class="sc"><div class="sc-label">${t('vs.verse_total')}</div><div class="sc-val">${fmtDH2(verseTotal)}</div></div>`;
+  const alerte = document.getElementById(pre + '-sql');
+  if (alerte) alerte.innerHTML = versementsActifs(activite) ? '' : `<div class="al al-e">${t('vs.sql_30')}</div>`;
+
+  // Tableau par mois de l'année choisie : solde du mois, versé à chaque associé, caisse en fin de mois
+  const nomMois = m => new Date(m + '-01T12:00:00').toLocaleDateString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { month: 'long' });
+  const moisAn = Object.keys(serie).filter(m => m.startsWith(an + '-') && (serie[m].solde || serie[m].totalVerse || m === moisCourant));
+  document.getElementById(pre + '-mois').innerHTML = `<thead><tr><th>${t('as.mois')}</th><th>${libSolde}</th>
+      ${associes.map(a => `<th>${t('vs.verse_a')} ${a.prenom}</th>`).join('')}<th>${t('vs.total_verse')}</th><th>${t('vs.caisse_fin')}</th></tr></thead><tbody>`
+    + (moisAn.length ? moisAn.map(m => { const s = serie[m]; return `<tr${m === moisCourant ? ' style="background:var(--blue-light)"' : ''}>
+        <td style="text-transform:capitalize;font-weight:600">${nomMois(m)}</td><td style="${cl(s.solde)}">${fmtDH2(s.solde)}</td>
+        ${associes.map(a => `<td>${s.verses[a.id] ? `<strong>${fmtDH2(s.verses[a.id])}</strong>` : '<span style="color:var(--text3)">—</span>'}</td>`).join('')}
+        <td style="font-weight:700">${s.totalVerse ? fmtDH2(s.totalVerse) : '—'}</td><td style="font-weight:800;${cl(s.caisse)}">${fmtDH2(s.caisse)}</td></tr>`; }).join('')
+      : `<tr class="empty-row"><td colspan="${4 + associes.length}">${t('as.aucun_mouvement')} ${an}</td></tr>`) + '</tbody>';
+
+  // Historique des versements de l'année
+  const canD = PERMS.associes?.supprimer;
+  const nomDe = id => { const a = (_assoc.liste || []).concat(_bb.associes || []).find(x => x.id === id); return a ? nomAssocie(a) : '—'; };
+  const hist = vers.filter(v => String(v.date_versement).startsWith(an + '-'));
+  document.getElementById(pre + '-hist').innerHTML = `<thead><tr><th>${t('bq.date')}</th><th>${t('as.associe')}</th><th>${t('vs.nature')}</th><th>${t('vs.montant')}</th><th>${t('vs.mode')}</th><th>${t('bq.note')}</th><th>${t('common.actions')}</th></tr></thead><tbody>`
+    + (hist.length ? hist.map(v => `<tr><td>${dateCourte(v.date_versement)}</td><td><strong>${nomDe(v.associe_id)}</strong></td>
+        <td><span class="badge ${v.nature === 'Capital' ? 'b-w' : 'b-g'}">${t(v.nature === 'Capital' ? 'vs.nat_capital' : 'vs.nat_benefice')}</span></td>
+        <td style="font-weight:700">${fmtDH2(v.montant)}</td><td>${echapper(v.mode || '')}</td><td style="font-size:12px;color:var(--text2)">${echapper(v.note || '')}</td>
+        <td>${canD ? `<button class="btn btn-sm btn-d" onclick="delVersement('${v.id}','${activite}')">${t('msg.suppr')}</button>` : ''}</td></tr>`).join('')
+      : `<tr class="empty-row"><td colspan="7">${t('vs.aucun')} ${an}</td></tr>`) + '</tbody>';
+}
+
+function ouvrirVersement(activite) {
+  const associes = _vs.associes[activite] || [];
+  if (!associes.length) { showToast(t('bb.aucun_associe'), 'e'); return; }
+  document.getElementById('vs-activite').value = activite;
+  document.getElementById('vs-titre').textContent = t(activite === 'club' ? 'vs.titre_club' : 'vs.titre_boutique');
+  document.getElementById('vs-associe').innerHTML = associes.map(a => `<option value="${a.id}">${nomAssocie(a)}</option>`).join('');
+  document.getElementById('vs-date').value = today();
+  document.getElementById('vs-nature').value = 'Bénéfice';
+  document.getElementById('vs-montant').value = '';
+  document.getElementById('vs-mode').value = 'Espèces';
+  document.getElementById('vs-note').value = '';
+  majInfoVersement();
+  document.getElementById('vs-modal').classList.add('open');
+}
+
+function majInfoVersement() {
+  const activite = document.getElementById('vs-activite').value, id = document.getElementById('vs-associe').value;
+  const reste = _vs.reste[activite]?.[id] ?? 0, caisse = _vs.caisse[activite] ?? 0;
+  document.getElementById('vs-info').innerHTML = `${t('vs.caisse_dispo')} : <strong>${fmtDH2(caisse)}</strong> · ${t('as.reste')} : <strong>${fmtDH2(reste)}</strong>`;
+}
+
+async function saveVersement() {
+  const activite = document.getElementById('vs-activite').value, associe_id = document.getElementById('vs-associe').value;
+  const montant = parseFloat(document.getElementById('vs-montant').value);
+  if (!montant || montant <= 0) { showToast(t('as.montant_invalide'), 'e'); return; }
+  const caisse = _vs.caisse[activite] ?? 0, reste = _vs.reste[activite]?.[associe_id] ?? 0;
+  if (montant > caisse && !confirm(t('vs.depasse_caisse').replace('%s', fmtDH2(caisse)))) return;
+  if (montant > reste && !confirm(t('vs.depasse_reste').replace('%s', fmtDH2(reste)))) return;
+  const obj = { associe_id, activite, montant, date_versement: document.getElementById('vs-date').value || today(),
+    nature: document.getElementById('vs-nature').value, mode: document.getElementById('vs-mode').value, note: document.getElementById('vs-note').value.trim() || null };
+  const { error } = await sb.from('versements_associes').insert(obj);
+  if (error) { showToast(/relation|schema cache/i.test(error.message) ? t('vs.sql_30') : error.message, 'e'); return; }
+  const a = (_vs.associes[activite] || []).find(x => x.id === associe_id);
+  await logAudit('CREATE', 'associes', `Versement ${activite} ${a ? nomAssocie(a) : ''} : ${fmtDH2(montant)} (${obj.nature})`);
+  showToast(t('vs.enregistre'), 's');
+  document.getElementById('vs-modal').classList.remove('open');
+  activite === 'club' ? loadAssocies() : loadBilanBoutique();
+}
+
+async function delVersement(id, activite) {
+  const v = (_vs[activite] || []).find(x => x.id === id);
+  if (!confirm(t('vs.suppr_confirm').replace('%s', fmtDH2(v?.montant)))) return;
+  const { error } = await sb.from('versements_associes').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE', 'associes', `Versement ${activite} ${fmtDH2(v?.montant)}`);
+  activite === 'club' ? loadAssocies() : loadBilanBoutique();
 }
 
 // ════════════════════════════════════════════════════════════
