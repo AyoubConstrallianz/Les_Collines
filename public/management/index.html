@@ -509,15 +509,6 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .sm-ligne{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
 .sm-ligne span:first-child{color:var(--text2)}
 .sm-ligne span:last-child{font-weight:600;text-align:end}
-/* Boutique : lignes d'articles et de tailles */
-.bv-ligne,.bp-var{display:grid;gap:8px;align-items:end;margin-bottom:8px}
-.bv-ligne{grid-template-columns:minmax(0,3fr) 80px 110px auto}
-.bp-var{grid-template-columns:minmax(0,2fr) 90px 90px auto}
-@media (max-width:768px){
-  .bv-ligne,.bp-var{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}
-  .bv-ligne .fg:first-child,.bp-var .fg:first-child{grid-column:1 / -1}
-  .bv-ligne,.bp-var{padding-bottom:8px;border-bottom:1px dashed var(--border)}
-}
 @media print{
   @page{size:A4 landscape;margin:8mm}
   body.print-planning *{visibility:hidden !important}
@@ -1359,75 +1350,42 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
       <!-- BOUTIQUE -->
       <div id="page-boutique" class="page">
         <p class="ptitle" data-i18n="boutique.title">Boutique</p>
-        <p class="psubtitle" data-i18n="boutique.subtitle">Vente de produits (gants, T-shirts, accessoires…) et suivi du stock</p>
+        <p class="psubtitle" data-i18n="boutique.subtitle">Ventes d'articles (gants, T-shirts, accessoires…)</p>
         <div id="al-boutique"></div>
         <div class="sg" style="grid-template-columns:repeat(3,minmax(0,1fr))">
           <div class="sc"><div class="sc-label">Ventes du mois</div><div class="sc-val" id="bt-k-ventes">—</div></div>
-          <div class="sc"><div class="sc-label">Articles vendus</div><div class="sc-val" id="bt-k-articles">—</div></div>
-          <div class="sc"><div class="sc-label">Stock bas</div><div class="sc-val" id="bt-k-bas">—</div></div>
-        </div>
-        <div class="plan-vues" style="margin-bottom:14px">
-          <button id="bt-tab-ventes" class="on" onclick="boutiqueOnglet('ventes')">Ventes</button>
-          <button id="bt-tab-produits" onclick="boutiqueOnglet('produits')">Produits &amp; stock</button>
+          <div class="sc"><div class="sc-label">Achats du mois</div><div class="sc-val" id="bt-k-achats">—</div></div>
+          <div class="sc"><div class="sc-label">Bénéfice du mois</div><div class="sc-val" id="bt-k-benef">—</div></div>
         </div>
 
-        <!-- Onglet Ventes -->
-        <div id="bt-ventes">
-          <div class="card" id="bv-form-card">
-            <div class="ct">Nouvelle vente</div>
-            <div class="g3">
-              <div class="fg"><label>Client (facultatif)</label><select id="bv-client"></select></div>
-              <div class="fg"><label>Date</label><input id="bv-date" type="date"></div>
-              <div class="fg"><label>Mode de paiement</label><select id="bv-mode"><option>Espèces</option><option>Virement</option><option>Chèque</option></select></div>
-            </div>
-            <div id="bv-lignes"></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px">
-              <button type="button" class="btn btn-sm" onclick="bvAjouterLigne()">+ Ajouter un article</button>
-              <div style="font-size:18px;font-weight:800">Total : <span id="bv-total">0 DH</span></div>
-            </div>
-            <div class="fg" style="margin-bottom:10px"><label>Note (facultatif)</label><input id="bv-note" placeholder="Ex : taille à échanger"></div>
-            <button class="btn btn-p" onclick="saveVente()">Enregistrer la vente</button>
+        <div class="card" id="bv-form-card">
+          <div class="ct" id="bv-titre">Nouvelle vente</div>
+          <input type="hidden" id="bv-id">
+          <div class="g3">
+            <div class="fg"><label>Client</label><input id="bv-client" list="bv-clients" placeholder="Client de passage" autocomplete="off"><datalist id="bv-clients"></datalist></div>
+            <div class="fg"><label>Date</label><input id="bv-date" type="date"></div>
+            <div class="fg"><label>Article</label><input id="bv-article" list="bv-articles" placeholder="Ex : Gants de boxe 12 oz" autocomplete="off" oninput="bvArticleConnu()"><datalist id="bv-articles"></datalist></div>
           </div>
-          <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
-              <div class="ct" style="margin:0">Historique des ventes</div>
+          <div class="g3">
+            <div class="fg"><label>Prix d'achat (DH)</label><input id="bv-achat" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
+            <div class="fg"><label>Prix de vente (DH)</label><input id="bv-vente" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
+            <div class="fg"><label>Bénéfice</label><div id="bv-marge" style="padding:9px 0;font-weight:700;font-size:15px">—</div></div>
+          </div>
+          <div class="btns">
+            <button class="btn btn-p" onclick="saveVente()">Enregistrer la vente</button>
+            <button class="btn" id="bv-annuler" style="display:none" onclick="resetVente()">Annuler la modification</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+            <div class="ct" style="margin:0">Ventes</div>
+            <div class="toolbar" style="margin:0;gap:8px">
+              <input id="bt-q" placeholder="Rechercher client ou article…" oninput="renderVentes()" style="max-width:240px">
               <input id="bt-mois" type="month" onchange="loadBoutique()" style="max-width:180px">
             </div>
-            <table><thead><tr><th>Date</th><th>Client</th><th>Articles</th><th>Total</th><th>Mode</th><th>Actions</th></tr></thead><tbody id="bv-tb"></tbody></table>
           </div>
-        </div>
-
-        <!-- Onglet Produits & stock -->
-        <div id="bt-produits" style="display:none">
-          <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
-              <div class="ct" style="margin:0">Catalogue &amp; stock</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <input id="bp-q" placeholder="Rechercher un produit…" oninput="renderProduits()" style="max-width:220px">
-                <button class="btn btn-p" id="bp-new" onclick="ouvrirProduit()">+ Nouveau produit</button>
-              </div>
-            </div>
-            <table><thead><tr><th>Produit</th><th>Catégorie</th><th>Prix de vente</th><th>Stock par taille</th><th>Actions</th></tr></thead><tbody id="bp-tb"></tbody></table>
-          </div>
-        </div>
-
-        <div class="mo" id="bt-prod-modal">
-          <div class="mo-box" style="max-width:600px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-              <div class="mo-title" style="margin-bottom:0" id="bp-title">Nouveau produit</div>
-              <button class="btn btn-sm" onclick="document.getElementById('bt-prod-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
-            </div>
-            <input type="hidden" id="bp-id">
-            <div class="fr"><div class="fg"><label>Nom du produit</label><input id="bp-nom" placeholder="Gants de boxe"></div>
-              <div class="fg"><label>Catégorie</label><input id="bp-cat" list="bp-cats" placeholder="Gants, T-shirt…"><datalist id="bp-cats"><option value="Gants"><option value="T-shirt"><option value="Protections"><option value="Accessoires"><option value="Boissons"><option value="Autre"></datalist></div></div>
-            <div class="fr"><div class="fg"><label>Prix de vente (DH)</label><input id="bp-pv" type="number" min="0" step="0.01" placeholder="0"></div>
-              <div class="fg"><label>Prix d'achat (DH, facultatif)</label><input id="bp-pa" type="number" min="0" step="0.01" placeholder="0"></div></div>
-            <div style="font-size:13px;font-weight:600;margin:6px 0">Tailles / variantes et stock</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Une ligne par taille ou couleur (S, M, L, 10 oz, 12 oz…). Pour un produit sans taille, gardez « Unique ».</div>
-            <div id="bp-vars"></div>
-            <button type="button" class="btn btn-sm" onclick="bpAjouterVar()" style="margin:6px 0 12px">+ Ajouter une taille</button>
-            <div class="btns"><button class="btn btn-p" onclick="saveProduit()">Enregistrer</button><button class="btn" onclick="document.getElementById('bt-prod-modal').classList.remove('open')">Annuler</button></div>
-          </div>
+          <table><thead><tr><th>Date</th><th>Client</th><th>Article</th><th>Prix d'achat</th><th>Prix de vente</th><th>Bénéfice</th><th>Actions</th></tr></thead><tbody id="bv-tb"></tbody></table>
         </div>
       </div>
 
@@ -2291,7 +2249,7 @@ const I18N = {
     'clients.suspendu':  'Suspendu',
     'nav.boutique_text': 'Boutique',
     'boutique.title':    'Boutique',
-    'boutique.subtitle': 'Vente de produits (gants, T-shirts, accessoires…) et suivi du stock',
+    'boutique.subtitle': "Ventes d'articles (gants, T-shirts, accessoires…)",
     'clients.attente':   'En attente de validation',
     'clients.valider':   'Valider',
     'clients.valide_ok': 'Client validé',
@@ -3016,7 +2974,7 @@ const I18N = {
     'clients.suspendu': 'موقوف',
     'nav.boutique_text': 'المتجر',
     'boutique.title':   'المتجر',
-    'boutique.subtitle':'بيع المنتجات (قفازات، قمصان، إكسسوارات…) وتتبع المخزون',
+    'boutique.subtitle':'مبيعات المنتجات (قفازات، قمصان، إكسسوارات…)',
     'clients.attente':  'في انتظار التأكيد',
     'clients.valider':  'تأكيد',
     'clients.valide_ok': 'تم تأكيد العميل',
@@ -7127,20 +7085,15 @@ function cocherJours(indices) {
 }
 
 // ════════════════════════════════════════════════════════════
-// BOUTIQUE : produits, tailles, stock, ventes
+// BOUTIQUE : ventes simples (client, date, article, prix d'achat, prix de vente) — sans stock
 // ════════════════════════════════════════════════════════════
-let _bt = { produits: [], ventes: [], clients: [], onglet: 'ventes' };
+let _bt = { ventes: [], clients: [], articles: {} };
 
 const echapper = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const libVariante = v => (v.libelle && v.libelle !== 'Unique') ? v.libelle : '';
-
-function boutiqueOnglet(o) {
-  _bt.onglet = o;
-  document.getElementById('bt-ventes').style.display = o === 'ventes' ? '' : 'none';
-  document.getElementById('bt-produits').style.display = o === 'produits' ? '' : 'none';
-  document.getElementById('bt-tab-ventes').classList.toggle('on', o === 'ventes');
-  document.getElementById('bt-tab-produits').classList.toggle('on', o === 'produits');
-}
+const nomClientVente = v => {
+  const c = v.client_id && _bt.clients.find(x => x.id === v.client_id);
+  return c ? `${c.prenom} ${c.nom}` : (v.client_nom || '');
+};
 
 async function loadBoutique() {
   const moisEl = document.getElementById('bt-mois');
@@ -7148,227 +7101,120 @@ async function loadBoutique() {
   const mois = moisEl.value;
   const [a, m] = mois.split('-').map(Number);
   const suivant = m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, '0')}-01`;
-  const [rp, rv, rc] = await Promise.all([
-    sb.from('produits').select('*, produit_variantes(*)').order('nom'),
-    sb.from('ventes').select('*, vente_lignes(*)').gte('date_vente', mois + '-01').lt('date_vente', suivant).order('date_vente', { ascending: false }).order('created_at', { ascending: false }),
-    sb.from('clients').select('id,prenom,nom,numero_adherent').order('nom')
+  const [rv, rc, ra] = await Promise.all([
+    sb.from('ventes').select('*').gte('date_vente', mois + '-01').lt('date_vente', suivant)
+      .order('date_vente', { ascending: false }).order('created_at', { ascending: false }),
+    fetchAllRows(() => sb.from('clients').select('id,prenom,nom').order('id')),
+    // Derniers prix de chaque article (pour pré-remplir le formulaire)
+    sb.from('ventes').select('article,prix_achat,prix_vente,date_vente').order('date_vente', { ascending: false }).limit(500)
   ]);
-  const erreur = rp.error || rv.error;
-  document.getElementById('al-boutique').innerHTML = erreur
-    ? `<div class="al al-e">${echapper(/relation|does not exist|schema cache/i.test(erreur.message) ? "Exécutez d'abord le script SQL 20 (Boutique) dans Supabase." : erreur.message)}</div>` : '';
-  _bt.produits = (rp.data || []).map(p => ({ ...p, produit_variantes: (p.produit_variantes || []).sort((x, y) => String(x.libelle).localeCompare(String(y.libelle), 'fr', { numeric: true })) }));
+  const err = rv.error;
+  document.getElementById('al-boutique').innerHTML = err
+    ? `<div class="al al-e">${echapper(/article|prix_vente|relation|does not exist|schema cache/i.test(err.message) ? "Exécutez d'abord le script SQL 21 (Boutique simplifiée) dans Supabase." : err.message)}</div>` : '';
   _bt.ventes = rv.data || [];
-  _bt.clients = rc.data || [];
-  const canW = PERMS.boutique?.ecrire;
-  document.getElementById('bv-form-card').style.display = canW ? '' : 'none';
-  document.getElementById('bp-new').style.display = canW ? '' : 'none';
+  _bt.clients = (rc.data || []).sort((x, y) => `${x.nom} ${x.prenom}`.localeCompare(`${y.nom} ${y.prenom}`, 'fr'));
+  _bt.articles = {};
+  (ra.data || []).forEach(v => { const k = (v.article || '').trim(); if (k && !_bt.articles[k.toLowerCase()]) _bt.articles[k.toLowerCase()] = v; });
+
+  document.getElementById('bv-form-card').style.display = PERMS.boutique?.ecrire ? '' : 'none';
   if (!document.getElementById('bv-date').value) document.getElementById('bv-date').value = today();
-  document.getElementById('bv-client').innerHTML = '<option value="">Client de passage</option>'
-    + _bt.clients.map(c => `<option value="${c.id}">${echapper(c.prenom + ' ' + c.nom)}</option>`).join('');
-  if (!document.getElementById('bv-lignes').children.length) bvAjouterLigne();
-  else bvRafraichirLignes();
-  renderBoutique();
+  document.getElementById('bv-clients').innerHTML = _bt.clients.map(c => `<option value="${echapper(c.prenom + ' ' + c.nom)}">`).join('');
+  document.getElementById('bv-articles').innerHTML = Object.values(_bt.articles).map(v => `<option value="${echapper(v.article)}">`).join('');
+  renderVentes();
 }
 
-function renderBoutique() {
-  const ventes = _bt.ventes;
-  const articles = ventes.reduce((s, v) => s + (v.vente_lignes || []).reduce((q, l) => q + l.quantite, 0), 0);
-  const bas = _bt.produits.reduce((n, p) => n + p.produit_variantes.filter(v => v.stock <= v.seuil_alerte).length, 0);
-  document.getElementById('bt-k-ventes').textContent = fmt(ventes.reduce((s, v) => s + parseFloat(v.total || 0), 0));
-  document.getElementById('bt-k-articles').textContent = articles;
-  const kb = document.getElementById('bt-k-bas');
-  kb.textContent = bas; kb.style.color = bas ? 'var(--red)' : 'var(--green)';
-  renderVentes(); renderProduits();
-}
-
-// ── Ventes ───────────────────────────────────────────────────
 function renderVentes() {
-  const canD = PERMS.boutique?.supprimer;
-  document.getElementById('bv-tb').innerHTML = _bt.ventes.length ? _bt.ventes.map(v => {
-    const client = v.client_nom || (_bt.clients.find(c => c.id === v.client_id) ? (() => { const c = _bt.clients.find(c => c.id === v.client_id); return c.prenom + ' ' + c.nom; })() : '—');
-    const arts = (v.vente_lignes || []).map(l => `${l.quantite}× ${echapper(l.produit_nom)}${l.variante_libelle && l.variante_libelle !== 'Unique' ? ' ' + echapper(l.variante_libelle) : ''}`).join(', ');
-    return `<tr><td>${dateCourte(v.date_vente)}</td><td>${echapper(client)}</td><td style="font-size:12px">${arts || '—'}</td>
-      <td><strong>${fmt(v.total)}</strong></td><td>${echapper(v.mode)}</td>
-      <td>${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">Suppr.</button>` : ''}</td></tr>`;
-  }).join('') : '<tr class="empty-row"><td colspan="6">Aucune vente ce mois-ci</td></tr>';
+  const q = (document.getElementById('bt-q')?.value || '').toLowerCase().trim();
+  const liste = _bt.ventes.filter(v => !q || `${nomClientVente(v)} ${v.article || ''}`.toLowerCase().includes(q));
+  const somme = k => _bt.ventes.reduce((s, v) => s + (parseFloat(v[k]) || 0), 0);
+  const ventes = somme('prix_vente'), achats = somme('prix_achat'), benef = ventes - achats;
+  document.getElementById('bt-k-ventes').textContent = fmtDH2(ventes);
+  document.getElementById('bt-k-achats').textContent = fmtDH2(achats);
+  const kb = document.getElementById('bt-k-benef');
+  kb.textContent = fmtDH2(benef); kb.style.color = benef >= 0 ? 'var(--green)' : 'var(--red)';
+  const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
+  document.getElementById('bv-tb').innerHTML = liste.length ? liste.map(v => {
+    const b = (parseFloat(v.prix_vente) || 0) - (parseFloat(v.prix_achat) || 0);
+    return `<tr><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || '<span style="color:var(--text3)">Passage</span>'}</td>
+      <td><strong>${echapper(v.article || '—')}</strong></td><td>${fmtDH2(v.prix_achat)}</td><td>${fmtDH2(v.prix_vente)}</td>
+      <td style="font-weight:600;color:${b >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtDH2(b)}</td>
+      <td><div style="display:flex;gap:4px">${canW ? `<button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="7">${q ? 'Aucune vente ne correspond à la recherche' : 'Aucune vente ce mois-ci'}</td></tr>`;
 }
 
-function bvOptionsArticles() {
-  return '<option value="">— Choisir un article —</option>' + _bt.produits.map(p => {
-    const opts = p.produit_variantes.filter(v => v.stock > 0)
-      .map(v => `<option value="${v.id}" data-prix="${p.prix_vente}">${echapper(p.nom + (libVariante(v) ? ' ' + libVariante(v) : ''))} — stock ${v.stock} — ${fmt(p.prix_vente)}</option>`).join('');
-    return opts ? `<optgroup label="${echapper(p.nom)} · ${fmt(p.prix_vente)}">${opts}</optgroup>` : '';
-  }).join('');
+function bvMarge() {
+  const a = parseFloat(document.getElementById('bv-achat').value) || 0, v = parseFloat(document.getElementById('bv-vente').value) || 0;
+  const el = document.getElementById('bv-marge');
+  if (!document.getElementById('bv-vente').value) { el.textContent = '—'; el.style.color = ''; return; }
+  el.textContent = fmtDH2(v - a); el.style.color = v - a >= 0 ? 'var(--green)' : 'var(--red)';
 }
 
-function bvAjouterLigne() {
-  const d = document.createElement('div');
-  d.className = 'bv-ligne';
-  d.innerHTML = `<div class="fg"><label>Article</label><select class="bv-art" onchange="bvChoisir(this)">${bvOptionsArticles()}</select></div>
-    <div class="fg"><label>Qté</label><input class="bv-qte" type="number" min="1" step="1" value="1" oninput="bvTotal()"></div>
-    <div class="fg"><label>Prix unit.</label><input class="bv-prix" type="number" min="0" step="0.01" oninput="bvTotal()"></div>
-    <button type="button" class="btn btn-sm" onclick="this.parentElement.remove();bvTotal()" title="Retirer" style="margin-bottom:2px">&times;</button>`;
-  document.getElementById('bv-lignes').appendChild(d);
+// Article déjà vendu : reprend ses derniers prix (modifiables)
+function bvArticleConnu() {
+  const v = _bt.articles[document.getElementById('bv-article').value.trim().toLowerCase()];
+  if (!v || document.getElementById('bv-id').value) return;
+  document.getElementById('bv-achat').value = v.prix_achat ?? '';
+  document.getElementById('bv-vente').value = v.prix_vente ?? '';
+  bvMarge();
 }
 
-function bvRafraichirLignes() {
-  document.querySelectorAll('#bv-lignes .bv-art').forEach(sel => {
-    const v = sel.value; sel.innerHTML = bvOptionsArticles(); sel.value = v;
-    if (sel.value !== v) { sel.value = ''; }
-  });
-  bvTotal();
+function resetVente() {
+  ['bv-id', 'bv-client', 'bv-article', 'bv-achat', 'bv-vente'].forEach(i => { document.getElementById(i).value = ''; });
+  document.getElementById('bv-titre').textContent = 'Nouvelle vente';
+  document.getElementById('bv-annuler').style.display = 'none';
+  bvMarge();
 }
 
-function bvChoisir(sel) {
-  const l = sel.closest('.bv-ligne'), o = sel.selectedOptions[0];
-  l.querySelector('.bv-prix').value = o && o.dataset.prix ? o.dataset.prix : '';
-  bvTotal();
-}
-
-function bvLignes() {
-  return [...document.querySelectorAll('#bv-lignes .bv-ligne')].map(l => ({
-    variante: l.querySelector('.bv-art').value,
-    qte: parseInt(l.querySelector('.bv-qte').value, 10) || 0,
-    prix: parseFloat(l.querySelector('.bv-prix').value) || 0
-  })).filter(l => l.variante);
-}
-
-function bvTotal() {
-  document.getElementById('bv-total').textContent = fmt(bvLignes().reduce((s, l) => s + l.qte * l.prix, 0));
+function editVente(id) {
+  const v = _bt.ventes.find(x => x.id === id); if (!v) return;
+  document.getElementById('bv-id').value = v.id;
+  document.getElementById('bv-client').value = nomClientVente(v);
+  document.getElementById('bv-date').value = v.date_vente;
+  document.getElementById('bv-article').value = v.article || '';
+  document.getElementById('bv-achat').value = v.prix_achat ?? '';
+  document.getElementById('bv-vente').value = v.prix_vente ?? '';
+  document.getElementById('bv-titre').textContent = 'Modifier la vente';
+  document.getElementById('bv-annuler').style.display = '';
+  bvMarge();
+  document.getElementById('bv-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function saveVente() {
-  const lignes = bvLignes();
-  if (!lignes.length) { showToast('Ajoutez au moins un article', 'e'); return; }
-  const resume = [];
-  for (const l of lignes) {
-    const p = _bt.produits.find(p => p.produit_variantes.some(v => v.id === l.variante));
-    const v = p.produit_variantes.find(v => v.id === l.variante);
-    const dejaPris = lignes.filter(x => x.variante === l.variante).reduce((s, x) => s + x.qte, 0);
-    if (l.qte < 1) { showToast('Quantité invalide', 'e'); return; }
-    if (dejaPris > v.stock) { showToast(`Stock insuffisant : ${p.nom} ${libVariante(v)} (reste ${v.stock})`, 'e'); return; }
-    l.produit_nom = p.nom; l.variante_libelle = v.libelle;
-    resume.push(`${l.qte}× ${p.nom} ${libVariante(v)}`.trim());
-  }
-  const clientId = document.getElementById('bv-client').value || null;
-  const total = lignes.reduce((s, l) => s + l.qte * l.prix, 0);
-  const { data: vente, error } = await sb.from('ventes').insert({
+  const id = document.getElementById('bv-id').value;
+  const article = document.getElementById('bv-article').value.trim();
+  const venteTxt = document.getElementById('bv-vente').value;
+  if (!article) { showToast("Indiquez l'article vendu", 'e'); return; }
+  if (venteTxt === '' || parseFloat(venteTxt) < 0) { showToast('Indiquez le prix de vente', 'e'); return; }
+  // Client : rattaché à la fiche si le nom correspond à un client, sinon gardé tel quel (client de passage)
+  const nomClient = document.getElementById('bv-client').value.trim();
+  const cle = nomClient.toLowerCase().replace(/\s+/g, ' ');
+  const client = nomClient && _bt.clients.find(c => `${c.prenom} ${c.nom}`.toLowerCase().replace(/\s+/g, ' ') === cle);
+  const obj = {
     date_vente: document.getElementById('bv-date').value || today(),
-    client_id: clientId, mode: document.getElementById('bv-mode').value, total,
-    note: document.getElementById('bv-note').value.trim() || null
-  }).select().single();
-  if (error) { showToast(error.message, 'e'); return; }
-  const { error: e2 } = await sb.from('vente_lignes').insert(lignes.map(l => ({
-    vente_id: vente.id, variante_id: l.variante, produit_nom: l.produit_nom, variante_libelle: l.variante_libelle, quantite: l.qte, prix_unitaire: l.prix })));
-  if (e2) {
-    await sb.from('ventes').delete().eq('id', vente.id);   // annule la vente incomplète
-    showToast(e2.message, 'e'); return;
+    client_id: client ? client.id : null,
+    client_nom: client ? null : (nomClient || null),
+    article,
+    prix_achat: parseFloat(document.getElementById('bv-achat').value) || 0,
+    prix_vente: parseFloat(venteTxt) || 0
+  };
+  const { error } = id ? await sb.from('ventes').update(obj).eq('id', id) : await sb.from('ventes').insert(obj);
+  if (error) {
+    showToast(/article|prix_vente|schema cache/i.test(error.message) ? "Exécutez d'abord le script SQL 21 (Boutique simplifiée) dans Supabase." : error.message, 'e');
+    return;
   }
-  await logAudit('CREATE', 'boutique', `Vente ${fmt(total)} — ${resume.join(', ')}`);
-  showToast('Vente enregistrée', 's');
-  document.getElementById('bv-lignes').innerHTML = '';
-  document.getElementById('bv-note').value = ''; document.getElementById('bv-client').value = '';
+  await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `${article} — ${fmtDH2(obj.prix_vente)}${nomClient ? ' — ' + nomClient : ''}`);
+  showToast(id ? 'Vente modifiée' : 'Vente enregistrée', 's');
+  resetVente();
   loadBoutique();
 }
 
 async function delVente(id) {
-  if (!confirm('Supprimer cette vente ? Les articles seront remis en stock.')) return;
+  const v = _bt.ventes.find(x => x.id === id);
+  if (!confirm(`Supprimer la vente « ${v?.article || ''} » ?`)) return;
   const { error } = await sb.from('ventes').delete().eq('id', id);
   if (error) { showToast(error.message, 'e'); return; }
-  await logAudit('DELETE', 'boutique', `Vente id:${id}`);
-  loadBoutique();
-}
-
-// ── Produits & stock ─────────────────────────────────────────
-function renderProduits() {
-  const q = (document.getElementById('bp-q')?.value || '').toLowerCase();
-  const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
-  const liste = _bt.produits.filter(p => !q || (p.nom + ' ' + (p.categorie || '')).toLowerCase().includes(q));
-  document.getElementById('bp-tb').innerHTML = liste.length ? liste.map(p => {
-    const chips = p.produit_variantes.map(v => {
-      const bas = v.stock <= v.seuil_alerte, nul = v.stock <= 0;
-      return `<button type="button" class="badge ${nul ? 'b-d' : bas ? 'b-w' : 'b-g'}" style="margin:0 4px 4px 0;border:none;cursor:${canW ? 'pointer' : 'default'}" ${canW ? `onclick="ajouterStock('${v.id}')" title="Ajouter du stock"` : ''}>${echapper(libVariante(v) || 'Stock')} · ${v.stock}</button>`;
-    }).join('');
-    return `<tr><td><strong>${echapper(p.nom)}</strong></td><td>${echapper(p.categorie || '—')}</td><td>${fmt(p.prix_vente)}</td><td>${chips || '—'}</td>
-      <td><div style="display:flex;gap:4px">${canW ? `<button class="btn btn-sm" onclick="ouvrirProduit('${p.id}')">Modifier</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delProduit('${p.id}')">Suppr.</button>` : ''}</div></td></tr>`;
-  }).join('') : '<tr class="empty-row"><td colspan="5">Aucun produit — ajoutez votre premier article avec « + Nouveau produit »</td></tr>';
-}
-
-function bpAjouterVar(v = {}) {
-  const d = document.createElement('div');
-  d.className = 'bp-var'; d.dataset.id = v.id || '';
-  d.innerHTML = `<div class="fg"><label>Taille / variante</label><input class="bpv-lib" value="${echapper(v.libelle ?? 'Unique')}" placeholder="M, 12 oz…"></div>
-    <div class="fg"><label>Stock</label><input class="bpv-stock" type="number" step="1" value="${v.stock ?? 0}"></div>
-    <div class="fg"><label>Alerte à</label><input class="bpv-seuil" type="number" min="0" step="1" value="${v.seuil_alerte ?? 3}"></div>
-    <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()" title="Retirer" style="margin-bottom:2px">&times;</button>`;
-  document.getElementById('bp-vars').appendChild(d);
-}
-
-function ouvrirProduit(id) {
-  const p = id ? _bt.produits.find(x => x.id === id) : null;
-  document.getElementById('bp-title').textContent = p ? 'Modifier le produit' : 'Nouveau produit';
-  document.getElementById('bp-id').value = p?.id || '';
-  document.getElementById('bp-nom').value = p?.nom || '';
-  document.getElementById('bp-cat').value = p?.categorie || '';
-  document.getElementById('bp-pv').value = p?.prix_vente ?? '';
-  document.getElementById('bp-pa').value = p?.prix_achat || '';
-  document.getElementById('bp-vars').innerHTML = '';
-  (p?.produit_variantes?.length ? p.produit_variantes : [{}]).forEach(v => bpAjouterVar(v));
-  document.getElementById('bt-prod-modal').classList.add('open');
-}
-
-async function saveProduit() {
-  const id = document.getElementById('bp-id').value;
-  const nom = document.getElementById('bp-nom').value.trim();
-  if (!nom) { showToast('Nom du produit obligatoire', 'e'); return; }
-  const vars = [...document.querySelectorAll('#bp-vars .bp-var')].map(d => ({
-    id: d.dataset.id || null,
-    libelle: d.querySelector('.bpv-lib').value.trim() || 'Unique',
-    stock: parseInt(d.querySelector('.bpv-stock').value, 10) || 0,
-    seuil_alerte: parseInt(d.querySelector('.bpv-seuil').value, 10) || 0
-  }));
-  if (!vars.length) { showToast('Ajoutez au moins une ligne de stock (ex. « Unique »)', 'e'); return; }
-  if (new Set(vars.map(v => v.libelle.toLowerCase())).size !== vars.length) { showToast('Deux tailles portent le même nom', 'e'); return; }
-  const obj = { nom, categorie: document.getElementById('bp-cat').value.trim() || null,
-    prix_vente: parseFloat(document.getElementById('bp-pv').value) || 0, prix_achat: parseFloat(document.getElementById('bp-pa').value) || 0 };
-  const { data: saved, error } = id ? await sb.from('produits').update(obj).eq('id', id).select().single()
-    : await sb.from('produits').insert(obj).select().single();
-  if (error) { showToast(error.message, 'e'); return; }
-  const pid = saved.id;
-  const garde = new Set(vars.filter(v => v.id).map(v => v.id));
-  const retire = (_bt.produits.find(p => p.id === pid)?.produit_variantes || []).filter(v => !garde.has(v.id)).map(v => v.id);
-  const ops = [];
-  if (retire.length) ops.push(sb.from('produit_variantes').delete().in('id', retire));
-  vars.filter(v => v.id).forEach(v => ops.push(sb.from('produit_variantes').update({ libelle: v.libelle, stock: v.stock, seuil_alerte: v.seuil_alerte }).eq('id', v.id)));
-  const neufs = vars.filter(v => !v.id).map(v => ({ produit_id: pid, libelle: v.libelle, stock: v.stock, seuil_alerte: v.seuil_alerte }));
-  if (neufs.length) ops.push(sb.from('produit_variantes').insert(neufs));
-  const res = await Promise.all(ops);
-  const ko = res.find(r => r.error);
-  if (ko) { showToast(ko.error.message, 'e'); return; }
-  await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `Produit ${nom}`);
-  showToast('Produit enregistré', 's');
-  document.getElementById('bt-prod-modal').classList.remove('open');
-  loadBoutique();
-}
-
-async function ajouterStock(vid) {
-  const p = _bt.produits.find(p => p.produit_variantes.some(v => v.id === vid)), v = p.produit_variantes.find(v => v.id === vid);
-  const rep = prompt(`Réapprovisionnement — ${p.nom} ${libVariante(v)}\nStock actuel : ${v.stock}\nQuantité reçue :`, '');
-  if (rep === null) return;
-  const q = parseInt(rep, 10);
-  if (!q) { showToast('Quantité invalide', 'e'); return; }
-  const { error } = await sb.from('produit_variantes').update({ stock: v.stock + q }).eq('id', vid);
-  if (error) { showToast(error.message, 'e'); return; }
-  await logAudit('UPDATE', 'boutique', `Stock ${p.nom} ${libVariante(v)} : ${q > 0 ? '+' : ''}${q}`);
-  loadBoutique();
-}
-
-async function delProduit(id) {
-  const p = _bt.produits.find(x => x.id === id);
-  if (!confirm(`Supprimer « ${p?.nom} » et son stock ? L'historique des ventes est conservé.`)) return;
-  const { error } = await sb.from('produits').delete().eq('id', id);
-  if (error) { showToast(error.message, 'e'); return; }
-  await logAudit('DELETE', 'boutique', `Produit ${p?.nom}`);
+  await logAudit('DELETE', 'boutique', `Vente ${v?.article || id}`);
+  if (document.getElementById('bv-id').value === id) resetVente();
   loadBoutique();
 }
 
