@@ -5313,7 +5313,16 @@ function openClientForm() {
   resetClientForm();
   document.getElementById('c-date').value = today();  // date d'inscription = date des paiements
   loadSportsCheckboxes([]);
+  prefillNumeroAdherent();
   document.getElementById('client-form-modal').classList.add('open');
+}
+
+// Propose le prochain numéro d'adhérent (dernier + 1), modifiable avant l'enregistrement
+async function prefillNumeroAdherent() {
+  const champ = document.getElementById('c-num');
+  const { data, error } = await sb.from('clients').select('numero_adherent').not('numero_adherent', 'is', null).order('numero_adherent', { ascending: false }).limit(1);
+  if (error || document.getElementById('c-id').value || champ.value) return;  // colonne absente, ou fiche déjà en cours de saisie
+  champ.value = (data?.[0]?.numero_adherent || 0) + 1;
 }
 
 function closeClientForm() {
