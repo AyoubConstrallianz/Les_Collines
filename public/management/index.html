@@ -7651,7 +7651,7 @@ async function loadCoachNonPayes() {
   if (hebdos.length) {
     const derniere = semainePrecedente(), premiere = ajouterJours(derniere, -7 * 7);
     const { data: paiesH } = await sb.from('salaires_paie').select('employe_id,detail').in('employe_id', hebdos.map(e => e.id))
-      .gte('mois', premiere.slice(0, 7));
+      .gte('mois', ajouterJours(premiere, -31).slice(0, 7));
     const payees = new Set((paiesH || []).filter(x => x.detail?.semaine_debut).map(x => x.employe_id + '|' + x.detail.semaine_debut));
     hebdos.forEach(e => {
       const debut = e.date_embauche ? lundiDe(e.date_embauche) : premiere;
@@ -7885,7 +7885,9 @@ async function calculerSalaire(garderSemaine = false) {
     const champ = document.getElementById('co-sal-semaine');
     if (!garderSemaine || !champ.value) champ.value = semainePrecedente();
     const lundi = lundiDe(champ.value); champ.value = lundi;                 // toute date → son lundi
-    document.getElementById('co-sal-mois').value = lundi.slice(0, 7);        // mois rattaché (statistiques, bilan)
+    // Mois rattaché (charges, bilan, statistiques) = mois du lundi de paie qui suit la semaine
+    // ex. semaine 28/09 → 04/10, payée le lundi 05/10 → octobre
+    document.getElementById('co-sal-mois').value = ajouterJours(lundi, 7).slice(0, 7);
     const u = parseFloat(e.montant_semaine) || 0;
     detail = { remuneration: 'Semaine', semaine_debut: lundi, semaine_fin: ajouterJours(lundi, 6), nb_semaines: 1, montant_semaine: u, total: u };
   }
