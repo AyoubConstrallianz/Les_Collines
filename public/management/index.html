@@ -465,7 +465,7 @@ html[data-theme="dark"] .plan-vues button.on{color:#0b0c0f}
 .plan-leg{display:inline-flex;align-items:center;gap:6px}
 .plan-leg i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .pw-scroll{overflow-x:auto}
-.pw{min-width:820px;--h:20px;padding-bottom:14px}
+.pw{min-width:820px;--h:30px;padding-bottom:14px}
 .pw-head,.pw-body{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr))}
 .pw-head{position:sticky;top:0;z-index:2}
 .pw-day{text-align:center;padding:8px 4px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--border)}
@@ -6848,7 +6848,7 @@ function placerSeances(list) {
   return res;
 }
 
-function htmlSemaine(rows, H = 20) {
+function htmlSemaine(rows, H = 30) {
   const debut = rows.length ? Math.floor(Math.min(...rows.map(r => minutesDe(r.heure_debut))) / 60) : 8;
   const fin = rows.length ? Math.ceil(Math.max(...rows.map(r => minutesDe(r.heure_fin))) / 60) : 22;
   const nbH = Math.max(fin - debut, 1), auj = indexAujourdhui();
