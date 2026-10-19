@@ -1761,7 +1761,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         <!-- Stats masse salariale -->
         <div class="sg" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:1.25rem">
           <div class="sc"><div class="sc-label" data-i18n="coaches.total_salaries">Total salariés</div><div class="sc-val" id="co-nb">—</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="coaches.masse_mois">Masse salariale / mois</div><div class="sc-val" id="co-masse">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="coaches.masse_mois">Masse salariale / mois</div><div class="sc-val" id="co-masse">—</div><div id="co-masse-detail" style="font-size:11px;color:var(--text3);margin-top:4px"></div></div>
           <div class="sc sect-salaires" style="border-left:3px solid var(--amber);border-radius:0 var(--r) var(--r) 0"><div class="sc-label" style="color:var(--amber-text)" data-i18n="coaches.non_payes">Salaires non payés ce mois</div><div class="sc-val" id="co-nonpayes" style="color:var(--amber)">—</div></div>
           <div class="sc sect-salaires"><div class="sc-label" data-i18n="coaches.paye_mois">Total payé ce mois</div><div class="sc-val" id="co-paye-mois">—</div></div>
         </div>
@@ -2465,6 +2465,9 @@ const I18N = {
     'coaches.salaire_hint':'Tarif payé par séance effectuée',
     'coaches.total_salaries':'Total salariés',
     'coaches.masse_mois':'Masse salariale / mois',
+    'coaches.masse_calcule':'Salaires calculés du mois en cours',
+    'coaches.masse_dont_pct':'dont',
+    'coaches.masse_pct_ca':'au % du CA (à ce jour)',
     'coaches.non_payes': 'Salaires non payés ce mois',
     'coaches.paye_mois': 'Total payé ce mois',
     'coaches.p_coach':   'Coach',
@@ -3199,6 +3202,9 @@ const I18N = {
     'coaches.salaire_hint':'أجر الحصة المنجزة',
     'coaches.total_salaries':'إجمالي الموظفين',
     'coaches.masse_mois':'الكتلة الأجرية / الشهر',
+    'coaches.masse_calcule':'الأجور المحسوبة للشهر الجاري',
+    'coaches.masse_dont_pct':'منها',
+    'coaches.masse_pct_ca':'كنسبة من رقم المعاملات (حتى الآن)',
     'coaches.non_payes':'الرواتب غير المدفوعة هذا الشهر',
     'coaches.paye_mois':'إجمالي المدفوع هذا الشهر',
     'coaches.p_coach':  'مدرب',
@@ -8103,9 +8109,8 @@ function showMoAl(msg, type) {
 // ════════════════════════════════════════════════════════════
 async function loadCoaches() {
   const { data } = await sb.from('employes').select('*').order('nom');
-  const total = (data||[]).filter(e => e.actif !== false).reduce((a,e)=>a+parseFloat(e.salaire||0),0);
   document.getElementById('co-nb').textContent    = (data||[]).length;
-  document.getElementById('co-masse').textContent = fmt(total);
+  majMasseSalariale(data||[]);
 
   const canWrite = PERMS.coaches?.ecrire;
   const canDel   = PERMS.coaches?.supprimer;
@@ -8381,6 +8386,51 @@ async function delCoachPaie(id) {
   loadCoachPaies(); loadCoachNonPayes();
 }
 
+// Montant du mois pour les salariés payés au pourcentage du CA de leurs disciplines (CA du mois à ce jour)
+async function montantsPourcentageMois(emps, mois) {
+  const res = {};
+  if (!emps.length) return res;
+  const sportsParEmp = await Promise.all(emps.map(e => sportsDuCoach(`${e.prenom} ${e.nom}`)));
+  const tousSports = [...new Set(sportsParEmp.flat().map(sp => sp.nom))];
+  const ca = tousSports.length ? await caSportsDuMois(mois, tousSports) : {};
+  emps.forEach((e, i) => {
+    const caTotal = sportsParEmp[i].reduce((a, sp) => a + Math.round(ca[sp.nom].ca * 100) / 100, 0);
+    const pct = parseFloat(e.pourcentage) || 0;
+    res[e.id] = { pct, ca: caTotal, total: Math.round(caTotal * pct) / 100, nbSports: sportsParEmp[i].length };
+  });
+  return res;
+}
+
+// Nombre de lundis (jours de paie hebdomadaire) dans un mois « AAAA-MM »
+function nbLundisDuMois(mois) {
+  const [y, m] = mois.split('-').map(Number);
+  let n = 0;
+  for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) if (new Date(y, m - 1, d).getDay() === 1) n++;
+  return n;
+}
+
+// Masse salariale du mois en cours = somme des salaires calculés de chaque salarié actif :
+// mensuel = salaire · groupe = nb × montant · semaine = montant × nb de lundis de paie du mois · % = % × CA du mois à ce jour
+let _masseJeton = 0;
+async function majMasseSalariale(emps) {
+  const jeton = ++_masseJeton;
+  const el = document.getElementById('co-masse'), det = document.getElementById('co-masse-detail');
+  const actifs = emps.filter(e => e.actif !== false);
+  const mois = thisMonth(), lundis = nbLundisDuMois(mois);
+  const pct = await montantsPourcentageMois(actifs.filter(e => e.remuneration === 'Pourcentage'), mois);
+  if (jeton !== _masseJeton) return;   // un rechargement plus récent est en cours
+  let total = 0, dontPct = 0;
+  actifs.forEach(e => {
+    const r = e.remuneration || 'Mensuel';
+    if (r === 'Pourcentage') { const v = pct[e.id]?.total || 0; total += v; dontPct += v; }
+    else if (r === 'Semaine') total += (parseFloat(e.montant_semaine) || 0) * lundis;
+    else if (r === 'Groupe') total += (e.nb_groupes || 0) * (parseFloat(e.montant_groupe) || 0);
+    else total += parseFloat(e.salaire) || 0;
+  });
+  el.textContent = fmt(total);
+  if (det) det.textContent = dontPct ? `${t('coaches.masse_dont_pct')} ${fmt(dontPct)} ${t('coaches.masse_pct_ca')}` : t('coaches.masse_calcule');
+}
+
 async function loadCoachNonPayes() {
   const moisCur = thisMonth();
   const { data: employes } = await sb.from('employes').select('*').order('nom');
@@ -8406,18 +8456,7 @@ async function loadCoachNonPayes() {
   }
 
   // Rémunération au pourcentage : montant calculé sur le CA du mois en cours (même calcul que le formulaire de paiement)
-  const montantsPct = {};
-  const pctEmps = nonPayes.filter(e => e.remuneration === 'Pourcentage');
-  if (pctEmps.length) {
-    const sportsParEmp = await Promise.all(pctEmps.map(e => sportsDuCoach(`${e.prenom} ${e.nom}`)));
-    const tousSports = [...new Set(sportsParEmp.flat().map(sp => sp.nom))];
-    const ca = tousSports.length ? await caSportsDuMois(moisCur, tousSports) : {};
-    pctEmps.forEach((e, i) => {
-      const caTotal = sportsParEmp[i].reduce((a, sp) => a + Math.round(ca[sp.nom].ca * 100) / 100, 0);
-      const pct = parseFloat(e.pourcentage) || 0;
-      montantsPct[e.id] = { pct, ca: caTotal, total: Math.round(caTotal * pct) / 100, nbSports: sportsParEmp[i].length };
-    });
-  }
+  const montantsPct = await montantsPourcentageMois(nonPayes.filter(e => e.remuneration === 'Pourcentage'), moisCur);
   const montantAPayer = e => {
     const m = montantsPct[e.id];
     if (!m) return libelleRemu(e);
