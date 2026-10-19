@@ -452,6 +452,73 @@ html[data-theme="dark"] .jour-chip input:checked + span{color:#0b0c0f}
 .jour-chip input:focus-visible + span{outline:2px solid var(--blue);outline-offset:2px}
 .jours-raccourcis{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 @media(max-width:768px){.jour-chip span{min-width:0;padding:8px 12px}.jour-chip{flex:1 1 calc(25% - 6px)}.jour-chip span{width:100%}}
+/* ── Emploi du temps ── */
+.plan-toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.plan-resume{font-size:12px;color:var(--text2);margin-top:3px}
+.plan-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.plan-actions select{width:auto;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)}
+.plan-vues{display:inline-flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.plan-vues button{border:none;background:transparent;color:var(--text2);padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.plan-vues button.on{background:var(--blue);color:#fff}
+html[data-theme="dark"] .plan-vues button.on{color:#0b0c0f}
+.plan-legende{display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:12px;font-size:12px;color:var(--text2)}
+.plan-leg{display:inline-flex;align-items:center;gap:6px}
+.plan-leg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.pw-scroll{overflow-x:auto}
+.pw{min-width:820px;--h:62px;padding-bottom:14px}
+.pw-head,.pw-body{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr))}
+.pw-head{position:sticky;top:0;z-index:2}
+.pw-day{text-align:center;padding:8px 4px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--border)}
+.pw-day span{display:block;font-size:10px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--text3);margin-top:1px}
+.pw-day.auj{color:var(--blue-text)}
+.pw-day.auj span{color:var(--blue-text)}
+.pw-hours{position:relative}
+.pw-hours div{position:absolute;right:8px;transform:translateY(-50%);font-size:10px;color:var(--text3);font-variant-numeric:tabular-nums}
+.pw-col{position:relative;border-left:1px solid var(--border);background-image:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 1px,transparent 1px,transparent var(--h))}
+.pw-col.auj{background-color:var(--blue-light)}
+.pw-ev{position:absolute;box-sizing:border-box;padding:4px 7px;border:none;border-left:3px solid var(--c);border-radius:7px;text-align:start;overflow:hidden;cursor:pointer;
+  background:color-mix(in srgb,var(--c) 15%,var(--bg2));color:var(--text);font:inherit;transition:transform .15s var(--ease),box-shadow .15s var(--ease)}
+.pw-ev:hover{transform:translateY(-1px);box-shadow:0 6px 16px -6px color-mix(in srgb,var(--c) 60%,transparent);z-index:3}
+.pw-ev b{display:block;font-size:12px;line-height:1.25;color:color-mix(in srgb,var(--c) 70%,var(--text));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pw-ev small{display:block;font-size:10.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+.pw-fond{position:absolute;box-sizing:border-box;border:none;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;border-left:3px solid var(--c);padding:0;cursor:pointer;font:inherit;text-align:start;z-index:0;
+  background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 9%,transparent) 0 8px,color-mix(in srgb,var(--c) 4%,transparent) 8px 16px)}
+.pw-fond span{position:sticky;top:0;display:block;padding:4px 7px;font-size:10.5px;color:color-mix(in srgb,var(--c) 70%,var(--text));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pw-fond:hover{background-color:color-mix(in srgb,var(--c) 8%,transparent)}
+.pw-ev{z-index:1}
+.pw-now{position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:4}
+.pw-now::before{content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--red)}
+.pl-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.pl-tab{flex:0 0 auto;border:1px solid var(--border);background:var(--bg2);color:var(--text2);border-radius:var(--r-full);padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.pl-tab span{font-size:11px;font-weight:500;opacity:.75;margin-inline-start:4px}
+.pl-tab.on{background:var(--blue);border-color:var(--blue);color:#fff}
+html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
+.pl-tab.auj:not(.on){border-color:var(--blue);color:var(--blue-text)}
+.pl-liste{display:flex;flex-direction:column;gap:8px}
+.pl-item{display:grid;grid-template-columns:82px 1fr auto;gap:12px;align-items:center;padding:10px 14px;border:1px solid var(--border);border-left:4px solid var(--c);border-radius:var(--rl);
+  background:color-mix(in srgb,var(--c) 7%,var(--bg2));cursor:pointer;text-align:start;font:inherit;color:var(--text);width:100%}
+.pl-item:hover{border-color:color-mix(in srgb,var(--c) 60%,var(--border))}
+.pl-item .pli-h{font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;line-height:1.2}
+.pl-item .pli-h small{display:block;font-size:11px;font-weight:500;color:var(--text3)}
+.pl-item .pli-s{font-weight:700;color:color-mix(in srgb,var(--c) 70%,var(--text))}
+.pl-item .pli-c{font-size:12px;color:var(--text2)}
+.pl-item .pli-cap{font-size:11px;color:var(--text3);white-space:nowrap}
+.sm-ligne{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.sm-ligne span:first-child{color:var(--text2)}
+.sm-ligne span:last-child{font-weight:600;text-align:end}
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body.print-planning *{visibility:hidden !important}
+  body.print-planning #planning-card,body.print-planning #planning-card *{visibility:visible !important}
+  body.print-planning #planning-card{position:absolute;left:0;top:0;width:100%;border:none;box-shadow:none;background:#fff !important;color:#000;padding:0}
+  body.print-planning .plan-actions{display:none !important}
+  body.print-planning .pw{min-width:0}
+  body.print-planning .pw-now{display:none !important}
+  body.print-planning .pw-col.auj{background-color:transparent}
+  body.print-planning .pw-day.auj,body.print-planning .pw-day.auj span{color:var(--text2)}
+  body.print-planning .pw-ev small{font-size:9.5px}
+  body.print-planning *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 .recap-table th,.recap-table td{padding:7px 10px;text-align:end;white-space:nowrap}
 .recap-table th:first-child,.recap-table td:first-child{text-align:start;position:sticky;inset-inline-start:0;background:var(--bg2);z-index:1}
 .recap-table th:first-child{background:var(--bg3)}
@@ -1253,7 +1320,25 @@ html[data-theme="dark"] .jour-chip input:checked + span{color:#0b0c0f}
           </div>
           <button class="btn btn-p" style="margin-top:8px" onclick="savePlanning()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="planning.add_btn">Ajouter la séance</span></button>
         </div>
-        <div class="card"><div id="planning-grid"></div></div>
+        <div class="card" id="planning-card">
+          <div class="plan-toolbar">
+            <div>
+              <div class="ct" style="margin:0" data-i18n="planning.emploi">Emploi du temps</div>
+              <div id="plan-resume" class="plan-resume"></div>
+            </div>
+            <div class="plan-actions">
+              <select id="pl-f-sport" onchange="_plan.fSport=this.value;renderPlanning()"></select>
+              <select id="pl-f-coach" onchange="_plan.fCoach=this.value;renderPlanning()"></select>
+              <div class="plan-vues" role="group">
+                <button type="button" id="pl-vue-semaine" onclick="changerVuePlanning('semaine')" data-i18n="planning.vue_semaine">Semaine</button>
+                <button type="button" id="pl-vue-liste" onclick="changerVuePlanning('liste')" data-i18n="planning.vue_liste">Liste</button>
+              </div>
+              <button type="button" class="btn btn-sm" onclick="imprimerPlanning()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> <span data-i18n="planning.imprimer">Imprimer</span></button>
+            </div>
+          </div>
+          <div id="plan-legende" class="plan-legende"></div>
+          <div id="planning-grid"></div>
+        </div>
       </div>
 
       <!-- PRÉSENCE & ABSENCES -->
@@ -1414,6 +1499,20 @@ html[data-theme="dark"] .jour-chip input:checked + span{color:#0b0c0f}
           <div class="sg" id="bilan-totaux" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
           <div style="overflow-x:auto"><table id="bilan-table" class="bilan-table"></table></div>
           <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="bilan.note">Entrées = paiements encaissés dans le mois (date du paiement). Sorties = charges du mois (date de la charge) + salaires du mois concerné.</p>
+        </div>
+      </div>
+
+      <div class="mo" id="seance-modal">
+        <div class="mo-box" style="max-width:420px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <div class="mo-title" style="margin-bottom:0;display:flex;align-items:center;gap:10px"><i id="sm-couleur" style="width:12px;height:12px;border-radius:4px;display:inline-block"></i><span id="sm-sport"></span></div>
+            <button class="btn btn-sm" onclick="document.getElementById('seance-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <div id="sm-detail"></div>
+          <div class="mo-footer">
+            <button class="btn" onclick="document.getElementById('seance-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button>
+            <button class="btn btn-d" id="sm-suppr" data-i18n="msg.suppr">Supprimer</button>
+          </div>
         </div>
       </div>
 
@@ -2666,6 +2765,21 @@ const I18N = {
     'planning.add_btn':      'Ajouter la séance',
     'planning.added':        'Séance ajoutée',
     'planning.added_n':      '%n séances ajoutées',
+    'planning.emploi':       'Emploi du temps',
+    'planning.vue_semaine':  'Semaine',
+    'planning.vue_liste':    'Liste',
+    'planning.imprimer':     'Imprimer',
+    'planning.tous_coachs':  'Tous les coachs',
+    'planning.seances_semaine':'séances / semaine',
+    'planning.sports':       'sports',
+    'planning.de_cours':     'de cours',
+    'planning.ouverture':    'plage',
+    'planning.vide':         'Aucune séance pour ces filtres.',
+    'planning.seance_s':     'séance(s)',
+    'planning.aucune_seance_jour':'Aucune séance ce jour-là.',
+    'planning.horaire':      'Horaire',
+    'planning.duree':        'Durée',
+    'planning.suppr_confirm':'Supprimer cette séance du planning ?',
     'planning.jours':        'Jours',
     'planning.jours_hint':   '(un ou plusieurs : une séance est créée pour chaque jour coché)',
     'planning.lun_ven':      'Lun → Ven',
@@ -3306,6 +3420,21 @@ const I18N = {
     'planning.add_btn':      'إضافة الحصة',
     'planning.added':        'تمت إضافة الحصة',
     'planning.added_n':      'تمت إضافة %n حصص',
+    'planning.emploi':       'جدول الحصص',
+    'planning.vue_semaine':  'الأسبوع',
+    'planning.vue_liste':    'لائحة',
+    'planning.imprimer':     'طباعة',
+    'planning.tous_coachs':  'جميع المدربين',
+    'planning.seances_semaine':'حصة / أسبوع',
+    'planning.sports':       'رياضات',
+    'planning.de_cours':     'من الحصص',
+    'planning.ouverture':    'الفترة',
+    'planning.vide':         'لا توجد حصص لهذه المعايير.',
+    'planning.seance_s':     'حصة',
+    'planning.aucune_seance_jour':'لا توجد حصص في هذا اليوم.',
+    'planning.horaire':      'التوقيت',
+    'planning.duree':        'المدة',
+    'planning.suppr_confirm':'حذف هذه الحصة من الجدول ؟',
     'planning.jours':        'الأيام',
     'planning.jours_hint':   '(يوم أو أكثر : تُنشأ حصة لكل يوم محدد)',
     'planning.lun_ven':      'الإثنين ← الجمعة',
@@ -6642,31 +6771,162 @@ async function loadCoachesForPlanningSelect() {
   ).join('');
 }
 
-async function loadPlanning() {
-  const { data } = await sb.from('planning').select('*').order('heure_debut');
-  const { data: employes } = await sb.from('employes').select('id,prenom,nom');
-  const empMap = {}; (employes||[]).forEach(e=>{ empMap[e.id]=e.prenom+' '+e.nom; });
+// ── Emploi du temps : vue Semaine (grille horaire) et vue Liste (par jour) ──
+const PLAN_JOURS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const PLAN_COULEURS = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16','#06b6d4','#e11d48'];
+let _plan = { rows: [], empMap: {}, vue: null, jour: null, fSport: '', fCoach: '' };
+const minutesDe = hhmm => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+const hhmm = min => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+const jourLib = j => t('jour.' + j.toLowerCase());
+const indexAujourdhui = () => (new Date().getDay() + 6) % 7;
 
-  const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-  const jourLabels = {Lundi:t('jour.lundi'),Mardi:t('jour.mardi'),Mercredi:t('jour.mercredi'),Jeudi:t('jour.jeudi'),Vendredi:t('jour.vendredi'),Samedi:t('jour.samedi'),Dimanche:t('jour.dimanche')};
-  const canDel = PERMS.planning?.supprimer;
-  const grid = document.getElementById('planning-grid');
-  grid.innerHTML = '<table style="width:100%;border-collapse:collapse"><thead><tr>' +
-    jours.map(j=>`<th style="text-align:center;padding:6px 4px;font-size:11px;font-weight:500;color:var(--text2);border-bottom:1px solid var(--border)">${jourLabels[j]||j}</th>`).join('') +
-    '</tr></thead><tbody><tr>' +
-    jours.map(j=>`<td class="plan-cell">${(data||[]).filter(p=>p.jour===j).map(p=>{
-      // coaches_ids est un array JSON stocké
-      const coachNames = (p.coaches_ids||[]).map(id=>empMap[id]||id).filter(Boolean);
-      return `<div class="plan-slot">
-        <div class="plan-sport">${p.sport}</div>
-        <div class="plan-time">${p.heure_debut?.substr(0,5)||''}–${p.heure_fin?.substr(0,5)||''}</div>
-        ${coachNames.length?`<div style="font-size:11px;color:var(--text3)">${coachNames.join(', ')}</div>`:''}
-        ${canDel?`<button class="btn btn-sm btn-d" style="font-size:11px;margin-top:3px" onclick="delPlanning('${p.id}')">${t('msg.suppr')}</button>`:''}
-      </div>`;
-    }).join('') || '<div style="font-size:11px;color:var(--text3);padding:6px 0">—</div>'}</td>`).join('') +
-    '</tr></tbody></table>';
+function couleurSport(nom) {
+  const noms = [...new Set([...SPORTS_CACHE.map(sp => sp.nom), ..._plan.rows.map(r => r.sport)])];
+  const i = Math.max(0, noms.indexOf(nom));
+  return PLAN_COULEURS[i % PLAN_COULEURS.length];
+}
+function coachsSeance(p) {
+  const n = (p.coaches_ids || []).map(id => _plan.empMap[id]).filter(Boolean);
+  if (!n.length && p.coach && !/^[0-9a-f]{8}-/.test(p.coach)) n.push(p.coach);
+  return n;
+}
+const dureeLib = m => m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? String(m % 60).padStart(2, '0') : ''}` : `${m} min`;
+
+async function loadPlanning() {
+  const [{ data }, { data: employes }] = await Promise.all([
+    sb.from('planning').select('*').order('heure_debut'),
+    sb.from('employes').select('id,prenom,nom')
+  ]);
+  if (!SPORTS_CACHE.length) { const { data: sp } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = sp || []; }
+  _plan.rows = data || [];
+  _plan.empMap = {}; (employes || []).forEach(e => { _plan.empMap[e.id] = `${e.prenom} ${e.nom}`; });
+
+  // Filtres : sports et coachs présents dans le planning
+  const sports = [...new Set(_plan.rows.map(r => r.sport))].sort();
+  const coachs = [...new Set(_plan.rows.flatMap(r => r.coaches_ids || []))].filter(id => _plan.empMap[id]).sort((a, b) => _plan.empMap[a].localeCompare(_plan.empMap[b]));
+  document.getElementById('pl-f-sport').innerHTML = `<option value="">${t('select.all_sports')}</option>` + sports.map(sp => `<option ${sp === _plan.fSport ? 'selected' : ''}>${sp}</option>`).join('');
+  document.getElementById('pl-f-coach').innerHTML = `<option value="">${t('planning.tous_coachs')}</option>` + coachs.map(id => `<option value="${id}" ${id === _plan.fCoach ? 'selected' : ''}>${_plan.empMap[id]}</option>`).join('');
+
+  if (!_plan.vue) _plan.vue = window.innerWidth < 769 ? 'liste' : 'semaine';
+  if (!_plan.jour) _plan.jour = PLAN_JOURS[indexAujourdhui()];
+  renderPlanning();
   const form = document.querySelector('#page-planning .card:first-child');
-  if(form) form.style.display = PERMS.planning?.ecrire ? 'block' : 'none';
+  if (form) form.style.display = PERMS.planning?.ecrire ? 'block' : 'none';
+}
+
+function changerVuePlanning(v) { _plan.vue = v; renderPlanning(); }
+
+function renderPlanning(force) {
+  const rows = _plan.rows.filter(p => (!_plan.fSport || p.sport === _plan.fSport) && (!_plan.fCoach || (p.coaches_ids || []).includes(_plan.fCoach)));
+  const vue = force || _plan.vue;
+  document.getElementById('pl-vue-semaine').classList.toggle('on', vue === 'semaine');
+  document.getElementById('pl-vue-liste').classList.toggle('on', vue === 'liste');
+  const sports = [...new Set(rows.map(r => r.sport))];
+  const totalMin = rows.reduce((a, r) => a + Math.max(0, minutesDe(r.heure_fin) - minutesDe(r.heure_debut)), 0);
+  const ouv = rows.length ? `${hhmm(Math.min(...rows.map(r => minutesDe(r.heure_debut))))} → ${hhmm(Math.max(...rows.map(r => minutesDe(r.heure_fin))))}` : '—';
+  document.getElementById('plan-resume').innerHTML = rows.length
+    ? `<strong>${rows.length}</strong> ${t('planning.seances_semaine')} · <strong>${sports.length}</strong> ${t('planning.sports')} · ${dureeLib(totalMin)} ${t('planning.de_cours')} · ${t('planning.ouverture')} ${ouv}`
+    : t('planning.vide');
+  document.getElementById('plan-legende').innerHTML = sports.sort().map(sp => `<span class="plan-leg"><i style="background:${couleurSport(sp)}"></i>${sp}</span>`).join('');
+  document.getElementById('planning-grid').innerHTML = vue === 'semaine' ? htmlSemaine(rows) : htmlListe(rows);
+}
+
+// Répartit les séances qui se chevauchent sur des colonnes côte à côte
+function placerSeances(list) {
+  const res = []; let groupe = [], finGroupe = -1, colonnes = [];
+  const clore = () => { groupe.forEach(x => { x.n = colonnes.length; }); groupe = []; colonnes = []; finGroupe = -1; };
+  [...list].sort((a, b) => minutesDe(a.heure_debut) - minutesDe(b.heure_debut) || minutesDe(b.heure_fin) - minutesDe(a.heure_fin)).forEach(p => {
+    const d = minutesDe(p.heure_debut), f = Math.max(minutesDe(p.heure_fin), d + 15);
+    if (groupe.length && d >= finGroupe) clore();
+    let c = colonnes.findIndex(fin => fin <= d);
+    if (c < 0) { c = colonnes.length; colonnes.push(f); } else colonnes[c] = f;
+    const x = { p, d, f, c }; groupe.push(x); res.push(x); finGroupe = Math.max(finGroupe, f);
+  });
+  clore();
+  return res;
+}
+
+function htmlSemaine(rows, H = 62) {
+  const debut = rows.length ? Math.floor(Math.min(...rows.map(r => minutesDe(r.heure_debut))) / 60) : 8;
+  const fin = rows.length ? Math.ceil(Math.max(...rows.map(r => minutesDe(r.heure_fin))) / 60) : 22;
+  const nbH = Math.max(fin - debut, 1), auj = indexAujourdhui();
+  const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+  const heures = Array.from({ length: nbH + 1 }, (_, i) => `<div style="top:${i * H}px">${String(debut + i).padStart(2, '0')}:00</div>`).join('');
+  // Plages longues (≥ 4 h, ex. salle de musculation ouverte toute la journée) : en arrière-plan sur toute la colonne,
+  // les cours plus courts s'affichent par-dessus en pleine largeur
+  const LONGUE = 240;
+  const estLongue = r => minutesDe(r.heure_fin) - minutesDe(r.heure_debut) >= LONGUE;
+  const colonnes = PLAN_JOURS.map((j, i) => {
+    const duJour = rows.filter(r => r.jour === j);
+    const fonds = placerSeances(duJour.filter(estLongue)).map(({ p, d, f, c, n }) => {
+      const top = (d - debut * 60) / 60 * H, haut = (f - d) / 60 * H;
+      return `<button type="button" class="pw-fond" title="${p.sport} · ${hhmm(d)}–${hhmm(f)}" onclick="ouvrirSeance('${p.id}')"
+        style="--c:${couleurSport(p.sport)};top:${top}px;height:${haut}px;left:${c / n * 100}%;width:${100 / n}%">
+        <span><b>${p.sport}</b> ${hhmm(d)}–${hhmm(f)}</span></button>`;
+    }).join('');
+    const decale = duJour.some(estLongue) ? 6 : 0;
+    const evs = placerSeances(duJour.filter(r => !estLongue(r))).map(({ p, d, f, c, n }) => {
+      const top = (d - debut * 60) / 60 * H, haut = Math.max((f - d) / 60 * H - 3, 20);
+      const coach = coachsSeance(p).join(', ');
+      return `<button type="button" class="pw-ev" title="${p.sport} · ${hhmm(d)}–${hhmm(f)}${coach ? ' · ' + coach : ''}" onclick="ouvrirSeance('${p.id}')"
+        style="--c:${couleurSport(p.sport)};top:${top + 1}px;height:${haut}px;left:calc(${c / n * 100}% + ${2 + decale}px);width:calc(${100 / n}% - ${4 + decale}px)">
+        <b>${p.sport}</b>${haut > 46 ? `<small>${hhmm(d)} – ${hhmm(f)}</small>${coach ? `<small>${coach}</small>` : ''}`
+          : haut > 30 ? `<small>${hhmm(d)} – ${hhmm(f)}${coach ? ' · ' + coach : ''}</small>` : ''}</button>`;
+    }).join('');
+    const ligneNow = i === auj && nowMin >= debut * 60 && nowMin <= fin * 60 ? `<div class="pw-now" style="top:${(nowMin - debut * 60) / 60 * H}px"></div>` : '';
+    return `<div class="pw-col ${i === auj ? 'auj' : ''}">${fonds}${evs}${ligneNow}</div>`;
+  }).join('');
+  const entete = PLAN_JOURS.map((j, i) => {
+    const n = rows.filter(r => r.jour === j).length;
+    return `<div class="pw-day ${i === auj ? 'auj' : ''}">${jourLib(j)}<span>${n ? n + ' ' + t('planning.seance_s') : '—'}</span></div>`;
+  }).join('');
+  return `<div class="pw-scroll"><div class="pw" style="--h:${H}px">
+    <div class="pw-head"><div></div>${entete}</div>
+    <div class="pw-body" style="height:${nbH * H}px"><div class="pw-hours">${heures}</div>${colonnes}</div>
+  </div></div>`;
+}
+
+function htmlListe(rows) {
+  const auj = indexAujourdhui();
+  const onglets = PLAN_JOURS.map((j, i) => {
+    const n = rows.filter(r => r.jour === j).length;
+    return `<button type="button" class="pl-tab ${j === _plan.jour ? 'on' : ''} ${i === auj ? 'auj' : ''}" onclick="_plan.jour='${j}';renderPlanning()">${jourLib(j)}<span>${n}</span></button>`;
+  }).join('');
+  const jourRows = rows.filter(r => r.jour === _plan.jour).sort((a, b) => minutesDe(a.heure_debut) - minutesDe(b.heure_debut));
+  const items = jourRows.map(p => {
+    const d = minutesDe(p.heure_debut), f = minutesDe(p.heure_fin), coach = coachsSeance(p).join(', ');
+    return `<button type="button" class="pl-item" style="--c:${couleurSport(p.sport)}" onclick="ouvrirSeance('${p.id}')">
+      <div class="pli-h">${hhmm(d)}<small>→ ${hhmm(f)} · ${dureeLib(f - d)}</small></div>
+      <div><div class="pli-s">${p.sport}</div>${coach ? `<div class="pli-c">${coach}</div>` : ''}</div>
+      <div class="pli-cap">👥 ${p.capacite || '—'}</div></button>`;
+  }).join('');
+  return `<div class="pl-tabs">${onglets}</div><div class="pl-liste">${items || `<div style="color:var(--text3);font-size:13px;padding:14px 0">${t('planning.aucune_seance_jour')}</div>`}</div>`;
+}
+
+function ouvrirSeance(id) {
+  const p = _plan.rows.find(r => r.id === id); if (!p) return;
+  const d = minutesDe(p.heure_debut), f = minutesDe(p.heure_fin), coach = coachsSeance(p);
+  document.getElementById('sm-couleur').style.background = couleurSport(p.sport);
+  document.getElementById('sm-sport').textContent = p.sport;
+  const l = (a, b) => `<div class="sm-ligne"><span>${a}</span><span>${b}</span></div>`;
+  document.getElementById('sm-detail').innerHTML = l(t('planning.jour'), jourLib(p.jour)) + l(t('planning.horaire'), `${hhmm(d)} → ${hhmm(f)}`)
+    + l(t('planning.duree'), dureeLib(f - d)) + l(t('planning.coaches'), coach.join(', ') || '—') + l(t('planning.capacite'), p.capacite || '—');
+  const btn = document.getElementById('sm-suppr');
+  btn.style.display = PERMS.planning?.supprimer ? '' : 'none';
+  btn.onclick = () => delPlanning(p.id);
+  document.getElementById('seance-modal').classList.add('open');
+}
+
+function imprimerPlanning() {
+  // Toujours la vue Semaine, en blocs plus compacts pour tenir sur une page A4 paysage
+  const grid = document.getElementById('planning-grid'), avant = grid.innerHTML;
+  const rows = _plan.rows.filter(p => (!_plan.fSport || p.sport === _plan.fSport) && (!_plan.fCoach || (p.coaches_ids || []).includes(_plan.fCoach)));
+  const nbH = rows.length ? Math.ceil(Math.max(...rows.map(r => minutesDe(r.heure_fin))) / 60) - Math.floor(Math.min(...rows.map(r => minutesDe(r.heure_debut))) / 60) : 14;
+  grid.innerHTML = htmlSemaine(rows, Math.max(26, Math.min(48, Math.floor(560 / Math.max(nbH, 1)))));
+  document.body.classList.add('print-planning');
+  const fin = () => { document.body.classList.remove('print-planning'); grid.innerHTML = avant; window.removeEventListener('afterprint', fin); };
+  window.addEventListener('afterprint', fin);
+  window.print();
 }
 
 function cocherJours(indices) {
@@ -6696,7 +6956,14 @@ async function savePlanning() {
   loadPlanning();
 }
 
-async function delPlanning(id) { await sb.from('planning').delete().eq('id',id); loadPlanning(); }
+async function delPlanning(id) {
+  if (!confirm(t('planning.suppr_confirm'))) return;
+  const { error } = await sb.from('planning').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  document.getElementById('seance-modal')?.classList.remove('open');
+  await logAudit('DELETE', 'planning', `id:${id}`);
+  loadPlanning();
+}
 
 // ════════════════════════════════════════════════════════════
 // STATISTIQUES
