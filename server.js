@@ -22,6 +22,8 @@ app.use('/api', apiRouter);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+// Alias de l'application de gestion (même page que /management/)
+app.use('/gestion', express.static(path.join(__dirname, 'public', 'management')));
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'lescollines_secret_key',
