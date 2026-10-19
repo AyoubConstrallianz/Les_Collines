@@ -1368,42 +1368,135 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
       <!-- BOUTIQUE -->
       <div id="page-boutique" class="page">
         <p class="ptitle" data-i18n="boutique.title">Boutique</p>
-        <p class="psubtitle" data-i18n="boutique.subtitle">Ventes d'articles (gants, T-shirts, accessoires…)</p>
+        <p class="psubtitle" data-i18n="boutique.subtitle">Ventes d'articles (gants, T-shirts, accessoires…) et gestion du stock</p>
         <div id="al-boutique"></div>
-        <div class="sg" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <div class="sg">
           <div class="sc"><div class="sc-label" data-i18n="bq.ventes_mois">Ventes du mois</div><div class="sc-val" id="bt-k-ventes">—</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="bq.achats_mois">Achats du mois</div><div class="sc-val" id="bt-k-achats">—</div></div>
           <div class="sc"><div class="sc-label" data-i18n="bq.benef_mois">Bénéfice du mois</div><div class="sc-val" id="bt-k-benef">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="bq.valeur_stock">Valeur du stock</div><div class="sc-val" id="bt-k-valeur">—</div></div>
+          <div class="sc" style="cursor:pointer" onclick="boutiqueOnglet('stock');document.getElementById('bp-filtre').value='bas';renderProduits()"><div class="sc-label" data-i18n="bq.a_reappro">À réapprovisionner</div><div class="sc-val" id="bt-k-bas">—</div></div>
+        </div>
+        <div class="plan-vues" style="margin-bottom:14px">
+          <button id="bt-tab-ventes" class="on" onclick="boutiqueOnglet('ventes')" data-i18n="bq.ventes">Ventes</button>
+          <button id="bt-tab-stock" onclick="boutiqueOnglet('stock')" data-i18n="bq.stock">Stock</button>
+          <button id="bt-tab-mvts" onclick="boutiqueOnglet('mvts')" data-i18n="bq.mouvements">Mouvements</button>
         </div>
 
-        <div class="card" id="bv-form-card">
-          <div class="ct" id="bv-titre" data-i18n="bq.nouvelle">Nouvelle vente</div>
-          <input type="hidden" id="bv-id">
-          <div class="g3">
-            <div class="fg"><label data-i18n="bq.client">Client</label><input id="bv-client" list="bv-clients" placeholder="Client de passage" data-i18n-ph="bq.client_ph" autocomplete="off"><datalist id="bv-clients"></datalist></div>
-            <div class="fg"><label data-i18n="bq.date">Date</label><input id="bv-date" type="date"></div>
-            <div class="fg"><label data-i18n="bq.article">Article</label><input id="bv-article" list="bv-articles" placeholder="Ex : Gants de boxe 12 oz" data-i18n-ph="bq.article_ph" autocomplete="off" oninput="bvArticleConnu()"><datalist id="bv-articles"></datalist></div>
-          </div>
-          <div class="g3">
-            <div class="fg"><label data-i18n="bq.prix_achat_dh">Prix d'achat (DH)</label><input id="bv-achat" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
-            <div class="fg"><label data-i18n="bq.prix_vente_dh">Prix de vente (DH)</label><input id="bv-vente" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
-            <div class="fg"><label data-i18n="bq.benefice">Bénéfice</label><div id="bv-marge" style="padding:9px 0;font-weight:700;font-size:15px">—</div></div>
-          </div>
-          <div class="btns">
-            <button class="btn btn-p" onclick="saveVente()" data-i18n="bq.enregistrer">Enregistrer la vente</button>
-            <button class="btn" id="bv-annuler" style="display:none" onclick="resetVente()" data-i18n="bq.annuler_modif">Annuler la modification</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
-            <div class="ct" style="margin:0" data-i18n="bq.ventes">Ventes</div>
-            <div class="toolbar" style="margin:0;gap:8px">
-              <input id="bt-q" placeholder="Rechercher client ou article…" data-i18n-ph="bq.recherche_ph" oninput="renderVentes()" style="max-width:240px">
-              <input id="bt-mois" type="month" onchange="loadBoutique()" style="max-width:180px">
+        <!-- Onglet Ventes -->
+        <div id="bt-ventes">
+          <div class="card" id="bv-form-card">
+            <div class="ct" id="bv-titre" data-i18n="bq.nouvelle">Nouvelle vente</div>
+            <input type="hidden" id="bv-id">
+            <div class="g3">
+              <div class="fg"><label data-i18n="bq.client">Client</label><input id="bv-client" list="bv-clients" placeholder="Client de passage" data-i18n-ph="bq.client_ph" autocomplete="off"><datalist id="bv-clients"></datalist></div>
+              <div class="fg"><label data-i18n="bq.date">Date</label><input id="bv-date" type="date"></div>
+              <div class="fg"><label data-i18n="bq.article">Article</label><input id="bv-article" list="bv-articles" placeholder="Choisir un article du stock" data-i18n-ph="bq.article_ph" autocomplete="off" oninput="bvArticleConnu()"><datalist id="bv-articles"></datalist>
+                <span id="bv-stock-info" style="font-size:11px;margin-top:2px"></span></div>
+            </div>
+            <div class="g3">
+              <div class="fg"><label data-i18n="bq.quantite">Quantité</label><input id="bv-qte" type="number" min="1" step="1" value="1" oninput="bvMarge()"></div>
+              <div class="fg"><label data-i18n="bq.prix_achat_u">Prix d'achat unitaire (DH)</label><input id="bv-achat" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
+              <div class="fg"><label data-i18n="bq.prix_vente_u">Prix de vente unitaire (DH)</label><input id="bv-vente" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
+            </div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;margin:2px 0 12px;font-size:14px">
+              <div><span style="color:var(--text2)" data-i18n="bq.total">Total</span> : <strong id="bv-total">—</strong></div>
+              <div><span style="color:var(--text2)" data-i18n="bq.benefice">Bénéfice</span> : <strong id="bv-marge">—</strong></div>
+            </div>
+            <div class="btns">
+              <button class="btn btn-p" onclick="saveVente()" data-i18n="bq.enregistrer">Enregistrer la vente</button>
+              <button class="btn" id="bv-annuler" style="display:none" onclick="resetVente()" data-i18n="bq.annuler_modif">Annuler la modification</button>
             </div>
           </div>
-          <table><thead><tr><th data-i18n="bq.date">Date</th><th data-i18n="bq.client">Client</th><th data-i18n="bq.article">Article</th><th data-i18n="bq.prix_achat">Prix d'achat</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.benefice">Bénéfice</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bv-tb"></tbody></table>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+              <div class="ct" style="margin:0" data-i18n="bq.ventes">Ventes</div>
+              <div class="toolbar" style="margin:0;gap:8px">
+                <input id="bt-q" placeholder="Rechercher client ou article…" data-i18n-ph="bq.recherche_ph" oninput="renderVentes()" style="max-width:240px">
+                <input id="bt-mois" type="month" onchange="loadBoutique()" style="max-width:180px">
+              </div>
+            </div>
+            <table><thead><tr><th data-i18n="bq.date">Date</th><th data-i18n="bq.client">Client</th><th data-i18n="bq.article">Article</th><th data-i18n="bq.qte">Qté</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.total">Total</th><th data-i18n="bq.benefice">Bénéfice</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bv-tb"></tbody></table>
+          </div>
+        </div>
+
+        <!-- Onglet Stock -->
+        <div id="bt-stock" style="display:none">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+              <div class="ct" style="margin:0" data-i18n="bq.catalogue">Articles en stock</div>
+              <div class="toolbar" style="margin:0;gap:8px">
+                <input id="bp-q" placeholder="Rechercher un article…" data-i18n-ph="bq.recherche_article_ph" oninput="renderProduits()" style="max-width:200px">
+                <select id="bp-filtre" onchange="renderProduits()">
+                  <option value="" data-i18n="bq.f_tous">Tous les articles</option>
+                  <option value="bas" data-i18n="bq.f_bas">À réapprovisionner</option>
+                  <option value="rupture" data-i18n="bq.f_rupture">En rupture</option>
+                  <option value="archives" data-i18n="bq.f_archives">Archivés</option>
+                </select>
+                <button class="btn btn-p" id="bp-new" onclick="ouvrirProduit()" data-i18n="bq.nouvel_article">+ Nouvel article</button>
+              </div>
+            </div>
+            <table><thead><tr><th data-i18n="bq.article">Article</th><th data-i18n="bq.categorie">Catégorie</th><th data-i18n="bq.prix_achat">Prix d'achat</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.stock">Stock</th><th data-i18n="bq.valeur">Valeur</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bp-tb"></tbody></table>
+          </div>
+        </div>
+
+        <!-- Onglet Mouvements -->
+        <div id="bt-mvts" style="display:none">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+              <div class="ct" style="margin:0" data-i18n="bq.historique_stock">Historique du stock</div>
+              <div class="toolbar" style="margin:0;gap:8px">
+                <select id="bm-produit" onchange="renderMouvements()"></select>
+                <select id="bm-type" onchange="renderMouvements()">
+                  <option value="" data-i18n="bq.f_tous_types">Tous les mouvements</option>
+                  <option value="Achat" data-i18n="bq.type_Achat">Achat</option>
+                  <option value="Vente" data-i18n="bq.type_Vente">Vente</option>
+                  <option value="Ajustement" data-i18n="bq.type_Ajustement">Ajustement</option>
+                </select>
+              </div>
+            </div>
+            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bq.mvts_note">Mouvements du mois choisi dans l'onglet Ventes. Les sorties « Vente » se gèrent depuis la vente.</p>
+            <table><thead><tr><th data-i18n="bq.date">Date</th><th data-i18n="bq.article">Article</th><th data-i18n="bq.type">Type</th><th data-i18n="bq.quantite">Quantité</th><th data-i18n="bq.prix_unitaire">Prix unitaire</th><th data-i18n="bq.note">Note</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bm-tb"></tbody></table>
+          </div>
+        </div>
+
+        <!-- Fenêtre article -->
+        <div class="mo" id="bp-modal">
+          <div class="mo-box" style="max-width:520px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+              <div class="mo-title" style="margin-bottom:0" id="bp-titre">Nouvel article</div>
+              <button class="btn btn-sm" onclick="document.getElementById('bp-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+            </div>
+            <input type="hidden" id="bp-id">
+            <div class="fr"><div class="fg"><label data-i18n="bq.nom_article">Nom de l'article</label><input id="bp-nom" placeholder="Ex : Gants de boxe 12 oz" data-i18n-ph="bq.article_ex"></div>
+              <div class="fg"><label data-i18n="bq.categorie">Catégorie</label><input id="bp-cat" list="bp-cats" placeholder="Gants, T-shirt…" data-i18n-ph="bq.categorie_ph"><datalist id="bp-cats"></datalist></div></div>
+            <div class="fr"><div class="fg"><label data-i18n="bq.prix_achat_dh">Prix d'achat (DH)</label><input id="bp-pa" type="number" min="0" step="0.01" placeholder="0"></div>
+              <div class="fg"><label data-i18n="bq.prix_vente_dh">Prix de vente (DH)</label><input id="bp-pv" type="number" min="0" step="0.01" placeholder="0"></div></div>
+            <div class="fr"><div class="fg" id="bp-stock-init-wrap"><label data-i18n="bq.stock_initial">Stock de départ</label><input id="bp-stock" type="number" min="0" step="1" placeholder="0"></div>
+              <div class="fg"><label data-i18n="bq.seuil">Alerte quand le stock atteint</label><input id="bp-seuil" type="number" min="0" step="1" value="2"></div></div>
+            <div class="fg" id="bp-actif-wrap" style="margin-bottom:10px"><label data-i18n="bq.statut">Statut</label><select id="bp-actif"><option value="true" data-i18n="bq.en_vente">En vente</option><option value="false" data-i18n="bq.archive">Archivé (plus proposé à la vente)</option></select></div>
+            <div class="btns"><button class="btn btn-p" onclick="saveProduit()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('bp-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre entrée de stock / inventaire -->
+        <div class="mo" id="bm-modal">
+          <div class="mo-box" style="max-width:460px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+              <div class="mo-title" style="margin-bottom:0" id="bm-titre">Entrée de stock</div>
+              <button class="btn btn-sm" onclick="document.getElementById('bm-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+            </div>
+            <input type="hidden" id="bm-pid"><input type="hidden" id="bm-mode">
+            <div id="bm-article" style="font-size:14px;font-weight:600;margin-bottom:10px"></div>
+            <div class="fr">
+              <div class="fg"><label id="bm-qte-lib">Quantité reçue</label><input id="bm-qte" type="number" min="0" step="1"></div>
+              <div class="fg"><label data-i18n="bq.date">Date</label><input id="bm-date" type="date"></div>
+            </div>
+            <div class="fg" id="bm-prix-wrap" style="margin-bottom:10px"><label data-i18n="bq.prix_achat_u">Prix d'achat unitaire (DH)</label><input id="bm-prix" type="number" min="0" step="0.01">
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:6px;font-weight:400"><input type="checkbox" id="bm-maj-prix" checked> <span data-i18n="bq.maj_prix">Mettre à jour le prix d'achat de l'article</span></label></div>
+            <div class="fg" style="margin-bottom:10px"><label data-i18n="bq.note">Note</label><input id="bm-note" placeholder="Fournisseur, facture…" data-i18n-ph="bq.note_ph"></div>
+            <div id="bm-apercu" style="font-size:12px;color:var(--text2);margin-bottom:10px"></div>
+            <div class="btns"><button class="btn btn-p" onclick="saveMouvement()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('bm-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
+          </div>
         </div>
       </div>
 
@@ -2332,6 +2425,76 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "va.t_produits": "Article boutique",
+    "va.t_stock_mouvements": "Mouvement de stock",
+    "bq.valeur_stock": "Valeur du stock",
+    "bq.a_reappro": "À réapprovisionner",
+    "bq.stock": "Stock",
+    "bq.mouvements": "Mouvements",
+    "bq.quantite": "Quantité",
+    "bq.prix_achat_u": "Prix d'achat unitaire (DH)",
+    "bq.prix_vente_u": "Prix de vente unitaire (DH)",
+    "bq.total": "Total",
+    "bq.qte": "Qté",
+    "bq.catalogue": "Articles en stock",
+    "bq.recherche_article_ph": "Rechercher un article…",
+    "bq.f_tous": "Tous les articles",
+    "bq.f_bas": "À réapprovisionner",
+    "bq.f_rupture": "En rupture",
+    "bq.f_archives": "Archivés",
+    "bq.nouvel_article": "+ Nouvel article",
+    "bq.categorie": "Catégorie",
+    "bq.valeur": "Valeur",
+    "bq.historique_stock": "Historique du stock",
+    "bq.f_tous_types": "Tous les mouvements",
+    "bq.type_Achat": "Achat",
+    "bq.type_Vente": "Vente",
+    "bq.type_Ajustement": "Ajustement",
+    "bq.type_Retour": "Retour",
+    "bq.mvts_note": "Mouvements du mois choisi dans l'onglet Ventes. Les sorties « Vente » se gèrent depuis la vente.",
+    "bq.type": "Type",
+    "bq.prix_unitaire": "Prix unitaire",
+    "bq.note": "Note",
+    "bq.nom_article": "Nom de l'article",
+    "bq.article_ex": "Ex : Gants de boxe 12 oz",
+    "bq.categorie_ph": "Gants, T-shirt…",
+    "bq.stock_initial": "Stock de départ",
+    "bq.seuil": "Alerte quand le stock atteint",
+    "bq.statut": "Statut",
+    "bq.en_vente": "En vente",
+    "bq.archive": "Archivé (plus proposé à la vente)",
+    "bq.qte_recue": "Quantité reçue",
+    "bq.qte_comptee": "Quantité comptée (stock réel)",
+    "bq.maj_prix": "Mettre à jour le prix d'achat de l'article",
+    "bq.note_ph": "Fournisseur, facture…",
+    "bq.rupture": "Rupture",
+    "bq.stock_bas": "Stock bas",
+    "bq.ok": "OK",
+    "bq.hors_catalogue": "hors stock",
+    "bq.hors_catalogue_aide": "Article hors catalogue : pas de suivi de stock",
+    "bq.stock_dispo": "Stock disponible",
+    "bq.insuffisant": "insuffisant",
+    "bq.qte_invalide": "Quantité invalide",
+    "bq.stock_insuffisant": "Stock insuffisant pour",
+    "bq.confirm_hors_catalogue": "« %s » n'est pas dans le stock.\nEnregistrer quand même cette vente, sans suivi de stock ?",
+    "bq.suppr_stock_remis": "Les articles seront remis en stock.",
+    "bq.aucun_filtre": "Aucun article ne correspond",
+    "bq.aucun_article": "Aucun article — ajoutez-les avec « + Nouvel article ».",
+    "bq.entree": "Entrée",
+    "bq.inventaire": "Inventaire",
+    "bq.modifier_article": "Modifier l'article",
+    "bq.nouvel_article_titre": "Nouvel article",
+    "bq.nom_requis": "Nom de l'article obligatoire",
+    "bq.nom_existe": "Un article porte déjà ce nom",
+    "bq.sql_27": "Exécutez d'abord le script SQL 27 (Boutique avec stock) dans Supabase.",
+    "bq.suppr_article_confirm": "Supprimer l'article « %s » ?\nSon historique de stock sera supprimé ; les ventes passées restent enregistrées.\nAstuce : le statut « Archivé » le retire de la vente sans rien effacer.",
+    "bq.entree_titre": "Entrée de stock (achat)",
+    "bq.inventaire_titre": "Inventaire : ajuster le stock",
+    "bq.stock_actuel": "stock actuel",
+    "bq.stock_apres": "Stock après",
+    "bq.rien_a_ajuster": "Le stock est déjà juste",
+    "bq.aucun_mouvement": "Aucun mouvement ce mois-ci",
+    "bq.suppr_mvt_confirm": "Supprimer ce mouvement ? Le stock sera recalculé.",
     "bq.ventes_mois": "Ventes du mois",
     "bq.achats_mois": "Achats du mois",
     "bq.benef_mois": "Bénéfice du mois",
@@ -2341,7 +2504,7 @@ const I18N = {
     "bq.client_ph": "Client de passage",
     "bq.date": "Date",
     "bq.article": "Article",
-    "bq.article_ph": "Ex : Gants de boxe 12 oz",
+    "bq.article_ph": "Choisir un article du stock",
     "bq.prix_achat_dh": "Prix d'achat (DH)",
     "bq.prix_vente_dh": "Prix de vente (DH)",
     "bq.prix_achat": "Prix d'achat",
@@ -2435,7 +2598,7 @@ const I18N = {
     "va.sql_25": "Exécutez d'abord le script SQL 25 (validation des gérants) dans Supabase.",
     'nav.boutique_text': 'Boutique',
     'boutique.title':    'Boutique',
-    'boutique.subtitle': "Ventes d'articles (gants, T-shirts, accessoires…)",
+    'boutique.subtitle': "Ventes d'articles (gants, T-shirts, accessoires…) et gestion du stock",
     'clients.attente':   'En attente de validation',
     'clients.valider':   'Valider',
     'clients.valide_ok': 'Client validé',
@@ -3173,6 +3336,76 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "va.t_produits": "منتج في المتجر",
+    "va.t_stock_mouvements": "حركة مخزون",
+    "bq.valeur_stock": "قيمة المخزون",
+    "bq.a_reappro": "يجب تزويدها",
+    "bq.stock": "المخزون",
+    "bq.mouvements": "الحركات",
+    "bq.quantite": "الكمية",
+    "bq.prix_achat_u": "ثمن الشراء للوحدة (درهم)",
+    "bq.prix_vente_u": "ثمن البيع للوحدة (درهم)",
+    "bq.total": "المجموع",
+    "bq.qte": "الكمية",
+    "bq.catalogue": "المنتجات في المخزون",
+    "bq.recherche_article_ph": "ابحث عن منتج…",
+    "bq.f_tous": "كل المنتجات",
+    "bq.f_bas": "يجب تزويدها",
+    "bq.f_rupture": "نفدت من المخزون",
+    "bq.f_archives": "مؤرشفة",
+    "bq.nouvel_article": "+ منتج جديد",
+    "bq.categorie": "الفئة",
+    "bq.valeur": "القيمة",
+    "bq.historique_stock": "سجل المخزون",
+    "bq.f_tous_types": "كل الحركات",
+    "bq.type_Achat": "شراء",
+    "bq.type_Vente": "بيع",
+    "bq.type_Ajustement": "تسوية",
+    "bq.type_Retour": "إرجاع",
+    "bq.mvts_note": "حركات الشهر المختار في تبويب المبيعات. تُدار مخرجات « البيع » من البيع نفسه.",
+    "bq.type": "النوع",
+    "bq.prix_unitaire": "ثمن الوحدة",
+    "bq.note": "ملاحظة",
+    "bq.nom_article": "اسم المنتج",
+    "bq.article_ex": "مثال : قفازات الملاكمة 12 أونصة",
+    "bq.categorie_ph": "قفازات، قميص…",
+    "bq.stock_initial": "المخزون الأولي",
+    "bq.seuil": "تنبيه عند بلوغ المخزون",
+    "bq.statut": "الحالة",
+    "bq.en_vente": "معروض للبيع",
+    "bq.archive": "مؤرشف (لم يعد معروضاً للبيع)",
+    "bq.qte_recue": "الكمية المستلمة",
+    "bq.qte_comptee": "الكمية المعدودة (المخزون الفعلي)",
+    "bq.maj_prix": "تحديث ثمن شراء المنتج",
+    "bq.note_ph": "المورد، الفاتورة…",
+    "bq.rupture": "نفد",
+    "bq.stock_bas": "مخزون منخفض",
+    "bq.ok": "متوفر",
+    "bq.hors_catalogue": "خارج المخزون",
+    "bq.hors_catalogue_aide": "منتج خارج القائمة : بدون تتبع للمخزون",
+    "bq.stock_dispo": "المخزون المتوفر",
+    "bq.insuffisant": "غير كافٍ",
+    "bq.qte_invalide": "كمية غير صحيحة",
+    "bq.stock_insuffisant": "المخزون غير كافٍ لـ",
+    "bq.confirm_hors_catalogue": "« %s » غير موجود في المخزون.\nتسجيل هذا البيع دون تتبع المخزون ؟",
+    "bq.suppr_stock_remis": "ستُعاد المنتجات إلى المخزون.",
+    "bq.aucun_filtre": "لا يوجد منتج مطابق",
+    "bq.aucun_article": "لا توجد منتجات — أضفها عبر « + منتج جديد ».",
+    "bq.entree": "إدخال",
+    "bq.inventaire": "جرد",
+    "bq.modifier_article": "تعديل المنتج",
+    "bq.nouvel_article_titre": "منتج جديد",
+    "bq.nom_requis": "اسم المنتج إلزامي",
+    "bq.nom_existe": "يوجد منتج بنفس الاسم",
+    "bq.sql_27": "نفّذ أولاً سكريبت SQL رقم 27 (المتجر مع المخزون) في Supabase.",
+    "bq.suppr_article_confirm": "حذف المنتج « %s » ؟\nسيُحذف سجل مخزونه، وتبقى المبيعات السابقة مسجلة.\nنصيحة : الحالة « مؤرشف » تزيله من البيع دون حذف أي شيء.",
+    "bq.entree_titre": "إدخال إلى المخزون (شراء)",
+    "bq.inventaire_titre": "الجرد : تسوية المخزون",
+    "bq.stock_actuel": "المخزون الحالي",
+    "bq.stock_apres": "المخزون بعد",
+    "bq.rien_a_ajuster": "المخزون صحيح",
+    "bq.aucun_mouvement": "لا توجد حركات هذا الشهر",
+    "bq.suppr_mvt_confirm": "حذف هذه الحركة ؟ سيُعاد حساب المخزون.",
     "bq.ventes_mois": "مبيعات الشهر",
     "bq.achats_mois": "مشتريات الشهر",
     "bq.benef_mois": "ربح الشهر",
@@ -3182,7 +3415,7 @@ const I18N = {
     "bq.client_ph": "زبون عابر",
     "bq.date": "التاريخ",
     "bq.article": "المنتج",
-    "bq.article_ph": "مثال : قفازات الملاكمة 12 أونصة",
+    "bq.article_ph": "اختر منتجاً من المخزون",
     "bq.prix_achat_dh": "ثمن الشراء (درهم)",
     "bq.prix_vente_dh": "ثمن البيع (درهم)",
     "bq.prix_achat": "ثمن الشراء",
@@ -3276,7 +3509,7 @@ const I18N = {
     "va.sql_25": "نفّذ أولاً سكريبت SQL رقم 25 (مصادقة المسيرين) في Supabase.",
     'nav.boutique_text': 'المتجر',
     'boutique.title':   'المتجر',
-    'boutique.subtitle':'مبيعات المنتجات (قفازات، قمصان، إكسسوارات…)',
+    'boutique.subtitle':'مبيعات المنتجات (قفازات، قمصان، إكسسوارات…) وتسيير المخزون',
     'clients.attente':  'في انتظار التأكيد',
     'clients.valider':  'تأكيد',
     'clients.valide_ok': 'تم تأكيد العميل',
@@ -3938,7 +4171,7 @@ function toggleLang() {
     else if (pageId === 'coaches') { loadCoaches(); }
     else if (pageId === 'stats') { loadStats(); }
     else if (pageId === 'planning') { renderPlanning(); }
-    else if (pageId === 'boutique') { renderVentes(); document.getElementById('bv-titre').textContent = t(document.getElementById('bv-id').value ? 'bq.modifier' : 'bq.nouvelle'); }
+    else if (pageId === 'boutique') { loadBoutique(); document.getElementById('bv-titre').textContent = t(document.getElementById('bv-id').value ? 'bq.modifier' : 'bq.nouvelle'); }
     else if (pageId === 'associes') { renderAssocies(); }
     else if (pageId === 'validations') { renderValidations(); }
   }
@@ -7440,15 +7673,27 @@ function cocherJours(indices) {
 }
 
 // ════════════════════════════════════════════════════════════
-// BOUTIQUE : ventes simples (client, date, article, prix d'achat, prix de vente) — sans stock
+// BOUTIQUE : ventes + gestion de stock (catalogue, entrées, inventaire, historique)
 // ════════════════════════════════════════════════════════════
-let _bt = { ventes: [], clients: [], articles: {} };
+let _bt = { ventes: [], clients: [], produits: [], mouvements: [], onglet: 'ventes', stockActif: true };
 
 const echapper = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const cleArticle = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 const nomClientVente = v => {
   const c = v.client_id && _bt.clients.find(x => x.id === v.client_id);
   return c ? `${c.prenom} ${c.nom}` : (v.client_nom || '');
 };
+const qteVente = v => parseInt(v.quantite, 10) || 1;
+const produitDe = id => _bt.produits.find(p => p.id === id);
+const etatStock = p => p.stock <= 0 ? ['b-d', t('bq.rupture')] : p.stock <= (p.seuil_alerte ?? 2) ? ['b-w', t('bq.stock_bas')] : ['b-g', t('bq.ok')];
+
+function boutiqueOnglet(o) {
+  _bt.onglet = o;
+  [['ventes', 'bt-ventes'], ['stock', 'bt-stock'], ['mvts', 'bt-mvts']].forEach(([k, id]) => {
+    document.getElementById(id).style.display = k === o ? '' : 'none';
+    document.getElementById('bt-tab-' + k).classList.toggle('on', k === o);
+  });
+}
 
 async function loadBoutique() {
   const moisEl = document.getElementById('bt-mois');
@@ -7456,65 +7701,106 @@ async function loadBoutique() {
   const mois = moisEl.value;
   const [a, m] = mois.split('-').map(Number);
   const suivant = m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, '0')}-01`;
-  const [rv, rc, ra] = await Promise.all([
+  const [rv, rc, rp, rm] = await Promise.all([
     sb.from('ventes').select('*').gte('date_vente', mois + '-01').lt('date_vente', suivant)
       .order('date_vente', { ascending: false }).order('created_at', { ascending: false }),
     fetchAllRows(() => sb.from('clients').select('id,prenom,nom').order('id')),
-    // Derniers prix de chaque article (pour pré-remplir le formulaire)
-    sb.from('ventes').select('article,prix_achat,prix_vente,date_vente').order('date_vente', { ascending: false }).limit(500)
+    sb.from('produits').select('*').order('nom'),
+    sb.from('stock_mouvements').select('*').gte('date_mouvement', mois + '-01').lt('date_mouvement', suivant)
+      .order('date_mouvement', { ascending: false }).order('created_at', { ascending: false })
   ]);
-  const err = rv.error;
+  _bt.stockActif = !rp.error && !rm.error;
+  const err = rv.error || (!_bt.stockActif ? (rp.error || rm.error) : null);
   document.getElementById('al-boutique').innerHTML = err
-    ? `<div class="al al-e">${echapper(/article|prix_vente|relation|does not exist|schema cache/i.test(err.message) ? t('bq.sql_21') : err.message)}</div>` : '';
+    ? `<div class="al al-e">${echapper(/relation|does not exist|schema cache|column/i.test(err.message) ? t('bq.sql_27') : err.message)}</div>` : '';
   _bt.ventes = rv.data || [];
   _bt.clients = (rc.data || []).sort((x, y) => `${x.nom} ${x.prenom}`.localeCompare(`${y.nom} ${y.prenom}`, 'fr'));
-  _bt.articles = {};
-  (ra.data || []).forEach(v => { const k = (v.article || '').trim(); if (k && !_bt.articles[k.toLowerCase()]) _bt.articles[k.toLowerCase()] = v; });
+  _bt.produits = rp.data || [];
+  _bt.mouvements = rm.data || [];
 
-  document.getElementById('bv-form-card').style.display = PERMS.boutique?.ecrire ? '' : 'none';
+  const canW = PERMS.boutique?.ecrire;
+  document.getElementById('bv-form-card').style.display = canW ? '' : 'none';
+  document.getElementById('bp-new').style.display = canW ? '' : 'none';
   if (!document.getElementById('bv-date').value) document.getElementById('bv-date').value = today();
   document.getElementById('bv-clients').innerHTML = _bt.clients.map(c => `<option value="${echapper(c.prenom + ' ' + c.nom)}">`).join('');
-  document.getElementById('bv-articles').innerHTML = Object.values(_bt.articles).map(v => `<option value="${echapper(v.article)}">`).join('');
-  renderVentes();
+  document.getElementById('bv-articles').innerHTML = _bt.produits.filter(p => p.actif !== false)
+    .map(p => `<option value="${echapper(p.nom)}">${echapper(t('bq.stock'))} : ${p.stock}</option>`).join('');
+  document.getElementById('bp-cats').innerHTML = [...new Set(_bt.produits.map(p => p.categorie).filter(Boolean))].map(c => `<option value="${echapper(c)}">`).join('');
+  const selP = document.getElementById('bm-produit'), choisi = selP.value;
+  selP.innerHTML = `<option value="">${t('bq.f_tous')}</option>` + _bt.produits.map(p => `<option value="${p.id}">${echapper(p.nom)}</option>`).join('');
+  selP.value = choisi;
+  renderBoutique();
 }
 
+function renderBoutique() {
+  // Indicateurs
+  const ca = _bt.ventes.reduce((s, v) => s + qteVente(v) * (parseFloat(v.prix_vente) || 0), 0);
+  const benef = _bt.ventes.reduce((s, v) => s + qteVente(v) * ((parseFloat(v.prix_vente) || 0) - (parseFloat(v.prix_achat) || 0)), 0);
+  const actifs = _bt.produits.filter(p => p.actif !== false);
+  const valeur = actifs.reduce((s, p) => s + Math.max(p.stock, 0) * (parseFloat(p.prix_achat) || 0), 0);
+  const bas = actifs.filter(p => p.stock <= (p.seuil_alerte ?? 2)).length;
+  document.getElementById('bt-k-ventes').textContent = fmtDH2(ca);
+  const kb = document.getElementById('bt-k-benef'); kb.textContent = fmtDH2(benef); kb.style.color = benef >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('bt-k-valeur').textContent = fmtDH2(valeur);
+  const kr = document.getElementById('bt-k-bas'); kr.textContent = bas; kr.style.color = bas ? 'var(--red)' : 'var(--green)';
+  renderVentes(); renderProduits(); renderMouvements(); bvArticleConnu(true);
+}
+
+// ── Ventes ───────────────────────────────────────────────────
 function renderVentes() {
   const q = (document.getElementById('bt-q')?.value || '').toLowerCase().trim();
   const liste = _bt.ventes.filter(v => !q || `${nomClientVente(v)} ${v.article || ''}`.toLowerCase().includes(q));
-  const somme = k => _bt.ventes.reduce((s, v) => s + (parseFloat(v[k]) || 0), 0);
-  const ventes = somme('prix_vente'), achats = somme('prix_achat'), benef = ventes - achats;
-  document.getElementById('bt-k-ventes').textContent = fmtDH2(ventes);
-  document.getElementById('bt-k-achats').textContent = fmtDH2(achats);
-  const kb = document.getElementById('bt-k-benef');
-  kb.textContent = fmtDH2(benef); kb.style.color = benef >= 0 ? 'var(--green)' : 'var(--red)';
   const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
   document.getElementById('bv-tb').innerHTML = liste.length ? liste.map(v => {
-    const b = (parseFloat(v.prix_vente) || 0) - (parseFloat(v.prix_achat) || 0);
+    const qte = qteVente(v), pv = parseFloat(v.prix_vente) || 0, b = qte * (pv - (parseFloat(v.prix_achat) || 0));
+    const libre = !v.produit_id ? ` <span class="badge b-i" style="font-size:9px" title="${echapper(t('bq.hors_catalogue_aide'))}">${t('bq.hors_catalogue')}</span>` : '';
     return `<tr><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || `<span style="color:var(--text3)">${t('bq.passage')}</span>`}</td>
-      <td><strong>${echapper(v.article || '—')}</strong></td><td>${fmtDH2(v.prix_achat)}</td><td>${fmtDH2(v.prix_vente)}</td>
+      <td><strong>${echapper(v.article || '—')}</strong>${libre}</td><td>${qte}</td><td>${fmtDH2(pv)}</td><td><strong>${fmtDH2(qte * pv)}</strong></td>
       <td style="font-weight:600;color:${b >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtDH2(b)}</td>
       <td><div style="display:flex;gap:4px">${canW ? `<button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
-  }).join('') : `<tr class="empty-row"><td colspan="7">${t(q ? 'bq.aucune_recherche' : 'bq.aucune_mois')}</td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="8">${t(q ? 'bq.aucune_recherche' : 'bq.aucune_mois')}</td></tr>`;
+}
+
+function bvProduitChoisi() {
+  const k = cleArticle(document.getElementById('bv-article').value);
+  return k ? _bt.produits.find(p => cleArticle(p.nom) === k) : null;
+}
+
+// Stock disponible pour la vente en cours (en modification : + la quantité déjà vendue sur ce même article)
+function bvDisponible(p) {
+  const id = document.getElementById('bv-id').value, v = id && _bt.ventes.find(x => x.id === id);
+  return p.stock + (v && v.produit_id === p.id ? qteVente(v) : 0);
 }
 
 function bvMarge() {
+  const q = parseInt(document.getElementById('bv-qte').value, 10) || 0;
   const a = parseFloat(document.getElementById('bv-achat').value) || 0, v = parseFloat(document.getElementById('bv-vente').value) || 0;
-  const el = document.getElementById('bv-marge');
-  if (!document.getElementById('bv-vente').value) { el.textContent = '—'; el.style.color = ''; return; }
-  el.textContent = fmtDH2(v - a); el.style.color = v - a >= 0 ? 'var(--green)' : 'var(--red)';
+  const tot = document.getElementById('bv-total'), mg = document.getElementById('bv-marge');
+  if (!document.getElementById('bv-vente').value) { tot.textContent = '—'; mg.textContent = '—'; mg.style.color = ''; }
+  else { tot.textContent = fmtDH2(q * v); mg.textContent = fmtDH2(q * (v - a)); mg.style.color = v - a >= 0 ? 'var(--green)' : 'var(--red)'; }
+  bvArticleConnu(true);
 }
 
-// Article déjà vendu : reprend ses derniers prix (modifiables)
-function bvArticleConnu() {
-  const v = _bt.articles[document.getElementById('bv-article').value.trim().toLowerCase()];
-  if (!v || document.getElementById('bv-id').value) return;
-  document.getElementById('bv-achat').value = v.prix_achat ?? '';
-  document.getElementById('bv-vente').value = v.prix_vente ?? '';
+// Article du catalogue : affiche le stock et reprend ses prix (sauf en modification ou si seul l'affichage est rafraîchi)
+function bvArticleConnu(affichageSeul) {
+  const info = document.getElementById('bv-stock-info'); if (!info) return;
+  const saisie = document.getElementById('bv-article').value.trim();
+  const p = bvProduitChoisi();
+  if (!saisie) { info.textContent = ''; return; }
+  if (!p) { info.innerHTML = `<span style="color:var(--text3)">${t('bq.hors_catalogue_aide')}</span>`; return; }
+  const dispo = bvDisponible(p), q = parseInt(document.getElementById('bv-qte').value, 10) || 0;
+  info.innerHTML = q > dispo
+    ? `<span style="color:var(--red);font-weight:600">${t('bq.stock_dispo')} : ${dispo} — ${t('bq.insuffisant')}</span>`
+    : `<span style="color:${dispo <= (p.seuil_alerte ?? 2) ? 'var(--amber-text)' : 'var(--green-text)'}">${t('bq.stock_dispo')} : ${dispo}</span>`;
+  if (affichageSeul === true || document.getElementById('bv-id').value) return;
+  document.getElementById('bv-achat').value = p.prix_achat ?? '';
+  document.getElementById('bv-vente').value = p.prix_vente ?? '';
   bvMarge();
 }
 
 function resetVente() {
   ['bv-id', 'bv-client', 'bv-article', 'bv-achat', 'bv-vente'].forEach(i => { document.getElementById(i).value = ''; });
+  document.getElementById('bv-qte').value = 1;
   document.getElementById('bv-titre').textContent = t('bq.nouvelle');
   document.getElementById('bv-annuler').style.display = 'none';
   bvMarge();
@@ -7525,12 +7811,13 @@ function editVente(id) {
   document.getElementById('bv-id').value = v.id;
   document.getElementById('bv-client').value = nomClientVente(v);
   document.getElementById('bv-date').value = v.date_vente;
-  document.getElementById('bv-article').value = v.article || '';
+  document.getElementById('bv-article').value = (produitDe(v.produit_id)?.nom) || v.article || '';
+  document.getElementById('bv-qte').value = qteVente(v);
   document.getElementById('bv-achat').value = v.prix_achat ?? '';
   document.getElementById('bv-vente').value = v.prix_vente ?? '';
   document.getElementById('bv-titre').textContent = t('bq.modifier');
   document.getElementById('bv-annuler').style.display = '';
-  bvMarge();
+  boutiqueOnglet('ventes'); bvMarge();
   document.getElementById('bv-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -7538,8 +7825,13 @@ async function saveVente() {
   const id = document.getElementById('bv-id').value;
   const article = document.getElementById('bv-article').value.trim();
   const venteTxt = document.getElementById('bv-vente').value;
+  const qte = parseInt(document.getElementById('bv-qte').value, 10);
   if (!article) { showToast(t('bq.article_requis'), 'e'); return; }
+  if (!qte || qte < 1) { showToast(t('bq.qte_invalide'), 'e'); return; }
   if (venteTxt === '' || parseFloat(venteTxt) < 0) { showToast(t('bq.prix_requis'), 'e'); return; }
+  const p = bvProduitChoisi();
+  if (p && qte > bvDisponible(p)) { showToast(`${t('bq.stock_insuffisant')} « ${p.nom} » (${t('bq.stock_dispo')} : ${bvDisponible(p)})`, 'e'); return; }
+  if (!p && _bt.stockActif && !confirm(t('bq.confirm_hors_catalogue').replace('%s', article))) return;
   // Client : rattaché à la fiche si le nom correspond à un client, sinon gardé tel quel (client de passage)
   const nomClient = document.getElementById('bv-client').value.trim();
   const cle = nomClient.toLowerCase().replace(/\s+/g, ' ');
@@ -7548,16 +7840,14 @@ async function saveVente() {
     date_vente: document.getElementById('bv-date').value || today(),
     client_id: client ? client.id : null,
     client_nom: client ? null : (nomClient || null),
-    article,
+    article: p ? p.nom : article,
     prix_achat: parseFloat(document.getElementById('bv-achat').value) || 0,
-    prix_vente: parseFloat(venteTxt) || 0
+    prix_vente: parseFloat(venteTxt) || 0,
+    ...(_bt.stockActif ? { produit_id: p ? p.id : null, quantite: qte } : {})
   };
   const { error } = id ? await sb.from('ventes').update(obj).eq('id', id) : await sb.from('ventes').insert(obj);
-  if (error) {
-    showToast(/article|prix_vente|schema cache/i.test(error.message) ? t('bq.sql_21') : error.message, 'e');
-    return;
-  }
-  await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `${article} — ${fmtDH2(obj.prix_vente)}${nomClient ? ' — ' + nomClient : ''}`);
+  if (error) { showToast(/produit_id|quantite|schema cache|relation/i.test(error.message) ? t('bq.sql_27') : error.message, 'e'); return; }
+  await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `${qte} × ${obj.article} — ${fmtDH2(qte * obj.prix_vente)}${nomClient ? ' — ' + nomClient : ''}`);
   showToast(t(id ? 'bq.modifiee' : 'bq.enregistree'), 's');
   resetVente();
   loadBoutique();
@@ -7565,11 +7855,148 @@ async function saveVente() {
 
 async function delVente(id) {
   const v = _bt.ventes.find(x => x.id === id);
-  if (!confirm(`${t('bq.suppr_confirm')} « ${v?.article || ''} » ?`)) return;
+  if (!confirm(`${t('bq.suppr_confirm')} « ${v?.article || ''} » ?${v?.produit_id ? '\n' + t('bq.suppr_stock_remis') : ''}`)) return;
   const { error } = await sb.from('ventes').delete().eq('id', id);
   if (error) { showToast(error.message, 'e'); return; }
   await logAudit('DELETE', 'boutique', `Vente ${v?.article || id}`);
   if (document.getElementById('bv-id').value === id) resetVente();
+  loadBoutique();
+}
+
+// ── Stock : catalogue ────────────────────────────────────────
+function renderProduits() {
+  const q = cleArticle(document.getElementById('bp-q')?.value);
+  const f = document.getElementById('bp-filtre')?.value || '';
+  const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
+  const liste = _bt.produits.filter(p => (f === 'archives' ? p.actif === false : p.actif !== false)
+    && (!q || cleArticle(`${p.nom} ${p.categorie || ''}`).includes(q))
+    && (f !== 'bas' || p.stock <= (p.seuil_alerte ?? 2)) && (f !== 'rupture' || p.stock <= 0));
+  document.getElementById('bp-tb').innerHTML = liste.length ? liste.map(p => {
+    const [cl, lib] = etatStock(p);
+    return `<tr><td><strong>${echapper(p.nom)}</strong></td><td>${echapper(p.categorie || '—')}</td>
+      <td>${fmtDH2(p.prix_achat)}</td><td>${fmtDH2(p.prix_vente)}</td>
+      <td><span class="badge ${cl}" title="${lib}">${p.stock}</span> <span style="font-size:10px;color:var(--text3)">${lib}</span></td>
+      <td>${fmtDH2(Math.max(p.stock, 0) * (parseFloat(p.prix_achat) || 0))}</td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">${canW ? `<button class="btn btn-sm btn-p" onclick="ouvrirMouvement('${p.id}','Achat')">${t('bq.entree')}</button>
+        <button class="btn btn-sm" onclick="ouvrirMouvement('${p.id}','Ajustement')">${t('bq.inventaire')}</button>
+        <button class="btn btn-sm" onclick="ouvrirProduit('${p.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delProduit('${p.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="7">${t(_bt.produits.length ? 'bq.aucun_filtre' : 'bq.aucun_article')}</td></tr>`;
+}
+
+function ouvrirProduit(id) {
+  const p = id ? produitDe(id) : null;
+  document.getElementById('bp-titre').textContent = t(p ? 'bq.modifier_article' : 'bq.nouvel_article_titre');
+  document.getElementById('bp-id').value = p?.id || '';
+  document.getElementById('bp-nom').value = p?.nom || '';
+  document.getElementById('bp-cat').value = p?.categorie || '';
+  document.getElementById('bp-pa').value = p ? p.prix_achat : '';
+  document.getElementById('bp-pv').value = p ? p.prix_vente : '';
+  document.getElementById('bp-seuil').value = p ? (p.seuil_alerte ?? 2) : 2;
+  document.getElementById('bp-stock').value = '';
+  document.getElementById('bp-stock-init-wrap').style.display = p ? 'none' : '';   // ensuite : Entrée / Inventaire
+  document.getElementById('bp-actif-wrap').style.display = p ? '' : 'none';
+  document.getElementById('bp-actif').value = String(p ? p.actif !== false : true);
+  document.getElementById('bp-modal').classList.add('open');
+}
+
+async function saveProduit() {
+  const id = document.getElementById('bp-id').value;
+  const nom = document.getElementById('bp-nom').value.trim().replace(/\s+/g, ' ');
+  if (!nom) { showToast(t('bq.nom_requis'), 'e'); return; }
+  if (_bt.produits.some(p => p.id !== id && cleArticle(p.nom) === cleArticle(nom))) { showToast(t('bq.nom_existe'), 'e'); return; }
+  const obj = { nom, categorie: document.getElementById('bp-cat').value.trim() || null,
+    prix_achat: parseFloat(document.getElementById('bp-pa').value) || 0, prix_vente: parseFloat(document.getElementById('bp-pv').value) || 0,
+    seuil_alerte: parseInt(document.getElementById('bp-seuil').value, 10) || 0 };
+  if (id) obj.actif = document.getElementById('bp-actif').value === 'true';
+  const { data: saved, error } = id ? await sb.from('produits').update(obj).eq('id', id).select().single()
+    : await sb.from('produits').insert(obj).select().single();
+  if (error) { showToast(/relation|schema cache|column/i.test(error.message) ? t('bq.sql_27') : error.message, 'e'); return; }
+  // Stock de départ : enregistré comme un mouvement (l'historique reste complet)
+  const depart = parseInt(document.getElementById('bp-stock').value, 10) || 0;
+  if (!id && depart > 0) {
+    const { error: e2 } = await sb.from('stock_mouvements').insert({ produit_id: saved.id, type: 'Ajustement', quantite: depart, prix_unitaire: obj.prix_achat, note: t('bq.stock_initial') });
+    if (e2) showToast(e2.message, 'e');
+  }
+  await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `Article ${nom}`);
+  showToast(t('msg.saved'), 's');
+  document.getElementById('bp-modal').classList.remove('open');
+  loadBoutique();
+}
+
+async function delProduit(id) {
+  const p = produitDe(id);
+  if (!confirm(t('bq.suppr_article_confirm').replace('%s', p?.nom || ''))) return;
+  const { error } = await sb.from('produits').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE', 'boutique', `Article ${p?.nom}`);
+  loadBoutique();
+}
+
+// ── Entrée de stock (achat) et inventaire (ajustement) ──────
+function ouvrirMouvement(pid, mode) {
+  const p = produitDe(pid); if (!p) return;
+  document.getElementById('bm-pid').value = pid;
+  document.getElementById('bm-mode').value = mode;
+  document.getElementById('bm-titre').textContent = t(mode === 'Achat' ? 'bq.entree_titre' : 'bq.inventaire_titre');
+  document.getElementById('bm-article').textContent = `${p.nom} — ${t('bq.stock_actuel')} : ${p.stock}`;
+  document.getElementById('bm-qte-lib').textContent = t(mode === 'Achat' ? 'bq.qte_recue' : 'bq.qte_comptee');
+  document.getElementById('bm-qte').value = mode === 'Achat' ? '' : p.stock;
+  document.getElementById('bm-date').value = today();
+  document.getElementById('bm-prix').value = p.prix_achat ?? '';
+  document.getElementById('bm-prix-wrap').style.display = mode === 'Achat' ? '' : 'none';
+  document.getElementById('bm-note').value = '';
+  const maj = () => {
+    const n = parseInt(document.getElementById('bm-qte').value, 10);
+    const ap = document.getElementById('bm-apercu');
+    if (isNaN(n)) { ap.textContent = ''; return; }
+    const apres = mode === 'Achat' ? p.stock + n : n;
+    ap.textContent = `${t('bq.stock_apres')} : ${apres}${mode === 'Ajustement' ? ` (${apres - p.stock >= 0 ? '+' : ''}${apres - p.stock})` : ''}`;
+  };
+  document.getElementById('bm-qte').oninput = maj; maj();
+  document.getElementById('bm-modal').classList.add('open');
+}
+
+async function saveMouvement() {
+  const pid = document.getElementById('bm-pid').value, mode = document.getElementById('bm-mode').value, p = produitDe(pid);
+  const n = parseInt(document.getElementById('bm-qte').value, 10);
+  if (isNaN(n) || n < 0 || (mode === 'Achat' && n === 0)) { showToast(t('bq.qte_invalide'), 'e'); return; }
+  const quantite = mode === 'Achat' ? n : n - p.stock;
+  if (!quantite) { showToast(t('bq.rien_a_ajuster'), 's'); document.getElementById('bm-modal').classList.remove('open'); return; }
+  const prix = parseFloat(document.getElementById('bm-prix').value) || 0;
+  const { error } = await sb.from('stock_mouvements').insert({ produit_id: pid, type: mode, quantite,
+    prix_unitaire: mode === 'Achat' ? prix : (parseFloat(p.prix_achat) || 0),
+    date_mouvement: document.getElementById('bm-date').value || today(), note: document.getElementById('bm-note').value.trim() || null });
+  if (error) { showToast(error.message, 'e'); return; }
+  if (mode === 'Achat' && document.getElementById('bm-maj-prix').checked && prix && prix !== parseFloat(p.prix_achat)) {
+    await sb.from('produits').update({ prix_achat: prix }).eq('id', pid);
+  }
+  await logAudit('CREATE', 'boutique', `${mode === 'Achat' ? 'Entrée' : 'Inventaire'} ${p.nom} : ${quantite > 0 ? '+' : ''}${quantite}`);
+  showToast(t('msg.saved'), 's');
+  document.getElementById('bm-modal').classList.remove('open');
+  loadBoutique();
+}
+
+// ── Historique des mouvements ────────────────────────────────
+function renderMouvements() {
+  const fp = document.getElementById('bm-produit')?.value || '', ft = document.getElementById('bm-type')?.value || '';
+  const canD = PERMS.boutique?.supprimer;
+  const liste = _bt.mouvements.filter(m => (!fp || m.produit_id === fp) && (!ft || m.type === ft));
+  const cls = { Achat: 'b-g', Vente: 'b-i', Ajustement: 'b-w', Retour: 'b-g' };
+  document.getElementById('bm-tb').innerHTML = liste.length ? liste.map(m => `<tr>
+      <td>${dateCourte(m.date_mouvement)}</td><td><strong>${echapper(produitDe(m.produit_id)?.nom || '—')}</strong></td>
+      <td><span class="badge ${cls[m.type] || 'b-i'}">${t('bq.type_' + m.type)}</span></td>
+      <td style="font-weight:700;color:${m.quantite > 0 ? 'var(--green)' : 'var(--red)'}" dir="ltr">${m.quantite > 0 ? '+' : ''}${m.quantite}</td>
+      <td>${fmtDH2(m.prix_unitaire)}</td><td style="font-size:12px;color:var(--text2)">${echapper(m.note || '')}</td>
+      <td>${canD && !m.vente_id ? `<button class="btn btn-sm btn-d" onclick="delMouvement('${m.id}')">${t('msg.suppr')}</button>` : ''}</td></tr>`).join('')
+    : `<tr class="empty-row"><td colspan="7">${t('bq.aucun_mouvement')}</td></tr>`;
+}
+
+async function delMouvement(id) {
+  const m = _bt.mouvements.find(x => x.id === id);
+  if (!confirm(t('bq.suppr_mvt_confirm'))) return;
+  const { error } = await sb.from('stock_mouvements').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE', 'boutique', `Mouvement ${m?.type} ${produitDe(m?.produit_id)?.nom || ''} ${m?.quantite}`);
   loadBoutique();
 }
 
@@ -7732,7 +8159,8 @@ const VA_CHAMPS = { prenom: 'Prénom', nom: 'Nom', telephone: 'Téléphone', tel
   tarif_mensuel: 'Tarif mensuel', tarif_trimestriel: 'Tarif trimestriel', tarif_semestriel: 'Tarif semestriel', tarif_annuel: 'Tarif annuel',
   tarif_inscription: "Tarif d'inscription", article: 'Article', prix_achat: "Prix d'achat", prix_vente: 'Prix de vente', date_vente: 'Date',
   valeur: 'Valeur', cle: 'Paramètre', module: 'Module', peut_lire: 'Lecture', peut_ecrire: 'Écriture', peut_supprimer: 'Suppression', parts: 'Parts', actif: 'Actif',
-  photo_url: 'Photo', cin_recto_url: 'CIN (recto)', cin_verso_url: 'CIN (verso)', montant_semaine: 'Montant / semaine', nb_groupes: 'Nb de groupes', montant_groupe: 'Montant / groupe', date_embauche: "Date d'embauche" };
+  photo_url: 'Photo', cin_recto_url: 'CIN (recto)', cin_verso_url: 'CIN (verso)', montant_semaine: 'Montant / semaine', nb_groupes: 'Nb de groupes', montant_groupe: 'Montant / groupe', date_embauche: "Date d'embauche",
+  stock: 'Stock', seuil_alerte: "Seuil d'alerte", quantite: 'Quantité', prix_unitaire: 'Prix unitaire', date_mouvement: 'Date', produit_id: 'Article' };
 const VA_CHAMPS_AR = { prenom: 'الاسم الشخصي', nom: 'الاسم العائلي', telephone: 'الهاتف', telephone2: 'الهاتف 2', email: 'البريد الإلكتروني', cin: 'البطاقة الوطنية',
   date_naissance: 'تاريخ الازدياد', date_inscription: 'تاريخ التسجيل', sports: 'الرياضات', sport: 'الرياضة', statut: 'الحالة', sexe: 'الجنس',
   numero_adherent: 'رقم المنخرط', montant: 'المبلغ', type: 'النوع', mode: 'طريقة الأداء', date_paiement: 'تاريخ الأداء', note: 'ملاحظة',
@@ -7742,9 +8170,10 @@ const VA_CHAMPS_AR = { prenom: 'الاسم الشخصي', nom: 'الاسم ال�
   tarif_mensuel: 'التعريفة الشهرية', tarif_trimestriel: 'تعريفة 3 أشهر', tarif_semestriel: 'تعريفة 6 أشهر', tarif_annuel: 'التعريفة السنوية',
   tarif_inscription: 'رسوم التسجيل', article: 'المنتج', prix_achat: 'ثمن الشراء', prix_vente: 'ثمن البيع', date_vente: 'التاريخ',
   valeur: 'القيمة', cle: 'الإعداد', module: 'الوحدة', peut_lire: 'القراءة', peut_ecrire: 'الكتابة', peut_supprimer: 'الحذف', parts: 'الحصص', actif: 'نشط',
-  photo_url: 'الصورة', cin_recto_url: 'البطاقة (الوجه)', cin_verso_url: 'البطاقة (الظهر)', montant_semaine: 'المبلغ / أسبوع', nb_groupes: 'عدد المجموعات', montant_groupe: 'المبلغ / مجموعة', date_embauche: 'تاريخ التشغيل' };
+  photo_url: 'الصورة', cin_recto_url: 'البطاقة (الوجه)', cin_verso_url: 'البطاقة (الظهر)', montant_semaine: 'المبلغ / أسبوع', nb_groupes: 'عدد المجموعات', montant_groupe: 'المبلغ / مجموعة', date_embauche: 'تاريخ التشغيل',
+  stock: 'المخزون', seuil_alerte: 'حد التنبيه', quantite: 'الكمية', prix_unitaire: 'ثمن الوحدة', date_mouvement: 'التاريخ', produit_id: 'المنتج' };
 const vaChamp = k => (LANG === 'ar' && VA_CHAMPS_AR[k]) || VA_CHAMPS[k] || k;
-const VA_CACHES = new Set(['id', 'updated_at', 'created_at', 'created_by', 'transaction_id', 'user_id', 'detail', 'client_nom']);
+const VA_CACHES = new Set(['id', 'updated_at', 'created_at', 'created_by', 'transaction_id', 'user_id', 'detail', 'client_nom', 'vente_id']);
 let _va = { mods: [], noms: {} };
 
 // Compteur de la cloche et du menu (super admin)
@@ -7767,12 +8196,15 @@ async function loadValidations() {
   _va.mods = data || [];
   // Noms des clients et salariés cités (paiements, salaires…)
   const ids = (k) => [...new Set(_va.mods.flatMap(m => [m.avant?.[k], m.apres?.[k]]).filter(Boolean))];
-  const [rc, re] = await Promise.all([
+  const [rc, re, rp] = await Promise.all([
     ids('client_id').length ? sb.from('clients').select('id,prenom,nom').in('id', ids('client_id')) : { data: [] },
-    ids('employe_id').length ? sb.from('employes').select('id,prenom,nom').in('id', ids('employe_id')) : { data: [] }
+    ids('employe_id').length ? sb.from('employes').select('id,prenom,nom').in('id', ids('employe_id')) : { data: [] },
+    ids('produit_id').length ? sb.from('produits').select('id,nom').in('id', ids('produit_id')) : { data: [] }
   ]);
   _va.noms = {};
   [...(rc.data || []), ...(re.data || [])].forEach(x => { _va.noms[x.id] = `${x.prenom} ${x.nom}`; });
+  (rp.data || []).forEach(x => { _va.noms[x.id] = x.nom; });
+  _va.mods.forEach(m => { if (m.table_nom === 'produits' && (m.avant || m.apres)) _va.noms[(m.avant || m.apres).id] ??= (m.avant || m.apres).nom; });
   // Les clients supprimés : leur nom est dans l'enregistrement « avant »
   _va.mods.forEach(m => { if (m.table_nom === 'clients' && m.avant) _va.noms[m.avant.id] ??= `${m.avant.prenom} ${m.avant.nom}`; });
   renderValidations();
@@ -7793,7 +8225,8 @@ function groupesValidations(mods) {
 
 function vaValeur(k, v) {
   if (v === null || v === undefined || v === '') return '<span style="color:var(--text3)">—</span>';
-  if ((k === 'client_id' || k === 'employe_id') && _va.noms[v]) return echapper(_va.noms[v]);
+  if ((k === 'client_id' || k === 'employe_id' || k === 'produit_id') && _va.noms[v]) return echapper(_va.noms[v]);
+  if (k === 'type' && ['Achat', 'Vente', 'Ajustement', 'Retour'].includes(v)) return t('bq.type_' + v);
   if (k === 'coaches_ids' && Array.isArray(v)) return echapper(v.map(id => _va.noms[id] || id).join(', ') || '—');
   if (Array.isArray(v)) return echapper(v.join(', ')) || '—';
   if (typeof v === 'boolean') return t(v ? 'va.oui' : 'va.non');
@@ -7817,6 +8250,8 @@ function vaResume(m) {
     case 'ventes': return `${r.article || ''} — ${fmtDH2(r.prix_vente)}`;
     case 'parametres': return `${r.cle} = ${r.valeur}`;
     case 'habilitations': return r.module || '';
+    case 'produits': return `${r.nom || ''} — ${fmtDH2(r.prix_vente)}`;
+    case 'stock_mouvements': return `${t('bq.type_' + r.type)} ${r.quantite > 0 ? '+' : ''}${r.quantite} — ${nom(r.produit_id)}`;
     default: return m.ligne_id || '';
   }
 }

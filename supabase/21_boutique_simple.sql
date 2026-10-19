@@ -2,7 +2,7 @@
 -- 21 — Boutique simplifiée : une vente = client, date, article, prix d'achat, prix de vente
 --   • Pas de gestion de stock
 --   • Fonctionne que le script 20 ait été exécuté ou non
---   • Les tables de stock du script 20 (produits, tailles, lignes) sont supprimées
+--   • Les tables de stock du script 20 (tailles, lignes) sont supprimées
 --     UNIQUEMENT si elles sont vides (aucune donnée perdue)
 -- À exécuter une fois dans Supabase : SQL Editor → New query → Run
 -- ════════════════════════════════════════════════════════════════
@@ -33,18 +33,20 @@ CREATE POLICY "ventes_delete" ON public.ventes FOR DELETE USING (public.has_perm
 
 -- ── Nettoyage du système de stock (script 20), seulement s'il n'a pas servi ─
 DO $$
+DECLARE v_vides BOOLEAN;
 BEGIN
-  IF to_regclass('public.vente_lignes') IS NOT NULL
-     AND NOT EXISTS (SELECT 1 FROM public.vente_lignes)
-     AND NOT EXISTS (SELECT 1 FROM public.produit_variantes)
-     AND NOT EXISTS (SELECT 1 FROM public.produits) THEN
-    DROP TABLE public.vente_lignes;
-    DROP TABLE public.produit_variantes;
-    DROP TABLE public.produits;
-    DROP FUNCTION IF EXISTS public.maj_stock_vente();
-    RAISE NOTICE 'Tables de stock vides : supprimées.';
-  ELSIF to_regclass('public.vente_lignes') IS NOT NULL THEN
-    RAISE NOTICE 'Tables de stock conservées (elles contiennent des données).';
+  IF to_regclass('public.vente_lignes') IS NOT NULL THEN
+    -- Requête dynamique : ces tables n'existent que si le script 20 a été exécuté
+    EXECUTE 'SELECT NOT EXISTS (SELECT 1 FROM public.vente_lignes) AND NOT EXISTS (SELECT 1 FROM public.produit_variantes)'
+      INTO v_vides;
+    IF v_vides THEN
+      EXECUTE 'DROP TABLE public.vente_lignes';
+      EXECUTE 'DROP TABLE public.produit_variantes';
+      DROP FUNCTION IF EXISTS public.maj_stock_vente();
+      RAISE NOTICE 'Tables de stock du script 20 vides : supprimées.';
+    ELSE
+      RAISE NOTICE 'Tables de stock du script 20 conservées (elles contiennent des données).';
+    END IF;
   END IF;
 END $$;
 
