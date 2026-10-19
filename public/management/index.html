@@ -892,6 +892,10 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             <span data-i18n="nav.stats_text">Statistiques</span>
           </button>
+          <button class="nav" data-page="associes" onclick="nav('associes',this)">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span data-i18n="nav.associes_text">Associés</span>
+          </button>
         </div>
       </div>
 
@@ -1386,6 +1390,44 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             </div>
           </div>
           <table><thead><tr><th>Date</th><th>Client</th><th>Article</th><th>Prix d'achat</th><th>Prix de vente</th><th>Bénéfice</th><th>Actions</th></tr></thead><tbody id="bv-tb"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ASSOCIÉS -->
+      <div id="page-associes" class="page">
+        <p class="ptitle" data-i18n="associes.title">Associés</p>
+        <p class="psubtitle" data-i18n="associes.subtitle">Part de chaque associé sur le bénéfice du mois</p>
+        <div id="al-associes"></div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+            <div class="ct" style="margin:0">Associés</div>
+            <button class="btn btn-p" id="as-new" onclick="ouvrirAssocie()">+ Nouvel associé</button>
+          </div>
+          <div id="as-liste"></div>
+          <div id="as-total" style="margin-top:10px"></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.5rem">
+            <div class="ct" style="margin:0">Répartition du bénéfice</div>
+            <div class="toolbar" style="margin:0"><select id="as-annee" onchange="loadAssocies()"></select></div>
+          </div>
+          <p style="font-size:11px;color:var(--text3);margin-bottom:10px">Bénéfice du mois = entrées encaissées − charges − salaires (même calcul que le récapitulatif entrées / sorties). Une perte est répartie de la même façon.</p>
+          <div class="sg" id="as-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+          <div style="overflow-x:auto"><table id="as-table"></table></div>
+        </div>
+
+        <div class="mo" id="associe-modal">
+          <div class="mo-box" style="max-width:460px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+              <div class="mo-title" style="margin-bottom:0" id="as-titre">Nouvel associé</div>
+              <button class="btn btn-sm" onclick="document.getElementById('associe-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+            </div>
+            <input type="hidden" id="as-id">
+            <div class="fr"><div class="fg"><label>Prénom</label><input id="as-prenom"></div><div class="fg"><label>Nom</label><input id="as-nom"></div></div>
+            <div class="fr"><div class="fg"><label>Pourcentage du bénéfice (%)</label><input id="as-pct" type="number" min="0" max="100" step="0.01" placeholder="Ex : 50"></div>
+              <div class="fg"><label>Statut</label><select id="as-actif"><option value="true">Actif</option><option value="false">Inactif</option></select></div></div>
+            <div class="btns"><button class="btn btn-p" onclick="saveAssocie()">Enregistrer</button><button class="btn" onclick="document.getElementById('associe-modal').classList.remove('open')">Annuler</button></div>
+          </div>
         </div>
       </div>
 
@@ -1991,13 +2033,13 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // ── État global ─────────────────────────────────────────────
 let ME = null;      // utilisateur connecté
 let PERMS = {};     // habilitations
-const MODULES = ['dashboard','clients','paiements','sports','charges','coaches','presence','salaires','planning','boutique','stats','utilisateurs'];
+const MODULES = ['dashboard','clients','paiements','sports','charges','coaches','presence','salaires','planning','boutique','stats','associes','utilisateurs'];
 function getModuleLabels() {
   return {
     dashboard:t('nav.dashboard_text'), clients:t('nav.clients_text'), paiements:t('nav.paiements_text'),
     sports:t('nav.sports_text'), charges:t('nav.charges_text'), coaches:t('nav.coaches_text'),
     presence:t('nav.presence_text'), salaires:t('nav.salaires_text'),
-    planning:t('nav.planning_text'), boutique:t('nav.boutique_text'), stats:t('nav.stats_text'), utilisateurs:t('nav.utilisateurs_text')
+    planning:t('nav.planning_text'), boutique:t('nav.boutique_text'), stats:t('nav.stats_text'), associes:t('nav.associes_text'), utilisateurs:t('nav.utilisateurs_text')
   };
 }
 function getRoleLabels() {
@@ -2008,7 +2050,7 @@ let MODULE_LABELS = {
   dashboard:'Tableau de bord', clients:'Clients', paiements:'Paiements',
   sports:'Sports & Tarifs', charges:'Charges', coaches:'Coaches & Salariés',
   presence:'Présence & Absences', salaires:'Paiement des salaires',
-  planning:'Planning', boutique:'Boutique', stats:'Statistiques', utilisateurs:'Utilisateurs'
+  planning:'Planning', boutique:'Boutique', stats:'Statistiques', associes:'Associés', utilisateurs:'Utilisateurs'
 };
 let ROLE_LABELS = {super_admin:'Super Admin', gerant:'Gérant', receptionniste:'Réceptionniste', employe:'Employé'};
 
@@ -2194,6 +2236,9 @@ const I18N = {
     'nav.finances_text': 'Finances',
     'nav.charges_text':  'Charges',
     'nav.stats_text':    'Statistiques',
+    'nav.associes_text': 'Associés',
+    'associes.title':    'Associés',
+    'associes.subtitle': 'Part de chaque associé sur le bénéfice du mois',
     'nav.admin_text':    'Administration',
     'nav.utilisateurs_text':'Utilisateurs',
     // Topbar / Login
@@ -2925,6 +2970,9 @@ const I18N = {
     'nav.finances_text': 'المالية',
     'nav.charges_text':  'المصاريف',
     'nav.stats_text':    'الإحصاءات',
+    'nav.associes_text': 'الشركاء',
+    'associes.title':    'الشركاء',
+    'associes.subtitle': 'حصة كل شريك من ربح الشهر',
     'nav.admin_text':    'الإدارة',
     'nav.utilisateurs_text':'المستخدمون',
     // Topbar / Login
@@ -3727,7 +3775,7 @@ function applyLang() {
     'page-paiements':'paie.title','page-sports':'sports.title',
     'page-charges':'charges.title','page-coaches':'coaches.title',
     'page-presence':'presence.title',
-    'page-planning':'planning.title','page-boutique':'boutique.title','page-stats':'stats.title',
+    'page-planning':'planning.title','page-boutique':'boutique.title','page-stats':'stats.title','page-associes':'associes.title',
     'page-utilisateurs':'users.title'
   };
   Object.entries(pMap).forEach(([id,k]) => {
@@ -4049,7 +4097,7 @@ const PAGE_GROUP = {
   clients:'membres', paiements:'membres',
   sports:'activites', planning:'activites', boutique:'activites',
   coaches:'rh', presence:'rh', salaires:'rh',
-  charges:'finances', stats:'finances',
+  charges:'finances', stats:'finances', associes:'finances',
   utilisateurs:'admin'
 };
 
@@ -4103,6 +4151,7 @@ function nav(page, btn) {
   if (page==='planning')    { loadSportsForSelect('pl-sport'); loadCoachesForPlanningSelect(); loadPlanning(); }
   if (page==='boutique')    loadBoutique();
   if (page==='stats')       loadStats();
+  if (page==='associes')    loadAssocies();
   if (page==='utilisateurs') { loadUsers(); if(ME.role==='super_admin') loadAudit(); else document.getElementById('audit-card').style.display='none'; }
 
   // Re-applique la langue sur les éléments statiques de la page
@@ -7251,6 +7300,124 @@ async function delVente(id) {
   loadBoutique();
 }
 
+// ════════════════════════════════════════════════════════════
+// ASSOCIÉS : pourcentage du bénéfice mensuel (calcul seulement)
+// ════════════════════════════════════════════════════════════
+let _assoc = { liste: [], bilan: null };
+
+async function loadAssocies() {
+  const selAn = document.getElementById('as-annee');
+  const anCourant = new Date().getFullYear();
+  if (!selAn.options.length) selAn.innerHTML = Array.from({ length: 4 }, (_, i) => anCourant - i).map(a => `<option value="${a}">${a}</option>`).join('');
+  const an = selAn.value || String(anCourant);
+  const [ra, bilan] = await Promise.all([
+    sb.from('associes').select('*').order('nom'),
+    bilanAnnee(an)
+  ]);
+  document.getElementById('al-associes').innerHTML = ra.error
+    ? `<div class="al al-e">${/associes|relation|does not exist|schema cache/i.test(ra.error.message) ? "Exécutez d'abord le script SQL 22 (Associés) dans Supabase." : ra.error.message}</div>` : '';
+  _assoc.liste = ra.data || [];
+  _assoc.bilan = bilan;
+  renderAssocies();
+}
+
+function renderAssocies() {
+  const canW = PERMS.associes?.ecrire, canD = PERMS.associes?.supprimer;
+  document.getElementById('as-new').style.display = canW ? '' : 'none';
+  const liste = _assoc.liste;
+  document.getElementById('as-liste').innerHTML = liste.length ? liste.map(a => `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px">${renderAvatar(null, a.prenom + ' ' + a.nom, 36)}
+        <div><strong>${a.prenom} ${a.nom}</strong> ${a.actif ? '' : '<span class="badge b-w" style="font-size:10px">Inactif</span>'}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px;font-weight:800;font-variant-numeric:tabular-nums">${parseFloat(a.pourcentage)} %</span>
+        ${canW ? `<button class="btn btn-sm" onclick="ouvrirAssocie('${a.id}')">${t('common.modifier')}</button>` : ''}
+        ${canD ? `<button class="btn btn-sm btn-d" onclick="delAssocie('${a.id}')">${t('msg.suppr')}</button>` : ''}
+      </div></div>`).join('')
+    : '<div style="font-size:13px;color:var(--text3);padding:8px 0">Aucun associé — ajoutez-les avec « + Nouvel associé ».</div>';
+
+  // Contrôle du total des pourcentages (associés actifs)
+  const actifs = liste.filter(a => a.actif);
+  const totalPct = Math.round(actifs.reduce((s, a) => s + (parseFloat(a.pourcentage) || 0), 0) * 100) / 100;
+  const zt = document.getElementById('as-total');
+  zt.innerHTML = !actifs.length ? '' : totalPct > 100
+    ? `<div class="al al-e" style="margin:0">Total des pourcentages : <strong>${totalPct} %</strong> — dépasse 100 %.</div>`
+    : totalPct < 100
+      ? `<div class="al al-i" style="margin:0">Total des pourcentages : <strong>${totalPct} %</strong> — ${Math.round((100 - totalPct) * 100) / 100} % du bénéfice reste à l'association.</div>`
+      : `<div class="al al-s" style="margin:0">Total des pourcentages : <strong>100 %</strong> — tout le bénéfice est réparti.</div>`;
+
+  // Tableau mensuel : bénéfice et part de chaque associé actif
+  const b = _assoc.bilan; if (!b) return;
+  const moisCourant = thisMonth();
+  const futur = m => m > moisCourant;
+  const part = (benef, a) => Math.round(benef * (parseFloat(a.pourcentage) || 0)) / 100;
+  const cl = v => v < 0 ? 'color:var(--red)' : v > 0 ? 'color:var(--green)' : 'color:var(--text3)';
+  const nomMois = m => new Date(m + '-01T12:00:00').toLocaleDateString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { month: 'long' });
+  const lignesEchues = b.lignes.filter(l => !futur(l.mois));
+  const benefAn = lignesEchues.reduce((s, l) => s + l.solde, 0);
+  const benefMois = (b.lignes.find(l => l.mois === moisCourant) || {}).solde;
+  document.getElementById('as-kpis').innerHTML = `
+    <div class="sc"><div class="sc-label">Bénéfice ${b.an}</div><div class="sc-val" style="${cl(benefAn)}">${fmtDH2(benefAn)}</div></div>
+    <div class="sc"><div class="sc-label">Bénéfice du mois en cours</div><div class="sc-val" style="${cl(benefMois || 0)}">${benefMois === undefined ? '—' : fmtDH2(benefMois)}</div></div>
+    <div class="sc"><div class="sc-label">Part des associés ${b.an}</div><div class="sc-val">${fmtDH2(actifs.reduce((s, a) => s + lignesEchues.reduce((x, l) => x + part(l.solde, a), 0), 0))}</div></div>`;
+  const tete = `<thead><tr><th>Mois</th><th>Entrées</th><th>Sorties</th><th>Bénéfice</th>${actifs.map(a => `<th>${a.prenom} ${a.nom} (${parseFloat(a.pourcentage)} %)</th>`).join('')}</tr></thead>`;
+  // Mois affichés : passés ou en cours, avec au moins une entrée ou une sortie (le mois en cours est toujours affiché)
+  const visibles = lignesEchues.filter(l => l.entrees || l.sorties || l.mois === moisCourant);
+  const corps = !visibles.length
+    ? `<tr class="empty-row"><td colspan="${4 + actifs.length}">Aucun mouvement en ${b.an}</td></tr>`
+    : visibles.map(l => `<tr${l.mois === moisCourant ? ' style="background:var(--blue-light)"' : ''}><td style="text-transform:capitalize;font-weight:600">${nomMois(l.mois)}</td>
+        <td style="color:var(--green-text)">${fmtDH2(l.entrees)}</td><td style="color:var(--red-text)">${fmtDH2(l.sorties)}</td>
+        <td style="font-weight:700;${cl(l.solde)}">${fmtDH2(l.solde)}</td>
+        ${actifs.map(a => { const v = part(l.solde, a); return `<td style="font-weight:600;${cl(v)}">${fmtDH2(v)}</td>`; }).join('')}</tr>`).join('');
+  const tot = `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">Total ${b.an}</td>
+    <td style="font-weight:700;color:var(--green-text)">${fmtDH2(lignesEchues.reduce((s, l) => s + l.entrees, 0))}</td>
+    <td style="font-weight:700;color:var(--red-text)">${fmtDH2(lignesEchues.reduce((s, l) => s + l.sorties, 0))}</td>
+    <td style="font-weight:800;${cl(benefAn)}">${fmtDH2(benefAn)}</td>
+    ${actifs.map(a => { const v = lignesEchues.reduce((s, l) => s + part(l.solde, a), 0); return `<td style="font-weight:800;${cl(v)}">${fmtDH2(v)}</td>`; }).join('')}</tr>`;
+  document.getElementById('as-table').innerHTML = tete + '<tbody>' + corps + tot + '</tbody>';
+}
+
+function ouvrirAssocie(id) {
+  const a = id ? _assoc.liste.find(x => x.id === id) : null;
+  document.getElementById('as-titre').textContent = a ? "Modifier l'associé" : 'Nouvel associé';
+  document.getElementById('as-id').value = a?.id || '';
+  document.getElementById('as-prenom').value = a?.prenom || '';
+  document.getElementById('as-nom').value = a?.nom || '';
+  document.getElementById('as-pct').value = a ? parseFloat(a.pourcentage) : '';
+  document.getElementById('as-actif').value = a ? String(a.actif) : 'true';
+  document.getElementById('associe-modal').classList.add('open');
+}
+
+async function saveAssocie() {
+  const id = document.getElementById('as-id').value;
+  const obj = {
+    prenom: formatPrenom(document.getElementById('as-prenom').value),
+    nom: formatNom(document.getElementById('as-nom').value),
+    pourcentage: parseFloat(document.getElementById('as-pct').value),
+    actif: document.getElementById('as-actif').value === 'true'
+  };
+  if (!obj.prenom || !obj.nom) { showToast('Prénom et nom obligatoires', 'e'); return; }
+  if (isNaN(obj.pourcentage) || obj.pourcentage < 0 || obj.pourcentage > 100) { showToast('Pourcentage entre 0 et 100', 'e'); return; }
+  const autres = _assoc.liste.filter(a => a.actif && a.id !== id).reduce((s, a) => s + (parseFloat(a.pourcentage) || 0), 0);
+  if (obj.actif && autres + obj.pourcentage > 100.001
+      && !confirm(`Le total des pourcentages atteindrait ${Math.round((autres + obj.pourcentage) * 100) / 100} % (plus de 100 %). Enregistrer quand même ?`)) return;
+  const { error } = id ? await sb.from('associes').update(obj).eq('id', id) : await sb.from('associes').insert(obj);
+  if (error) { showToast(/associes|schema cache/i.test(error.message) ? "Exécutez d'abord le script SQL 22 (Associés) dans Supabase." : error.message, 'e'); return; }
+  await logAudit(id ? 'UPDATE' : 'CREATE', 'associes', `${obj.prenom} ${obj.nom} — ${obj.pourcentage} %`);
+  showToast(t('msg.saved'), 's');
+  document.getElementById('associe-modal').classList.remove('open');
+  loadAssocies();
+}
+
+async function delAssocie(id) {
+  const a = _assoc.liste.find(x => x.id === id);
+  if (!confirm(`Supprimer l'associé ${a?.prenom || ''} ${a?.nom || ''} ?`)) return;
+  const { error } = await sb.from('associes').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE', 'associes', `${a?.prenom} ${a?.nom}`);
+  loadAssocies();
+}
+
 function basculerEquipe() {
   const l = document.getElementById('coaches-list'), o = l.style.display === 'none';
   l.style.display = o ? '' : 'none';
@@ -7369,6 +7536,12 @@ async function openBilanMensuel() {
 
 async function chargerBilan() {
   const an = document.getElementById('bilan-annee').value || String(new Date().getFullYear());
+  _bilan = await bilanAnnee(an);
+  afficherBilan();
+}
+
+// Entrées / sorties de chaque mois d'une année (récapitulatif, page Associés)
+async function bilanAnnee(an) {
   const [{ data: paies }, { data: charges }, { data: salaires }] = await Promise.all([
     fetchAllRows(() => sb.from('paiements').select('montant,date_paiement,type').gte('date_paiement', `${an}-01-01`).lte('date_paiement', `${an}-12-31`).order('id')),
     fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie').gte('date_charge', `${an}-01-01`).lte('date_charge', `${an}-12-31`).order('id')),
@@ -7409,8 +7582,7 @@ async function chargerBilan() {
   });
   const somme = k => lignes.reduce((a, l) => a + l[k], 0);
   const total = { mois: 'Total', ...Object.fromEntries(['abonnements','inscriptions','assurances','autres_entrees','entrees','charges','salaires','sorties','solde'].map(k => [k, somme(k)])), cumul };
-  _bilan = { an, lignes, total, parCategorie };
-  afficherBilan();
+  return { an, lignes, total, parCategorie };
 }
 
 const BILAN_COLS = [
@@ -7744,9 +7916,9 @@ async function toggleUser(id, actif) {
 // ─── Modal utilisateur ────────────────────────────────────
 const PERM_PRESETS = {
   super_admin: {},
-  gerant:      { dashboard:{l:1,e:1,s:0}, clients:{l:1,e:1,s:1}, paiements:{l:1,e:1,s:1}, sports:{l:1,e:1,s:0}, charges:{l:1,e:1,s:0}, coaches:{l:1,e:1,s:0}, salaires:{l:1,e:1,s:0}, planning:{l:1,e:1,s:1}, boutique:{l:1,e:1,s:0}, stats:{l:1,e:0,s:0}, utilisateurs:{l:1,e:1,s:0} },
-  receptionniste: { dashboard:{l:1,e:0,s:0}, clients:{l:1,e:1,s:0}, paiements:{l:1,e:1,s:0}, sports:{l:1,e:0,s:0}, charges:{l:0,e:0,s:0}, coaches:{l:0,e:0,s:0}, salaires:{l:0,e:0,s:0}, planning:{l:1,e:0,s:0}, boutique:{l:1,e:1,s:0}, stats:{l:0,e:0,s:0}, utilisateurs:{l:0,e:0,s:0} },
-  employe:     { dashboard:{l:1,e:0,s:0}, clients:{l:1,e:0,s:0}, paiements:{l:0,e:0,s:0}, sports:{l:1,e:0,s:0}, charges:{l:0,e:0,s:0}, coaches:{l:0,e:0,s:0}, salaires:{l:0,e:0,s:0}, planning:{l:1,e:0,s:0}, boutique:{l:1,e:1,s:0}, stats:{l:0,e:0,s:0}, utilisateurs:{l:0,e:0,s:0} }
+  gerant:      { dashboard:{l:1,e:1,s:0}, clients:{l:1,e:1,s:1}, paiements:{l:1,e:1,s:1}, sports:{l:1,e:1,s:0}, charges:{l:1,e:1,s:0}, coaches:{l:1,e:1,s:0}, salaires:{l:1,e:1,s:0}, planning:{l:1,e:1,s:1}, boutique:{l:1,e:1,s:0}, stats:{l:1,e:0,s:0}, associes:{l:0,e:0,s:0}, utilisateurs:{l:1,e:1,s:0} },
+  receptionniste: { dashboard:{l:1,e:0,s:0}, clients:{l:1,e:1,s:0}, paiements:{l:1,e:1,s:0}, sports:{l:1,e:0,s:0}, charges:{l:0,e:0,s:0}, coaches:{l:0,e:0,s:0}, salaires:{l:0,e:0,s:0}, planning:{l:1,e:0,s:0}, boutique:{l:1,e:1,s:0}, stats:{l:0,e:0,s:0}, associes:{l:0,e:0,s:0}, utilisateurs:{l:0,e:0,s:0} },
+  employe:     { dashboard:{l:1,e:0,s:0}, clients:{l:1,e:0,s:0}, paiements:{l:0,e:0,s:0}, sports:{l:1,e:0,s:0}, charges:{l:0,e:0,s:0}, coaches:{l:0,e:0,s:0}, salaires:{l:0,e:0,s:0}, planning:{l:1,e:0,s:0}, boutique:{l:1,e:1,s:0}, stats:{l:0,e:0,s:0}, associes:{l:0,e:0,s:0}, utilisateurs:{l:0,e:0,s:0} }
 };
 
 function buildPermsBody(perms={}) {
