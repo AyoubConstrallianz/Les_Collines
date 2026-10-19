@@ -1570,11 +1570,6 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div id="as-total" style="margin-top:10px"></div>
         </div>
         <div class="card">
-          <div class="ct" data-i18n="as.du_titre">Ce qui revient à chaque associé</div>
-          <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="as.du_note">Capital investi (à rembourser) + part du bénéfice cumulé depuis le début de l'activité − ce qui a déjà été versé.</p>
-          <div style="overflow-x:auto"><table id="as-du"></table></div>
-        </div>
-        <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.5rem">
             <div class="ct" style="margin:0" data-i18n="as.repartition_benef">Répartition du bénéfice</div>
             <div class="toolbar" style="margin:0"><select id="as-annee" onchange="loadAssocies()"></select></div>
@@ -8530,7 +8525,8 @@ function renderDuAssocies(actifs, totalParts, cl, frac) {
     document.getElementById('as-annee').value || String(new Date().getFullYear()), t('vs.benef_mois'));
   const somme = k => lignes.reduce((s, l) => s + l[k], 0);
   const depuis = `${t('as.depuis')} ${_assoc.debut || ''}`;
-  document.getElementById('as-du').innerHTML = actifs.length ? `<thead><tr><th>${t('as.associe')}</th><th>${t('as.capital_investi')}</th>
+  const tableDu = document.getElementById('as-du');
+  if (tableDu) tableDu.innerHTML = actifs.length ? `<thead><tr><th>${t('as.associe')}</th><th>${t('as.capital_investi')}</th>
       <th>${t('as.part_benef')} (${depuis})</th><th>${t('as.total_revient')}</th><th>${t('as.deja_verse')}</th><th>${t('as.reste')}</th></tr></thead><tbody>
     ${lignes.map(l => `<tr><td><strong>${nomAssocie(l.a)}</strong> (${frac(l.a)})</td><td>${fmtDH2(l.capital)}</td>
       <td style="font-weight:600;${cl(l.part)}">${fmtDH2(l.part)}</td><td style="font-weight:700">${fmtDH2(l.total)}</td>
