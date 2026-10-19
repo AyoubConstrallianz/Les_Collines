@@ -1469,7 +1469,11 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="sc"><div class="sc-label" data-i18n="bb.benef_total">Bénéfice depuis le début</div><div class="sc-val" id="bb-k-benef">—</div></div>
             <div class="sc"><div class="sc-label" data-i18n="bq.valeur_stock">Valeur du stock</div><div class="sc-val" id="bb-k-stock">—</div></div>
           </div>
-          <p id="bb-detail" style="font-size:12px;color:var(--text2);margin:-6px 0 14px"></p>
+          <div class="card" id="bb-flux-card">
+            <div class="ct" data-i18n="bb.flux_titre">Le capital de la boutique : où est l'argent ?</div>
+            <table id="bb-flux" style="max-width:620px"></table>
+            <p id="bb-detail" style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="bb.flux_note">Le capital investi par les associés sert à acheter le stock. L'argent des ventes revient dans la caisse de la boutique, d'où sont faits les versements aux associés.</p>
+          </div>
           <div class="card" id="bb-assoc-card">
             <div class="ct" data-i18n="bb.revient_titre">Ce qui revient à chaque associé (boutique)</div>
             <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bb.revient_note">Capital investi dans la boutique (à rembourser) + part du bénéfice de la boutique depuis le début − ce qui a déjà été versé. Mêmes parts que le club.</p>
@@ -2516,6 +2520,20 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "bb.flux_titre": "Le capital de la boutique : où est l'argent ?",
+    "bb.flux_note": "Le capital investi par les associés sert à acheter le stock. L'argent des ventes revient dans la caisse de la boutique, d'où sont faits les versements aux associés.",
+    "bb.flux_capital": "Capital investi par les associés",
+    "bb.flux_achats": "Achats de stock (payés avec le capital)",
+    "bb.flux_ventes": "Ventes encaissées",
+    "bb.flux_versements": "Versements aux associés",
+    "bb.flux_caisse": "Caisse de la boutique (argent disponible)",
+    "bb.flux_manque": "Le capital ne suffit pas : il manque %s pour couvrir les achats et versements.",
+    "bb.flux_stock": "Stock en magasin (valeur d'achat)",
+    "bb.flux_total": "Valeur totale de la boutique",
+    "bb.flux_reste": "Pour comparaison : reste à verser aux associés (capital + bénéfice − versements)",
+    "bb.caisse_dispo": "Caisse de la boutique",
+    "bb.apres_achat": "après cet achat",
+    "bb.achat_depasse": "Cet achat dépasse l'argent disponible dans la caisse de la boutique (%s). Enregistrer quand même ?",
     "vs.titre": "Versements aux associés et caisse",
     "vs.nouveau": "+ Nouveau versement",
     "vs.historique": "Historique des versements",
@@ -3487,6 +3505,20 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "bb.flux_titre": "رأس مال المتجر : أين المال ؟",
+    "bb.flux_note": "يُستعمل رأس المال الذي استثمره الشركاء لشراء المخزون. أموال المبيعات تعود إلى صندوق المتجر، ومنه تُصرف الدفعات للشركاء.",
+    "bb.flux_capital": "رأس المال المستثمر من طرف الشركاء",
+    "bb.flux_achats": "مشتريات المخزون (مدفوعة من رأس المال)",
+    "bb.flux_ventes": "المبيعات المحصلة",
+    "bb.flux_versements": "الدفعات للشركاء",
+    "bb.flux_caisse": "صندوق المتجر (المال المتوفر)",
+    "bb.flux_manque": "رأس المال غير كافٍ : ينقص %s لتغطية المشتريات والدفعات.",
+    "bb.flux_stock": "المخزون في المحل (بثمن الشراء)",
+    "bb.flux_total": "القيمة الإجمالية للمتجر",
+    "bb.flux_reste": "للمقارنة : الباقي للدفع للشركاء (رأس المال + الربح − الدفعات)",
+    "bb.caisse_dispo": "صندوق المتجر",
+    "bb.apres_achat": "بعد هذا الشراء",
+    "bb.achat_depasse": "هذا الشراء يتجاوز المال المتوفر في صندوق المتجر (%s). تسجيله رغم ذلك ؟",
     "vs.titre": "الدفعات للشركاء والصندوق",
     "vs.nouveau": "+ دفعة جديدة",
     "vs.historique": "سجل الدفعات",
@@ -7908,6 +7940,7 @@ function boutiqueOnglet(o) {
 }
 
 async function loadBoutique() {
+  _bb.charge = false;   // la caisse de la boutique sera recalculée (achats, ventes)
   const moisEl = document.getElementById('bt-mois');
   if (!moisEl.value) moisEl.value = thisMonth();
   const mois = moisEl.value;
@@ -8146,8 +8179,10 @@ async function delProduit(id) {
 }
 
 // ── Entrée de stock (achat) et inventaire (ajustement) ──────
-function ouvrirMouvement(pid, mode) {
+async function ouvrirMouvement(pid, mode) {
   const p = produitDe(pid); if (!p) return;
+  // Les achats se font avec le capital de la boutique : caisse disponible (associés visibles uniquement)
+  if (mode === 'Achat' && PERMS.associes?.lire && !_bb.charge) await loadBilanBoutique();
   document.getElementById('bm-pid').value = pid;
   document.getElementById('bm-mode').value = mode;
   document.getElementById('bm-titre').textContent = t(mode === 'Achat' ? 'bq.entree_titre' : 'bq.inventaire_titre');
@@ -8164,8 +8199,12 @@ function ouvrirMouvement(pid, mode) {
     if (isNaN(n)) { ap.textContent = ''; return; }
     const apres = mode === 'Achat' ? p.stock + n : n;
     ap.textContent = `${t('bq.stock_apres')} : ${apres}${mode === 'Ajustement' ? ` (${apres - p.stock >= 0 ? '+' : ''}${apres - p.stock})` : ''}`;
+    if (mode === 'Achat' && typeof _bb.caisse === 'number') {
+      const cout = n * (parseFloat(document.getElementById('bm-prix').value) || 0), reste = _bb.caisse - cout;
+      ap.innerHTML += `<br>${t('bq.total')} : <strong>${fmtDH2(cout)}</strong> · ${t('bb.caisse_dispo')} : <strong>${fmtDH2(_bb.caisse)}</strong> → ${t('bb.apres_achat')} : <strong style="color:${reste < 0 ? 'var(--red)' : 'var(--green)'}">${fmtDH2(reste)}</strong>`;
+    }
   };
-  document.getElementById('bm-qte').oninput = maj; maj();
+  document.getElementById('bm-qte').oninput = maj; document.getElementById('bm-prix').oninput = maj; maj();
   document.getElementById('bm-modal').classList.add('open');
 }
 
@@ -8176,6 +8215,8 @@ async function saveMouvement() {
   const quantite = mode === 'Achat' ? n : n - p.stock;
   if (!quantite) { showToast(t('bq.rien_a_ajuster'), 's'); document.getElementById('bm-modal').classList.remove('open'); return; }
   const prix = parseFloat(document.getElementById('bm-prix').value) || 0;
+  if (mode === 'Achat' && typeof _bb.caisse === 'number' && n * prix > _bb.caisse
+      && !confirm(t('bb.achat_depasse').replace('%s', fmtDH2(_bb.caisse)))) return;
   const { error } = await sb.from('stock_mouvements').insert({ produit_id: pid, type: mode, quantite,
     prix_unitaire: mode === 'Achat' ? prix : (parseFloat(p.prix_achat) || 0),
     date_mouvement: document.getElementById('bm-date').value || today(), note: document.getElementById('bm-note').value.trim() || null });
@@ -8263,7 +8304,6 @@ function renderBilanBoutique() {
   document.getElementById('bb-k-ventes').textContent = fmtDH2(ventesTot);
   const kb = document.getElementById('bb-k-benef'); kb.textContent = fmtDH2(benefTot); kb.style.cssText = cl(benefTot);
   document.getElementById('bb-k-stock').textContent = fmtDH2(valeurStock);
-  document.getElementById('bb-detail').textContent = `${t('bb.achats_total')} : ${fmtDH2(_bb.achats)}`;
 
   // Ce qui revient à chaque associé (boutique)
   const frac = a => `<span dir="ltr">${fractionParts(partsDe(a), totalParts)}</span>`;
@@ -8288,6 +8328,26 @@ function renderBilanBoutique() {
         <td style="font-weight:800">${fmtDH2(somme('total'))}</td><td style="font-weight:700">${fmtDH2(somme('verse'))}</td>
         <td style="font-weight:800;${cl(somme('reste'))}">${fmtDH2(somme('reste'))}</td><td></td></tr></tbody>`
       : `<tbody><tr class="empty-row"><td>${t('bb.aucun_associe')}</td></tr></tbody>`);
+
+  // Capital → achats de stock → ventes → versements : caisse de la boutique et valeur totale
+  const versTot = versementsActifs('boutique') ? _vs.boutique.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0)
+    : associes.reduce((s, a) => s + (parseFloat(a.deja_verse_boutique) || 0), 0);
+  const caisseB = Math.round((capitalTot - _bb.achats + ventesTot - versTot) * 100) / 100;
+  _bb.caisse = PERMS.associes?.lire ? caisseB : null;
+  const lf = (signe, lib, v, gras, style = '') => `<tr${gras ? ' style="border-top:2px solid var(--border2);background:var(--bg3)"' : ''}>
+      <td style="${gras ? 'font-weight:800' : ''}">${signe ? `<span style="display:inline-block;width:16px;color:var(--text3)">${signe}</span>` : ''}${lib}</td>
+      <td style="text-align:end;font-variant-numeric:tabular-nums;${gras ? 'font-weight:800;' : 'font-weight:600;'}${style}">${fmtDH2(v)}</td></tr>`;
+  document.getElementById('bb-flux-card').style.display = PERMS.associes?.lire ? '' : 'none';
+  document.getElementById('bb-flux').innerHTML = '<tbody>'
+    + lf('+', t('bb.flux_capital'), capitalTot)
+    + lf('−', t('bb.flux_achats'), -_bb.achats, false, 'color:var(--red-text)')
+    + lf('+', t('bb.flux_ventes'), ventesTot, false, 'color:var(--green-text)')
+    + lf('−', t('bb.flux_versements'), -versTot, false, 'color:var(--red-text)')
+    + lf('=', t('bb.flux_caisse'), caisseB, true, cl(caisseB))
+    + (caisseB < 0 ? `<tr><td colspan="2"><div class="al al-e" style="margin:6px 0">${t('bb.flux_manque').replace('%s', fmtDH2(-caisseB))}</div></td></tr>` : '')
+    + lf('+', t('bb.flux_stock'), valeurStock)
+    + lf('=', t('bb.flux_total'), caisseB + valeurStock, true)
+    + '</tbody>';
 
   // Bénéfice par mois de l'année choisie
   const an = document.getElementById('bb-annee').value;
