@@ -1087,7 +1087,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <select id="sc-stat" onchange="loadClients()"><option value="" data-i18n="clients.tous_statuts">Tous statuts</option><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option></select>
           </div>
           <table><thead><tr>
-            <th>#</th>
+            <th class="th-sort" onclick="sortClients('num')" data-i18n="clients.num_adh">N° adhérent <span id="sort-ico-num"></span></th>
             <th class="th-sort" onclick="sortClients('nom')" data-i18n="common.nom">Nom <span id="sort-ico-nom"></span></th>
             <th data-i18n="clients.cin">CIN</th>
             <th data-i18n="clients.tel">Téléphone</th>
@@ -2178,6 +2178,7 @@ const I18N = {
     'clients.tel2_sql':  'Le 2e numéro n\'est pas encore activé dans Supabase. Exécutez le script supabase/07_telephone2_clients.sql.',
     'clients.email':     'E-mail',
     'clients.cin':       'CIN',
+    'clients.num_adh':   'N° adhérent',
     'clients.photo':     'Photo du client',
     'clients.cin_doc':   'Document CIN',
     'clients.dob':       'Date de naissance',
@@ -2886,6 +2887,7 @@ const I18N = {
     'clients.tel2_sql': 'الرقم الثاني غير مفعل بعد في Supabase. نفّذ السكريبت supabase/07_telephone2_clients.sql.',
     'clients.email':    'البريد الإلكتروني',
     'clients.cin':      'البطاقة الوطنية',
+    'clients.num_adh':  'رقم المنخرط',
     'clients.photo':    'صورة الزبون',
     'clients.cin_doc':  'وثيقة البطاقة الوطنية',
     'clients.dob':      'تاريخ الميلاد',
@@ -4630,7 +4632,7 @@ async function loadClients() {
     // Recherche aussi par téléphone (chiffres seuls, espaces ignorés)
     const qTel = q.replace(/\D/g, '');
     const tels = [c.telephone, c.telephone2].map(v => (v||'').replace(/\D/g, ''));
-    const matchQ = !q || name.includes(q) || (qTel.length >= 3 && tels.some(v => v.includes(qTel)));
+    const matchQ = !q || name.includes(q) || (/^\d+$/.test(q) && c.numero_adherent === parseInt(q, 10)) || (qTel.length >= 3 && tels.some(v => v.includes(qTel)));
     const matchS = !sport || sports.includes(sport);
     return matchQ && matchS;
   });
@@ -4639,6 +4641,7 @@ async function loadClients() {
   const { col, dir } = _clientSort;
   const m = dir === 'asc' ? 1 : -1;
   list.sort((a,b) => {
+    if (col === 'num') return m * ((a.numero_adherent||0) - (b.numero_adherent||0));
     if (col === 'nom') return m * (a.nom+a.prenom).localeCompare(b.nom+b.prenom);
     if (col === 'date') return m * (a.date_inscription||a.created_at||'').localeCompare(b.date_inscription||b.created_at||'');
     if (col === 'statut') return m * (a.statut||'').localeCompare(b.statut||'');
@@ -4660,7 +4663,7 @@ async function loadClients() {
         const mensuel = sports.reduce((a,s)=>a+(sportMap[s]?.tarif_mensuel||0),0);
         const badges  = sports.map(s=>`<span class="badge b-i" style="margin-right:3px">${s}</span>`).join('');
         return `<tr style="cursor:pointer" onclick="showClientFiche(${i},event)">
-          <td style="color:var(--text3)">${i+1}</td>
+          <td style="color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600">${c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '—'}</td>
           <td><div style="display:flex;align-items:center;gap:8px">${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}<strong>${c.prenom} ${c.nom}</strong></div></td>
           <td style="font-size:12px">${c.cin||'—'}</td>
           <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>')||'—'}</td>
@@ -4677,7 +4680,7 @@ async function loadClients() {
   const btnImport = document.getElementById('btn-import');
   if (btnImport) btnImport.style.display = ME?.role === 'super_admin' ? '' : 'none';
   // Icônes tri
-  ['nom','date','statut'].forEach(c => {
+  ['num','nom','date','statut'].forEach(c => {
     const el = document.getElementById('sort-ico-'+c);
     if (el) el.innerHTML = _sortIcon(c);
   });
@@ -4943,6 +4946,7 @@ async function showClientFiche(idx, event) {
       <div style="flex:1;min-width:200px">
         <div style="font-size:18px;font-weight:700;margin-bottom:2px">${c.prenom} ${c.nom}</div>
         <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${t('clients.fiche_inscrit')} ${c.date_inscription||'—'}</div>
+        ${infoLine(t('clients.num_adh'), c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '')}
         ${infoLine(t('clients.tel'), c.telephone)}
         ${infoLine(t('clients.tel2'), c.telephone2)}
         ${infoLine(t('clients.email'), c.email)}
