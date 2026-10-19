@@ -1658,7 +1658,12 @@ tr:hover td{background:var(--blue-light)}
                 <option value="Mensuel" data-i18n="remu.mensuel">Mensuel — salaire fixe</option>
                 <option value="Groupe" data-i18n="remu.groupe">Par groupe — nombre de groupes × montant unitaire</option>
                 <option value="Pourcentage" data-i18n="remu.pourcentage">Pourcentage — % du CA des adhérents de ses disciplines</option>
+                <option value="Semaine" data-i18n="remu.semaine">Par semaine — montant hebdomadaire (ex. agents d'entretien)</option>
               </select>
+            </div>
+            <div class="fr" id="co-remu-semaine" style="display:none">
+              <div class="fg"><label data-i18n="remu.montant_semaine">Montant par semaine (DH)</label><input id="co-montant-semaine" type="number" min="0" oninput="majFormRemu()"></div>
+              <div class="fg"></div>
             </div>
             <div class="fr" id="co-remu-groupe" style="display:none">
               <div class="fg"><label data-i18n="remu.nb_groupes">Nombre de groupes</label><input id="co-nb-groupes" type="number" min="0" step="1" oninput="majFormRemu()"></div>
@@ -1715,6 +1720,7 @@ tr:hover td{background:var(--blue-light)}
           <div class="ligne-form" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end">
             <div class="fg" style="flex:2;min-width:160px"><label data-i18n="coaches.salarie">Salarié</label><select id="co-sal-emp" onchange="calculerSalaire()"></select></div>
             <div class="fg" style="min-width:130px"><label data-i18n="coaches.mois_concerne">Mois concerné</label><input id="co-sal-mois" type="month" onchange="calculerSalaire()"></div>
+            <div class="fg" id="co-sal-semaines-wrap" style="min-width:110px;display:none"><label data-i18n="remu.nb_semaines">Nombre de semaines</label><input id="co-sal-semaines" type="number" min="0" max="6" step="0.5" oninput="calculerSalaire(true)"></div>
             <div class="fg" style="min-width:120px"><label data-i18n="paie.montant">Montant (DH)</label><input id="co-sal-mont" type="number" min="0"></div>
             <div class="fg" style="min-width:130px"><label data-i18n="coaches.mode_paiement">Mode de paiement</label>
               <select id="co-sal-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select>
@@ -2373,6 +2379,13 @@ const I18N = {
     'remu.calcul':       'Calcul en cours…',
     'remu.groupe_court': 'Par groupe',
     'remu.mensuel_court':'Salaire mensuel',
+    'remu.semaine':      'Par semaine — montant hebdomadaire (ex. agents d\'entretien)',
+    'remu.montant_semaine':'Montant par semaine (DH)',
+    'remu.par_semaine':  '/ semaine',
+    'remu.par_mois_moyen':'par mois en moyenne (52 semaines ÷ 12)',
+    'remu.nb_semaines':  'Nombre de semaines',
+    'remu.semaines':     'semaine(s)',
+    'remu.sql_semaine':  'Rémunération par semaine non activée : exécutez supabase/14_remuneration_semaine.sql dans Supabase.',
     'remu.a_payer':      'Montant à payer',
     'remu.discipline':   'Discipline',
     'remu.adherents':    'Adhérents',
@@ -3045,6 +3058,13 @@ const I18N = {
     'remu.calcul':      'جارٍ الحساب…',
     'remu.groupe_court':'حسب المجموعة',
     'remu.mensuel_court':'الراتب الشهري',
+    'remu.semaine':     'أسبوعي — مبلغ أسبوعي (مثلاً عمال النظافة)',
+    'remu.montant_semaine':'المبلغ الأسبوعي (درهم)',
+    'remu.par_semaine': '/ أسبوع',
+    'remu.par_mois_moyen':'شهرياً في المتوسط (52 أسبوعاً ÷ 12)',
+    'remu.nb_semaines': 'عدد الأسابيع',
+    'remu.semaines':    'أسبوع',
+    'remu.sql_semaine': 'الأجرة الأسبوعية غير مفعلة : نفّذ supabase/14_remuneration_semaine.sql في Supabase.',
     'remu.a_payer':     'المبلغ المستحق',
     'remu.discipline':  'التخصص',
     'remu.adherents':   'المنخرطون',
@@ -7407,15 +7427,20 @@ async function saveCoach() {
       montant_groupe: parseFloat(document.getElementById('co-montant-groupe').value) || 0,
       pourcentage:    parseFloat(document.getElementById('co-pourcentage').value) || 0
     });
+    // Montant hebdomadaire : envoyé seulement s'il est utilisé ou déjà connu (script 14)
+    const parSemaine = parseFloat(document.getElementById('co-montant-semaine').value) || 0;
+    if (remu === 'Semaine' || window._coachSemaineConnu) obj.montant_semaine = parSemaine;
     // Par groupe : le salaire mensuel = nb de groupes × montant ; pourcentage : variable (calculé au paiement)
     if (remu === 'Groupe') obj.salaire = obj.nb_groupes * obj.montant_groupe;
     if (remu === 'Pourcentage') obj.salaire = 0;
+    // Par semaine : équivalent mensuel moyen (52 semaines / 12 mois) pour la masse salariale
+    if (remu === 'Semaine') obj.salaire = Math.round(obj.montant_semaine * 52 / 12 * 100) / 100;
   }
   if (!obj.prenom||!obj.nom) { showToast(t('coaches.name_required'),'e'); return; }
   const { data: saved, error } = id
     ? await sb.from('employes').update(obj).eq('id',id).select().single()
     : await sb.from('employes').insert(obj).select().single();
-  if (error) { showToast(/remuneration|nb_groupes|montant_groupe|pourcentage/.test(error.message) ? t('remu.sql') : error.message,'e'); return; }
+  if (error) { showToast(/montant_semaine/.test(error.message) ? t('remu.sql_semaine') : /remuneration|nb_groupes|montant_groupe|pourcentage/.test(error.message) ? t('remu.sql') : error.message,'e'); return; }
 
   // Upload photo et CIN si fichiers sélectionnés
   const empId = saved?.id || id;
@@ -7475,6 +7500,8 @@ function editCoach(e) {
   document.getElementById('co-nb-groupes').value = e.nb_groupes || '';
   document.getElementById('co-montant-groupe').value = e.montant_groupe || '';
   document.getElementById('co-pourcentage').value = e.pourcentage || '';
+  document.getElementById('co-montant-semaine').value = e.montant_semaine || '';
+  window._coachSemaineConnu = 'montant_semaine' in e;
   majFormRemu();
   document.getElementById('co-tel').value     = e.telephone||'';
   document.getElementById('co-emb').value     = e.date_embauche||'';
@@ -7497,7 +7524,8 @@ function closeCoachForm() {
 }
 
 function resetCoachForm() {
-  ['co-id','co-prenom','co-nom','co-salaire','co-tel','co-emb','co-depart','co-cin','co-notes','co-nb-groupes','co-montant-groupe','co-pourcentage'].forEach(i=>document.getElementById(i).value='');
+  window._coachSemaineConnu = false;
+  ['co-id','co-prenom','co-nom','co-salaire','co-tel','co-emb','co-depart','co-cin','co-notes','co-nb-groupes','co-montant-groupe','co-pourcentage','co-montant-semaine'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('co-remu').value = 'Mensuel';
   window._coachRemuConnu = false; window._coachEditNom = '';
   majFormRemu();
@@ -7726,6 +7754,7 @@ let _salCalc = null; // dernier calcul affiché dans le formulaire de paiement
 function libelleRemu(e) {
   if (e.remuneration === 'Groupe') return `${fmt(e.salaire)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${e.nb_groupes || 0} × ${fmt(e.montant_groupe)})</span>`;
   if (e.remuneration === 'Pourcentage') return `${e.pourcentage || 0} % <span style="font-size:10px;color:var(--text3);font-weight:400">${t('remu.du_ca')}</span>`;
+  if (e.remuneration === 'Semaine') return `${fmt(e.montant_semaine)} <span style="font-size:10px;color:var(--text3);font-weight:400">${t('remu.par_semaine')}</span>`;
   return fmt(e.salaire);
 }
 
@@ -7740,11 +7769,16 @@ function majFormRemu() {
   const remu = document.getElementById('co-remu').value;
   document.getElementById('co-remu-groupe').style.display = remu === 'Groupe' ? '' : 'none';
   document.getElementById('co-remu-pct').style.display = remu === 'Pourcentage' ? '' : 'none';
+  document.getElementById('co-remu-semaine').style.display = remu === 'Semaine' ? '' : 'none';
   document.getElementById('co-salaire-wrap').style.display = remu === 'Mensuel' ? '' : 'none';
   const calc = document.getElementById('co-remu-calc');
   if (remu === 'Groupe') {
     const n = parseInt(document.getElementById('co-nb-groupes').value) || 0, u = parseFloat(document.getElementById('co-montant-groupe').value) || 0;
     calc.innerHTML = `${t('remu.mensualite')} : ${n} × ${fmt(u)} = <strong>${fmt(n * u)}</strong>`;
+    calc.style.display = '';
+  } else if (remu === 'Semaine') {
+    const u = parseFloat(document.getElementById('co-montant-semaine').value) || 0;
+    calc.innerHTML = `${fmt(u)} ${t('remu.par_semaine')} ≈ <strong>${fmt(u * 52 / 12)}</strong> ${t('remu.par_mois_moyen')}`;
     calc.style.display = '';
   } else if (remu === 'Pourcentage') {
     calc.innerHTML = t('remu.pct_info');
@@ -7789,15 +7823,29 @@ async function caSportsDuMois(mois, nomsSports) {
 }
 
 // Formulaire de paiement : calcule le montant selon le mode de rémunération et affiche le détail
-async function calculerSalaire() {
+// Semaines d'un mois = nombre de lundis (semaines qui commencent dans le mois) : 4 ou 5
+function semainesDuMois(mois) {
+  const [y, m] = mois.split('-').map(Number);
+  let n = 0; for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) if (new Date(y, m - 1, d).getDay() === 1) n++;
+  return n;
+}
+
+// garderSemaines = true quand l'utilisateur modifie lui-même le nombre de semaines
+async function calculerSalaire(garderSemaines = false) {
   const empId = document.getElementById('co-sal-emp').value, mois = document.getElementById('co-sal-mois').value;
   const zone = document.getElementById('co-sal-detail');
   _salCalc = null; zone.style.display = 'none';
   const e = (window._COACHES_LIST || []).find(x => x.id === empId);
+  const champSem = document.getElementById('co-sal-semaines');
+  document.getElementById('co-sal-semaines-wrap').style.display = e?.remuneration === 'Semaine' ? '' : 'none';
   if (!e || !mois) return;
   const remu = e.remuneration || 'Mensuel';
   let detail;
-  if (remu === 'Groupe') {
+  if (remu === 'Semaine') {
+    if (!garderSemaines || champSem.value === '') champSem.value = semainesDuMois(mois);
+    const nb = parseFloat(champSem.value) || 0, u = parseFloat(e.montant_semaine) || 0;
+    detail = { remuneration: 'Semaine', nb_semaines: nb, montant_semaine: u, total: Math.round(nb * u * 100) / 100 };
+  } else if (remu === 'Groupe') {
     const total = (e.nb_groupes || 0) * (parseFloat(e.montant_groupe) || 0);
     detail = { remuneration: 'Groupe', nb_groupes: e.nb_groupes || 0, montant_groupe: parseFloat(e.montant_groupe) || 0, total };
   } else if (remu === 'Pourcentage') {
@@ -7823,8 +7871,10 @@ async function calculerSalaire() {
 
 // Montant avec centimes : 1 083,23 DH
 const fmtDH2 = n => {
+  // Séparateur de milliers forcé (le navigateur ne sépare pas toujours les nombres à 4 chiffres)
   const v = Math.round((parseFloat(n) || 0) * 100) / 100;
-  const txt = v.toLocaleString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const [ent, dec] = Math.abs(v).toFixed(2).split('.');
+  const txt = (v < 0 ? '-' : '') + ent.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + dec;
   return `${txt} ${LANG === 'ar' ? 'درهم' : 'DH'}`;
 };
 
@@ -7841,6 +7891,8 @@ function detailSalaireHtml(d) {
     </div>`;
   if (d.remuneration === 'Groupe')
     return resultat(`${t('remu.groupe_court')} : ${d.nb_groupes} × ${fmtDH2(d.montant_groupe)}`);
+  if (d.remuneration === 'Semaine')
+    return resultat(`${d.nb_semaines} ${t('remu.semaines')} × ${fmtDH2(d.montant_semaine)}`);
   if (d.remuneration === 'Pourcentage') {
     if (!d.lignes.length) return boite(`<span style="color:var(--amber-text)">${t('remu.aucune_discipline')}</span>`);
     return boite(`<table style="font-size:12px;margin-bottom:0"><thead><tr><th>${t('remu.discipline')}</th><th style="text-align:end">${t('remu.adherents')}</th><th style="text-align:end">${t('remu.ca_mois')}</th></tr></thead><tbody>
@@ -7883,7 +7935,7 @@ async function ouvrirRecuSalaire(id) {
   doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text('BÉNÉFICIAIRE', M + 5, 55);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...noir); doc.text(`${e.prenom || ''} ${e.nom || ''}`, M + 5, 62);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
-  const modeLib = { Mensuel: 'Salaire mensuel', Groupe: 'Rémunération par groupe', Pourcentage: `Pourcentage du CA (${d.pourcentage || 0} %)` }[d.remuneration] || '';
+  const modeLib = { Mensuel: 'Salaire mensuel', Groupe: 'Rémunération par groupe', Semaine: 'Rémunération par semaine', Pourcentage: `Pourcentage du CA (${d.pourcentage || 0} %)` }[d.remuneration] || '';
   doc.text([e.poste, e.cin ? `CIN : ${e.cin}` : '', modeLib].filter(Boolean).join('     '), M + 5, 68);
 
   // Détail du calcul
@@ -7902,6 +7954,9 @@ async function ouvrirRecuSalaire(id) {
     ligne([['Total', M + 4], [d.adherents_total ?? '', 130, 'right'], [montantPdf(d.ca_total), W - M - 4, 'right']]);
     doc.setFont('helvetica', 'normal');
     ligne([[`Pourcentage appliqué : ${montantPdf(d.ca_total)} × ${d.pourcentage} %`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
+  } else if (d.remuneration === 'Semaine') {
+    entete([['Désignation', M + 4], ['Semaines', 120, 'right'], ['Montant / semaine', 160, 'right'], ['Total', W - M - 4, 'right']]);
+    ligne([[`Semaines travaillées — ${moisLib}`, M + 4], [String(d.nb_semaines).replace('.', ','), 120, 'right'], [montantPdf(d.montant_semaine), 160, 'right'], [montantPdf(d.total), W - M - 4, 'right']]);
   } else if (d.remuneration === 'Groupe') {
     entete([['Désignation', M + 4], ['Groupes', 120, 'right'], ['Montant unitaire', 160, 'right'], ['Total', W - M - 4, 'right']]);
     ligne([[`Groupes encadrés — ${moisLib}`, M + 4], [d.nb_groupes, 120, 'right'], [montantPdf(d.montant_groupe), 160, 'right'], [montantPdf(d.total), W - M - 4, 'right']]);
