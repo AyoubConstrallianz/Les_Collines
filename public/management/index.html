@@ -509,6 +509,14 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .sm-ligne{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
 .sm-ligne span:first-child{color:var(--text2)}
 .sm-ligne span:last-child{font-weight:600;text-align:end}
+/* Validations */
+.tb-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+.va-carte{margin-bottom:12px}
+.va-diff{width:100%;font-size:12px;margin-top:4px}
+.va-diff th,.va-diff td{padding:5px 8px;text-align:start}
+.va-champs{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--text2)}
+.va-champs b{color:var(--text);font-weight:600}
+@media (max-width:480px){ #tb-cloche{display:none !important} }
 @media print{
   @page{size:A4 landscape;margin:8mm}
   body.print-planning *{visibility:hidden !important}
@@ -806,6 +814,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
     <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <span class="topbar-logo"><img src="/images/logo-rond-128.png" alt="Logo Les Collines" class="topbar-logo-img" width="38" height="38"><span class="topbar-logo-txt">Association Les Collines</span></span>
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Basculer mode clair/sombre"><svg id="theme-icon-sun" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><svg id="theme-icon-moon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    <button class="theme-toggle" id="tb-cloche" onclick="nav('validations',document.querySelector('.nav[data-page=validations]'))" aria-label="Modifications à valider" style="display:none;position:relative"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="tb-badge-valid" class="tb-badge" style="display:none"></span></button>
     <button id="lang-btn" onclick="toggleLang()" style="margin-inline-start:auto;padding:5px 14px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--r-full);background:var(--bg3);color:var(--text2);cursor:pointer;letter-spacing:.3px;transition:all .2s" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">العربية</button>
     <div class="tbu">
       <div class="avatar" id="tb-av">?</div>
@@ -910,6 +919,11 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <button class="nav" data-page="utilisateurs" onclick="nav('utilisateurs',this)">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <span data-i18n="nav.utilisateurs_text">Utilisateurs</span>
+          </button>
+          <button class="nav" data-page="validations" onclick="nav('validations',this)">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span data-i18n="nav.validations_text">Validations</span>
+            <span id="nav-badge-valid" class="nav-badge" style="display:none"></span>
           </button>
         </div>
       </div>
@@ -1429,6 +1443,23 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="btns"><button class="btn btn-p" onclick="saveAssocie()">Enregistrer</button><button class="btn" onclick="document.getElementById('associe-modal').classList.remove('open')">Annuler</button></div>
           </div>
         </div>
+      </div>
+
+      <!-- VALIDATIONS (super admin) -->
+      <div id="page-validations" class="page">
+        <p class="ptitle" data-i18n="valid.title">Validations</p>
+        <p class="psubtitle" data-i18n="valid.subtitle">Ajouts, modifications et suppressions faits par les gérants : à valider ou à refuser</p>
+        <div id="al-validations"></div>
+        <div class="toolbar">
+          <select id="va-statut" onchange="loadValidations()">
+            <option value="En attente">À valider</option>
+            <option value="Validée">Validées</option>
+            <option value="Refusée">Refusées</option>
+            <option value="">Toutes</option>
+          </select>
+          <button class="btn" id="va-tout" onclick="validerToutesModifs()" style="display:none">Tout valider</button>
+        </div>
+        <div id="va-liste"></div>
       </div>
 
       <!-- PRÉSENCE & ABSENCES -->
@@ -2119,6 +2150,8 @@ function showLoginErr(msg) {
 
 async function doLogout() {
   ME = null; PERMS = {};
+  clearInterval(window._vaTimer);
+  const cloche = document.getElementById('tb-cloche'); if (cloche) cloche.style.display = 'none';
   await sb.auth.signOut({ scope: 'local' }).catch(() => {});
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
@@ -2141,6 +2174,10 @@ async function initApp(authUser) {
     const { data: habs } = await sb.from('habilitations').select('*').eq('user_id', ME.id);
     (habs||[]).forEach(h => { PERMS[h.module] = { lire:h.peut_lire, ecrire:h.peut_ecrire, supprimer:h.peut_supprimer }; });
   }
+
+  PERMS.validations = ME.role === 'super_admin' ? { lire:true, ecrire:true, supprimer:true } : { lire:false, ecrire:false, supprimer:false };
+  clearInterval(window._vaTimer);
+  if (ME.role === 'super_admin') { majCompteurValidations(); window._vaTimer = setInterval(majCompteurValidations, 60000); }
 
   // UI
   document.getElementById('login-screen').style.display = 'none';
@@ -2241,6 +2278,9 @@ const I18N = {
     'associes.subtitle': 'Part de chaque associé sur le bénéfice du mois',
     'nav.admin_text':    'Administration',
     'nav.utilisateurs_text':'Utilisateurs',
+    'nav.validations_text':'Validations',
+    'valid.title':       'Validations',
+    'valid.subtitle':    'Ajouts, modifications et suppressions faits par les gérants : à valider ou à refuser',
     // Topbar / Login
     'logout':          'Déconnexion',
     'login.title':     'Association Les Collines',
@@ -2978,6 +3018,9 @@ const I18N = {
     'associes.subtitle': 'حصة كل شريك من ربح الشهر',
     'nav.admin_text':    'الإدارة',
     'nav.utilisateurs_text':'المستخدمون',
+    'nav.validations_text':'المصادقات',
+    'valid.title':       'المصادقات',
+    'valid.subtitle':    'الإضافات والتعديلات والحذف من طرف المسيرين : للمصادقة أو الرفض',
     // Topbar / Login
     'logout':           'تسجيل الخروج',
     'login.title':      'جمعية الكولين',
@@ -3782,7 +3825,7 @@ function applyLang() {
     'page-charges':'charges.title','page-coaches':'coaches.title',
     'page-presence':'presence.title',
     'page-planning':'planning.title','page-boutique':'boutique.title','page-stats':'stats.title','page-associes':'associes.title',
-    'page-utilisateurs':'users.title'
+    'page-utilisateurs':'users.title','page-validations':'valid.title'
   };
   Object.entries(pMap).forEach(([id,k]) => {
     const el=document.getElementById(id);
@@ -4104,7 +4147,7 @@ const PAGE_GROUP = {
   sports:'activites', planning:'activites', boutique:'activites',
   coaches:'rh', presence:'rh', salaires:'rh',
   charges:'finances', stats:'finances', associes:'finances',
-  utilisateurs:'admin'
+  utilisateurs:'admin', validations:'admin'
 };
 
 function toggleGroup(name) {
@@ -4158,6 +4201,7 @@ function nav(page, btn) {
   if (page==='boutique')    loadBoutique();
   if (page==='stats')       loadStats();
   if (page==='associes')    loadAssocies();
+  if (page==='validations')  loadValidations();
   if (page==='utilisateurs') { loadUsers(); if(ME.role==='super_admin') loadAudit(); else document.getElementById('audit-card').style.display='none'; }
 
   // Re-applique la langue sur les éléments statiques de la page
@@ -7446,6 +7490,158 @@ async function delAssocie(id) {
   if (error) { showToast(error.message, 'e'); return; }
   await logAudit('DELETE', 'associes', `${a?.prenom} ${a?.nom}`);
   loadAssocies();
+}
+
+// ════════════════════════════════════════════════════════════
+// VALIDATIONS : changements faits par les gérants, validés ou refusés par le super admin
+// ════════════════════════════════════════════════════════════
+const VA_TABLES = { clients: 'Client', paiements: 'Paiement', charges: 'Charge', sports: 'Sport', planning: 'Séance du planning',
+  employes: 'Salarié', salaires_paie: 'Salaire', ventes: 'Vente boutique', parametres: 'Paramètre', habilitations: "Droits d'un utilisateur", associes: 'Associé' };
+const VA_OPS = { INSERT: ['Ajout', 'b-g'], UPDATE: ['Modification', 'b-i'], DELETE: ['Suppression', 'b-d'] };
+const VA_CHAMPS = { prenom: 'Prénom', nom: 'Nom', telephone: 'Téléphone', telephone2: 'Téléphone 2', email: 'E-mail', cin: 'CIN',
+  date_naissance: 'Date de naissance', date_inscription: "Date d'inscription", sports: 'Sports', sport: 'Sport', statut: 'Statut', sexe: 'Sexe',
+  numero_adherent: 'N° adhérent', montant: 'Montant', type: 'Type', mode: 'Mode', date_paiement: 'Date du paiement', note: 'Note',
+  numero_recu: 'N° reçu', client_id: 'Client', employe_id: 'Salarié', libelle: 'Libellé', categorie: 'Catégorie', date_charge: 'Date',
+  recurrence: 'Récurrence', salaire: 'Salaire', poste: 'Poste', contrat: 'Contrat', remuneration: 'Rémunération', pourcentage: 'Pourcentage',
+  mois: 'Mois', jour: 'Jour', heure_debut: 'Début', heure_fin: 'Fin', capacite: 'Capacité', coaches_ids: 'Coachs', coach: 'Coach',
+  tarif_mensuel: 'Tarif mensuel', tarif_trimestriel: 'Tarif trimestriel', tarif_semestriel: 'Tarif semestriel', tarif_annuel: 'Tarif annuel',
+  tarif_inscription: "Tarif d'inscription", article: 'Article', prix_achat: "Prix d'achat", prix_vente: 'Prix de vente', date_vente: 'Date',
+  valeur: 'Valeur', cle: 'Paramètre', module: 'Module', peut_lire: 'Lecture', peut_ecrire: 'Écriture', peut_supprimer: 'Suppression', parts: 'Parts', actif: 'Actif',
+  photo_url: 'Photo', cin_recto_url: 'CIN (recto)', cin_verso_url: 'CIN (verso)', montant_semaine: 'Montant / semaine', nb_groupes: 'Nb de groupes', montant_groupe: 'Montant / groupe', date_embauche: "Date d'embauche" };
+const VA_CACHES = new Set(['id', 'updated_at', 'created_at', 'created_by', 'transaction_id', 'user_id', 'detail', 'client_nom']);
+let _va = { mods: [], noms: {} };
+
+// Compteur de la cloche et du menu (super admin)
+async function majCompteurValidations() {
+  if (ME?.role !== 'super_admin') return;
+  const { count, error } = await sb.from('modifications').select('id', { count: 'exact', head: true }).eq('statut', 'En attente');
+  const n = error ? 0 : (count || 0);
+  ['nav-badge-valid', 'tb-badge-valid'].forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = n > 99 ? '99+' : n; el.style.display = n ? '' : 'none'; } });
+  const cloche = document.getElementById('tb-cloche');
+  if (cloche) { cloche.style.display = ''; cloche.title = n ? `${n} modification(s) à valider` : 'Aucune modification à valider'; }
+}
+
+async function loadValidations() {
+  const statut = document.getElementById('va-statut').value;
+  let req = sb.from('modifications').select('*').order('id', { ascending: false }).limit(500);
+  if (statut) req = req.eq('statut', statut);
+  const { data, error } = await req;
+  document.getElementById('al-validations').innerHTML = error
+    ? `<div class="al al-e">${/modifications|relation|does not exist|schema cache/i.test(error.message) ? "Exécutez d'abord le script SQL 25 (validation des gérants) dans Supabase." : error.message}</div>` : '';
+  _va.mods = data || [];
+  // Noms des clients et salariés cités (paiements, salaires…)
+  const ids = (k) => [...new Set(_va.mods.flatMap(m => [m.avant?.[k], m.apres?.[k]]).filter(Boolean))];
+  const [rc, re] = await Promise.all([
+    ids('client_id').length ? sb.from('clients').select('id,prenom,nom').in('id', ids('client_id')) : { data: [] },
+    ids('employe_id').length ? sb.from('employes').select('id,prenom,nom').in('id', ids('employe_id')) : { data: [] }
+  ]);
+  _va.noms = {};
+  [...(rc.data || []), ...(re.data || [])].forEach(x => { _va.noms[x.id] = `${x.prenom} ${x.nom}`; });
+  // Les clients supprimés : leur nom est dans l'enregistrement « avant »
+  _va.mods.forEach(m => { if (m.table_nom === 'clients' && m.avant) _va.noms[m.avant.id] ??= `${m.avant.prenom} ${m.avant.nom}`; });
+  renderValidations();
+  majCompteurValidations();
+}
+
+// Regroupe les changements d'une même action (même transaction) et ceux qui touchent le même élément
+function groupesValidations(mods) {
+  const parent = {}; const trouver = x => parent[x] === x ? x : (parent[x] = trouver(parent[x]));
+  const unir = (a, b) => { parent[trouver(a)] = trouver(b); };
+  mods.forEach(m => { parent[m.id] = m.id; });
+  const parCle = {};
+  mods.forEach(m => [`t${m.txid}`, `r${m.table_nom}|${m.ligne_id}|${m.statut}`].forEach(k => { if (parCle[k] !== undefined) unir(m.id, parCle[k]); else parCle[k] = m.id; }));
+  const g = {};
+  mods.forEach(m => { (g[trouver(m.id)] ??= []).push(m); });
+  return Object.values(g).map(l => l.sort((a, b) => a.id - b.id)).sort((a, b) => b[b.length - 1].id - a[a.length - 1].id);
+}
+
+function vaValeur(k, v) {
+  if (v === null || v === undefined || v === '') return '<span style="color:var(--text3)">—</span>';
+  if ((k === 'client_id' || k === 'employe_id') && _va.noms[v]) return echapper(_va.noms[v]);
+  if (k === 'coaches_ids' && Array.isArray(v)) return echapper(v.map(id => _va.noms[id] || id).join(', ') || '—');
+  if (Array.isArray(v)) return echapper(v.join(', ')) || '—';
+  if (typeof v === 'boolean') return v ? 'Oui' : 'Non';
+  if (typeof v === 'object') return echapper(JSON.stringify(v)).slice(0, 120);
+  if (/_url$/.test(k)) return '(fichier)';
+  if (/^(montant|salaire|prix_|tarif_)/.test(k) && !isNaN(parseFloat(v))) return fmtDH2(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return dateFr(v);
+  return echapper(String(v)).slice(0, 120);
+}
+
+function vaResume(m) {
+  const r = m.apres || m.avant || {};
+  const nom = id => _va.noms[id] || '';
+  switch (m.table_nom) {
+    case 'clients': case 'employes': case 'associes': return `${r.prenom || ''} ${r.nom || ''}`.trim();
+    case 'paiements': return [fmtDH2(r.montant), r.type, nom(r.client_id)].filter(Boolean).join(' — ');
+    case 'charges': return `${r.libelle || ''} — ${fmtDH2(r.montant)}`;
+    case 'sports': return r.nom || '';
+    case 'planning': return `${r.sport || ''} — ${r.jour || ''} ${String(r.heure_debut || '').slice(0, 5)}`;
+    case 'salaires_paie': return [nom(r.employe_id), r.mois, fmtDH2(r.montant)].filter(Boolean).join(' — ');
+    case 'ventes': return `${r.article || ''} — ${fmtDH2(r.prix_vente)}`;
+    case 'parametres': return `${r.cle} = ${r.valeur}`;
+    case 'habilitations': return r.module || '';
+    default: return m.ligne_id || '';
+  }
+}
+
+function vaDetail(m) {
+  const lignes = [];
+  if (m.operation === 'UPDATE') {
+    Object.keys({ ...m.avant, ...m.apres }).forEach(k => {
+      if (VA_CACHES.has(k) || JSON.stringify(m.avant?.[k]) === JSON.stringify(m.apres?.[k])) return;
+      lignes.push(`<tr><td>${VA_CHAMPS[k] || k}</td><td style="color:var(--red-text);text-decoration:line-through">${vaValeur(k, m.avant?.[k])}</td><td style="color:var(--green-text);font-weight:600">${vaValeur(k, m.apres?.[k])}</td></tr>`);
+    });
+    return lignes.length ? `<table class="va-diff"><thead><tr><th>Champ</th><th>Avant</th><th>Après</th></tr></thead><tbody>${lignes.join('')}</tbody></table>` : '';
+  }
+  const r = m.apres || m.avant || {};
+  Object.keys(r).forEach(k => { if (!VA_CACHES.has(k) && r[k] !== null && r[k] !== '' && !(Array.isArray(r[k]) && !r[k].length)) lignes.push(`<span><b>${VA_CHAMPS[k] || k}</b> : ${vaValeur(k, r[k])}</span>`); });
+  return `<div class="va-champs">${lignes.slice(0, 14).join('')}</div>`;
+}
+
+function renderValidations() {
+  const groupes = groupesValidations(_va.mods);
+  const attente = _va.mods.filter(m => m.statut === 'En attente');
+  document.getElementById('va-tout').style.display = attente.length > 1 ? '' : 'none';
+  const dt = s => { const d = new Date(s); return `${dateFr(isoLocal(d))} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  document.getElementById('va-liste').innerHTML = groupes.length ? groupes.map(g => {
+    const p = g[0], enAttente = g.some(m => m.statut === 'En attente');
+    const [opLib, opCl] = VA_OPS[p.operation] || [p.operation, 'b-i'];
+    const autres = g.length > 1 ? `<span style="font-size:11px;color:var(--text3)"> + ${g.length - 1} changement(s) lié(s)</span>` : '';
+    const ids = g.filter(m => m.statut === 'En attente').map(m => m.id).join(',');
+    const st = enAttente ? '' : `<span class="badge ${g[0].statut === 'Validée' ? 'b-g' : 'b-d'}">${g[0].statut}</span> <span style="font-size:11px;color:var(--text3)">${g[0].traite_le ? dt(g[0].traite_le) : ''}</span>`;
+    return `<div class="card va-carte" style="border-left:3px solid ${enAttente ? 'var(--amber)' : 'var(--border)'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="badge ${opCl}">${opLib}</span>
+            <strong>${VA_TABLES[p.table_nom] || p.table_nom} : ${echapper(vaResume(p)) || '—'}</strong>${autres}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">${dt(p.created_at)} · par <b>${echapper(p.user_nom || 'gérant')}</b></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">${enAttente
+          ? `<button class="btn btn-sm btn-p" onclick="traiterModifs('${ids}','Validée')">Valider</button><button class="btn btn-sm btn-d" onclick="traiterModifs('${ids}','Refusée')">Refuser</button>`
+          : st}</div>
+      </div>
+      ${g.map(m => `<div style="margin-top:10px">${g.length > 1 ? `<div style="font-size:12px;font-weight:600;margin-bottom:4px">${(VA_OPS[m.operation] || [m.operation])[0]} — ${VA_TABLES[m.table_nom] || m.table_nom} : ${echapper(vaResume(m))}</div>` : ''}${vaDetail(m)}</div>`).join('')}
+    </div>`;
+  }).join('') : `<div class="al al-s" style="margin:0">${document.getElementById('va-statut').value === 'En attente' ? 'Aucune modification à valider.' : 'Aucune modification.'}</div>`;
+}
+
+async function traiterModifs(idsTxt, decision) {
+  const ids = idsTxt.split(',').map(Number).filter(Boolean);
+  if (decision === 'Refusée' && !confirm("Refuser ce changement ?\nIl sera annulé : un ajout est supprimé, une modification revient aux valeurs d'avant, une suppression est rétablie.")) return;
+  const { error } = await sb.rpc('traiter_modifications', { p_ids: ids, p_decision: decision });
+  if (error) { showToast(error.message, 'e'); return; }
+  showToast(decision === 'Validée' ? 'Changement validé' : 'Changement refusé et annulé', 's');
+  loadValidations();
+}
+
+async function validerToutesModifs() {
+  const ids = _va.mods.filter(m => m.statut === 'En attente').map(m => m.id);
+  if (!ids.length || !confirm(`Valider les ${ids.length} changements en attente ?`)) return;
+  const { error } = await sb.rpc('traiter_modifications', { p_ids: ids, p_decision: 'Validée' });
+  if (error) { showToast(error.message, 'e'); return; }
+  showToast('Tous les changements sont validés', 's');
+  loadValidations();
 }
 
 function basculerEquipe() {
