@@ -1719,8 +1719,8 @@ tr:hover td{background:var(--blue-light)}
           <div class="ct" data-i18n="salaires.enregistrer_paie">Enregistrer un paiement de salaire</div>
           <div class="ligne-form" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end">
             <div class="fg" style="flex:2;min-width:160px"><label data-i18n="coaches.salarie">Salarié</label><select id="co-sal-emp" onchange="calculerSalaire()"></select></div>
-            <div class="fg" style="min-width:130px"><label data-i18n="coaches.mois_concerne">Mois concerné</label><input id="co-sal-mois" type="month" onchange="calculerSalaire()"></div>
-            <div class="fg" id="co-sal-semaines-wrap" style="min-width:110px;display:none"><label data-i18n="remu.nb_semaines">Nombre de semaines</label><input id="co-sal-semaines" type="number" min="0" max="6" step="0.5" oninput="calculerSalaire(true)"></div>
+            <div class="fg" id="co-sal-mois-wrap" style="min-width:130px"><label data-i18n="coaches.mois_concerne">Mois concerné</label><input id="co-sal-mois" type="month" onchange="calculerSalaire()"></div>
+            <div class="fg" id="co-sal-semaine-wrap" style="min-width:150px;display:none"><label data-i18n="hebdo.semaine_payee">Semaine payée (lundi)</label><input id="co-sal-semaine" type="date" data-vide onchange="calculerSalaire(true)"></div>
             <div class="fg" style="min-width:120px"><label data-i18n="paie.montant">Montant (DH)</label><input id="co-sal-mont" type="number" min="0"></div>
             <div class="fg" style="min-width:130px"><label data-i18n="coaches.mode_paiement">Mode de paiement</label>
               <select id="co-sal-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select>
@@ -2385,6 +2385,11 @@ const I18N = {
     'remu.par_mois_moyen':'par mois en moyenne (52 semaines ÷ 12)',
     'remu.nb_semaines':  'Nombre de semaines',
     'remu.semaines':     'semaine(s)',
+    'hebdo.semaine_payee':'Semaine payée (lundi)',
+    'hebdo.semaine':     'Semaine',
+    'hebdo.sem_court':   'Sem.',
+    'hebdo.deja_payee':  'La semaine %s est déjà payée pour ce salarié. Enregistrer quand même ?',
+    'hebdo.info':        'payé chaque lundi pour la semaine écoulée',
     'remu.sql_semaine':  'Rémunération par semaine non activée : exécutez supabase/14_remuneration_semaine.sql dans Supabase.',
     'remu.a_payer':      'Montant à payer',
     'remu.discipline':   'Discipline',
@@ -3064,6 +3069,11 @@ const I18N = {
     'remu.par_mois_moyen':'شهرياً في المتوسط (52 أسبوعاً ÷ 12)',
     'remu.nb_semaines': 'عدد الأسابيع',
     'remu.semaines':    'أسبوع',
+    'hebdo.semaine_payee':'الأسبوع المؤدى (الاثنين)',
+    'hebdo.semaine':    'أسبوع',
+    'hebdo.sem_court':  'أسبوع',
+    'hebdo.deja_payee': 'الأسبوع %s مؤدى سابقاً لهذا الموظف. هل تريد التسجيل رغم ذلك ؟',
+    'hebdo.info':       'يؤدى كل اثنين عن الأسبوع الماضي',
     'remu.sql_semaine': 'الأجرة الأسبوعية غير مفعلة : نفّذ supabase/14_remuneration_semaine.sql في Supabase.',
     'remu.a_payer':     'المبلغ المستحق',
     'remu.discipline':  'التخصص',
@@ -7558,11 +7568,13 @@ async function saveCoachPaie() {
   const mode   = document.getElementById('co-sal-mode').value;
   if (!empId||!mois||!montant) { showToast(t('salaires.required'),'e'); return; }
 
-  // Vérifie doublon
-  const { data: exist } = await sb.from('salaires_paie')
-    .select('id').eq('employe_id',empId).eq('mois',mois);
+  // Vérifie doublon : même semaine (paie hebdomadaire) ou même mois (autres modes)
+  const semaine = _salCalc?.empId === empId && _salCalc.detail?.semaine_debut;
+  const { data: exist } = semaine
+    ? await sb.from('salaires_paie').select('id').eq('employe_id', empId).eq('detail->>semaine_debut', semaine)
+    : await sb.from('salaires_paie').select('id').eq('employe_id', empId).eq('mois', mois);
   if (exist?.length > 0) {
-    if (!confirm(t('salaires.exists').replace('%s',mois))) return;
+    if (!confirm(semaine ? t('hebdo.deja_payee').replace('%s', libelleSemaine(semaine)) : t('salaires.exists').replace('%s',mois))) return;
   }
 
   // Détail du calcul conservé avec le paiement (reçu PDF) — seulement s'il correspond à ce salarié et ce mois
@@ -7611,7 +7623,7 @@ async function loadCoachPaies() {
     ? (data||[]).map(p=>`<tr>
         <td><strong>${p.employes?.prenom||'?'} ${p.employes?.nom||''}</strong></td>
         <td style="color:var(--text2)">${_pTr[p.employes?.poste]||p.employes?.poste||'—'}</td>
-        <td><span class="badge b-i">${p.mois}</span></td>
+        <td><span class="badge b-i">${p.detail?.semaine_debut ? t('hebdo.sem_court') + ' ' + libelleSemaine(p.detail.semaine_debut) : p.mois}</span></td>
         <td style="font-weight:500;color:var(--green)">${fmt(p.montant)}</td>
         <td>${_mTr[p.mode]||p.mode||'—'}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecuSalaire('${p.id}')">${t('recu.btn')}</button> ${canDel?`<button class="btn btn-sm btn-d" onclick="delCoachPaie('${p.id}')">${t('msg.suppr')}</button>`:''}</td>
@@ -7631,7 +7643,23 @@ async function loadCoachNonPayes() {
   const { data: paies }    = await sb.from('salaires_paie').select('employe_id,mois').eq('mois',moisCur);
 
   const payesIds = new Set((paies||[]).map(p=>p.employe_id));
-  const nonPayes = (employes||[]).filter(e => !payesIds.has(e.id) && e.actif !== false && (e.salaire > 0 || e.remuneration === 'Pourcentage'));
+  const nonPayes = (employes||[]).filter(e => e.remuneration !== 'Semaine' && !payesIds.has(e.id) && e.actif !== false && (e.salaire > 0 || e.remuneration === 'Pourcentage'));
+
+  // Paie hebdomadaire : semaines terminées (8 dernières au plus, depuis l'embauche) sans paiement
+  const hebdos = (employes||[]).filter(e => e.remuneration === 'Semaine' && e.actif !== false);
+  const semainesDues = {};
+  if (hebdos.length) {
+    const derniere = semainePrecedente(), premiere = ajouterJours(derniere, -7 * 7);
+    const { data: paiesH } = await sb.from('salaires_paie').select('employe_id,detail').in('employe_id', hebdos.map(e => e.id))
+      .gte('mois', premiere.slice(0, 7));
+    const payees = new Set((paiesH || []).filter(x => x.detail?.semaine_debut).map(x => x.employe_id + '|' + x.detail.semaine_debut));
+    hebdos.forEach(e => {
+      const debut = e.date_embauche ? lundiDe(e.date_embauche) : premiere;
+      const dues = [];
+      for (let l = derniere; l >= premiere && l >= debut; l = ajouterJours(l, -7)) if (!payees.has(e.id + '|' + l)) dues.push(l);
+      if (dues.length) { semainesDues[e.id] = dues.reverse(); nonPayes.push(e); }
+    });
+  }
 
   document.getElementById('co-nonpayes').textContent = nonPayes.length;
   document.getElementById('co-nonpayes').style.color = nonPayes.length > 0 ? 'var(--amber)' : 'var(--green)';
@@ -7640,23 +7668,30 @@ async function loadCoachNonPayes() {
   const _posteTr2={'Coach sportif':t('coaches.p_coach'),'Coach':t('coaches.p_coach'),'Agent d\'entretien':t('coaches.p_entretien'),'Réceptionniste':t('coaches.p_receptionniste'),'Comptable':t('coaches.p_comptable'),'Directeur':t('coaches.p_directeur'),'Gérant':t('coaches.p_directeur'),'Administratif':t('coaches.p_comptable')};
   document.getElementById('co-nonpayes-list').innerHTML = nonPayes.length
     ? nonPayes.map(e=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px">
         <div>
           <div style="font-weight:500">${e.prenom} ${e.nom}</div>
           <div style="font-size:11px;color:var(--text2)">${_posteTr2[e.poste]||e.poste||'—'}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        ${semainesDues[e.id] ? `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:6px">
+          ${semainesDues[e.id].map(l => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0 4px 10px;border-inline-start:2px solid var(--amber)">
+            <span style="font-size:12px;color:var(--amber-text);white-space:nowrap">${t('hebdo.semaine')} ${dateFr(l).slice(0, 5)} → ${dateFr(ajouterJours(l, 6)).slice(0, 5)}</span>
+            <span style="font-weight:500;margin-inline-start:auto;white-space:nowrap">${fmt(e.montant_semaine)}</span>
+            ${canWrite?`<button class="btn btn-sm btn-p" onclick="prefillPaie('${e.id}','${l}')">${t('salaires.payer')}</button>`:''}
+          </div>`).join('')}
+        </div>` : `<div style="display:flex;align-items:center;gap:8px">
           <span style="font-weight:500">${libelleRemu(e)}</span>
           ${canWrite?`<button class="btn btn-sm btn-p" onclick="prefillPaie('${e.id}')">${t('salaires.payer')}</button>`:''}
-        </div>
+        </div>`}
       </div>`).join('')
     : `<div class="al al-s" style="margin:0">${t('salaires.all_paid')}</div>`;
 }
 
-function prefillPaie(empId) {
+function prefillPaie(empId, lundi) {
   document.getElementById('co-sal-emp').value  = empId;
   document.getElementById('co-sal-mois').value = thisMonth();
-  calculerSalaire();   // montant selon le mode de rémunération (mensuel, groupe, pourcentage)
+  if (lundi) document.getElementById('co-sal-semaine').value = lundi;   // semaine précise (paie hebdomadaire)
+  calculerSalaire(!!lundi);   // montant selon le mode de rémunération (mensuel, groupe, pourcentage)
   document.getElementById('co-sal-emp').closest('.card').scrollIntoView({behavior:'smooth'});
 }
 
@@ -7778,7 +7813,7 @@ function majFormRemu() {
     calc.style.display = '';
   } else if (remu === 'Semaine') {
     const u = parseFloat(document.getElementById('co-montant-semaine').value) || 0;
-    calc.innerHTML = `${fmt(u)} ${t('remu.par_semaine')} ≈ <strong>${fmt(u * 52 / 12)}</strong> ${t('remu.par_mois_moyen')}`;
+    calc.innerHTML = `${fmt(u)} ${t('remu.par_semaine')} — ${t('hebdo.info')} (≈ <strong>${fmt(u * 52 / 12)}</strong> ${t('remu.par_mois_moyen')})`;
     calc.style.display = '';
   } else if (remu === 'Pourcentage') {
     calc.innerHTML = t('remu.pct_info');
@@ -7823,28 +7858,41 @@ async function caSportsDuMois(mois, nomsSports) {
 }
 
 // Formulaire de paiement : calcule le montant selon le mode de rémunération et affiche le détail
-// Semaines d'un mois = nombre de lundis (semaines qui commencent dans le mois) : 4 ou 5
-function semainesDuMois(mois) {
-  const [y, m] = mois.split('-').map(Number);
-  let n = 0; for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) if (new Date(y, m - 1, d).getDay() === 1) n++;
-  return n;
+// ── Paie hebdomadaire : chaque lundi, paiement de la semaine terminée (lundi → dimanche) ──
+const ajouterJours = (iso, n) => { const [y, m, d] = iso.split('-').map(Number); return isoLocal(new Date(y, m - 1, d + n)); };
+function lundiDe(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d); const decal = (dt.getDay() + 6) % 7;   // lundi = 0
+  return isoLocal(new Date(y, m - 1, d - decal));
 }
+// Dernière semaine terminée (payée le lundi qui suit)
+const semainePrecedente = () => ajouterJours(lundiDe(today()), -7);
+const libelleSemaine = lundi => `${dateFr(lundi)} → ${dateFr(ajouterJours(lundi, 6))}`;
 
-// garderSemaines = true quand l'utilisateur modifie lui-même le nombre de semaines
-async function calculerSalaire(garderSemaines = false) {
-  const empId = document.getElementById('co-sal-emp').value, mois = document.getElementById('co-sal-mois').value;
+// garderSemaine = true quand l'utilisateur choisit lui-même la semaine
+async function calculerSalaire(garderSemaine = false) {
+  const empId = document.getElementById('co-sal-emp').value;
   const zone = document.getElementById('co-sal-detail');
   _salCalc = null; zone.style.display = 'none';
   const e = (window._COACHES_LIST || []).find(x => x.id === empId);
-  const champSem = document.getElementById('co-sal-semaines');
-  document.getElementById('co-sal-semaines-wrap').style.display = e?.remuneration === 'Semaine' ? '' : 'none';
-  if (!e || !mois) return;
+  const hebdo = e?.remuneration === 'Semaine';
+  document.getElementById('co-sal-semaine-wrap').style.display = hebdo ? '' : 'none';
+  document.getElementById('co-sal-mois-wrap').style.display = hebdo ? 'none' : '';
+  if (!e) return;
   const remu = e.remuneration || 'Mensuel';
   let detail;
-  if (remu === 'Semaine') {
-    if (!garderSemaines || champSem.value === '') champSem.value = semainesDuMois(mois);
-    const nb = parseFloat(champSem.value) || 0, u = parseFloat(e.montant_semaine) || 0;
-    detail = { remuneration: 'Semaine', nb_semaines: nb, montant_semaine: u, total: Math.round(nb * u * 100) / 100 };
+  if (hebdo) {
+    const champ = document.getElementById('co-sal-semaine');
+    if (!garderSemaine || !champ.value) champ.value = semainePrecedente();
+    const lundi = lundiDe(champ.value); champ.value = lundi;                 // toute date → son lundi
+    document.getElementById('co-sal-mois').value = lundi.slice(0, 7);        // mois rattaché (statistiques, bilan)
+    const u = parseFloat(e.montant_semaine) || 0;
+    detail = { remuneration: 'Semaine', semaine_debut: lundi, semaine_fin: ajouterJours(lundi, 6), nb_semaines: 1, montant_semaine: u, total: u };
+  }
+  const mois = document.getElementById('co-sal-mois').value;
+  if (!mois) return;
+  if (hebdo) {
+    // détail déjà calculé (semaine choisie)
   } else if (remu === 'Groupe') {
     const total = (e.nb_groupes || 0) * (parseFloat(e.montant_groupe) || 0);
     detail = { remuneration: 'Groupe', nb_groupes: e.nb_groupes || 0, montant_groupe: parseFloat(e.montant_groupe) || 0, total };
@@ -7892,7 +7940,7 @@ function detailSalaireHtml(d) {
   if (d.remuneration === 'Groupe')
     return resultat(`${t('remu.groupe_court')} : ${d.nb_groupes} × ${fmtDH2(d.montant_groupe)}`);
   if (d.remuneration === 'Semaine')
-    return resultat(`${d.nb_semaines} ${t('remu.semaines')} × ${fmtDH2(d.montant_semaine)}`);
+    return resultat(d.semaine_debut ? `${t('hebdo.semaine')} ${libelleSemaine(d.semaine_debut)}` : `${d.nb_semaines} ${t('remu.semaines')} × ${fmtDH2(d.montant_semaine)}`);
   if (d.remuneration === 'Pourcentage') {
     if (!d.lignes.length) return boite(`<span style="color:var(--amber-text)">${t('remu.aucune_discipline')}</span>`);
     return boite(`<table style="font-size:12px;margin-bottom:0"><thead><tr><th>${t('remu.discipline')}</th><th style="text-align:end">${t('remu.adherents')}</th><th style="text-align:end">${t('remu.ca_mois')}</th></tr></thead><tbody>
@@ -7920,7 +7968,8 @@ async function ouvrirRecuSalaire(id) {
   // uniquement le récapitulatif de paie du salarié
   doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
   doc.text('RÉCAPITULATIF DE PAIE', M, 26);
-  doc.setTextColor(...noir); doc.setFontSize(10); doc.text(`Mois : ${moisLib}`, W - M, 21, { align: 'right' });
+  const periodeLib = d.semaine_debut ? `Semaine du ${dateFr(d.semaine_debut)} au ${dateFr(d.semaine_fin || ajouterJours(d.semaine_debut, 6))}` : `Mois : ${moisLib}`;
+  doc.setTextColor(...noir); doc.setFontSize(10); doc.text(periodeLib, W - M, 21, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
   doc.text(`Payé le : ${dateFr(String(p.created_at || '').slice(0, 10))}`, W - M, 26.5, { align: 'right' });
   doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 36, W - M, 36);
@@ -7952,7 +8001,8 @@ async function ouvrirRecuSalaire(id) {
     ligne([[`Pourcentage appliqué : ${montantPdf(d.ca_total)} × ${d.pourcentage} %`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
   } else if (d.remuneration === 'Semaine') {
     entete([['Désignation', M + 4], ['Semaines', 120, 'right'], ['Montant / semaine', 160, 'right'], ['Total', W - M - 4, 'right']]);
-    ligne([[`Semaines travaillées — ${moisLib}`, M + 4], [String(d.nb_semaines).replace('.', ','), 120, 'right'], [montantPdf(d.montant_semaine), 160, 'right'], [montantPdf(d.total), W - M - 4, 'right']]);
+    ligne([[d.semaine_debut ? `Semaine travaillée du ${dateFr(d.semaine_debut).slice(0, 5)} au ${dateFr(d.semaine_fin || ajouterJours(d.semaine_debut, 6)).slice(0, 5)}` : `Semaines travaillées — ${moisLib}`, M + 4],
+           [String(d.nb_semaines).replace('.', ','), 120, 'right'], [montantPdf(d.montant_semaine), 160, 'right'], [montantPdf(d.total), W - M - 4, 'right']]);
   } else if (d.remuneration === 'Groupe') {
     entete([['Désignation', M + 4], ['Groupes', 120, 'right'], ['Montant unitaire', 160, 'right'], ['Total', W - M - 4, 'right']]);
     ligne([[`Groupes encadrés — ${moisLib}`, M + 4], [d.nb_groupes, 120, 'right'], [montantPdf(d.montant_groupe), 160, 'right'], [montantPdf(d.total), W - M - 4, 'right']]);
@@ -7979,12 +8029,12 @@ async function ouvrirRecuSalaire(id) {
   doc.text('Signature du responsable', M + 35, y + 18, { align: 'center' });
   doc.text('Signature du bénéficiaire', W - M - 35, y + 18, { align: 'center' });
   // Pas de pied de page ni d'auteur : le document ne mentionne pas la structure
-  doc.setProperties({ title: `Récapitulatif de paie ${e.prenom || ''} ${e.nom || ''} ${p.mois || ''}`, author: '', creator: '' });
+  doc.setProperties({ title: `Récapitulatif de paie ${e.prenom || ''} ${e.nom || ''} ${d.semaine_debut || p.mois || ''}`, author: '', creator: '' });
 
   // Affichage dans la fenêtre des reçus (impression / téléchargement ; pas d'envoi au client)
   if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
   const blobUrl = URL.createObjectURL(doc.output('blob'));
-  _recu = { doc, blobUrl, paiements: [{ id: p.id, numero_recu: null }], numero: `salaire-${p.mois}`, client: { prenom: e.prenom, nom: e.nom } };
+  _recu = { doc, blobUrl, paiements: [{ id: p.id, numero_recu: null }], numero: `paie-${d.semaine_debut || p.mois}`, client: { prenom: e.prenom, nom: e.nom } };
   document.getElementById('recu-title').textContent = `${t('remu.recu_title')} — ${e.prenom || ''} ${e.nom || ''}`;
   document.getElementById('recu-preview').src = blobUrl;
   document.getElementById('btn-recu-mail').style.display = 'none';
