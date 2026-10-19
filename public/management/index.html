@@ -7061,7 +7061,22 @@ let _plan = { rows: [], empMap: {}, vue: null, jour: null, fSport: '', fCoach: '
 const minutesDe = hhmm => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
 const hhmm = min => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 const jourLib = j => t('jour.' + j.toLowerCase());
-const indexAujourdhui = () => (new Date().getDay() + 6) % 7;
+// Jour et heure au Maroc (Africa/Casablanca), quel que soit le fuseau horaire de l'appareil
+function maintenantMaroc() {
+  try {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Casablanca', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .formatToParts(new Date()).map(x => [x.type, x.value]));
+    return { jour: { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }[p.weekday], minutes: (parseInt(p.hour, 10) % 24) * 60 + parseInt(p.minute, 10) };
+  } catch (_) {
+    const d = new Date(); return { jour: (d.getDay() + 6) % 7, minutes: d.getHours() * 60 + d.getMinutes() };
+  }
+}
+const indexAujourdhui = () => maintenantMaroc().jour;
+// Ligne « maintenant » du planning tenue à jour
+setInterval(() => {
+  if (document.getElementById('page-planning')?.classList.contains('active') && _plan.vue === 'semaine'
+      && !document.body.classList.contains('print-planning')) renderPlanning();
+}, 120000);
 
 function couleurSport(nom) {
   const noms = [...new Set([...SPORTS_CACHE.map(sp => sp.nom), ..._plan.rows.map(r => r.sport)])];
@@ -7133,7 +7148,7 @@ function htmlSemaine(rows, H = 40) {
   const debut = rows.length ? Math.floor(Math.min(...rows.map(r => minutesDe(r.heure_debut))) / 60) : 8;
   const fin = rows.length ? Math.ceil(Math.max(...rows.map(r => minutesDe(r.heure_fin))) / 60) : 22;
   const nbH = Math.max(fin - debut, 1), auj = indexAujourdhui();
-  const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowMin = maintenantMaroc().minutes;   // heure du Maroc
   const heures = Array.from({ length: nbH + 1 }, (_, i) => `<div style="top:${i * H}px">${String(debut + i).padStart(2, '0')}:00</div>`).join('');
   // Plages longues (≥ 4 h, ex. salle de musculation ouverte toute la journée) : en arrière-plan sur toute la colonne,
   // les cours plus courts s'affichent par-dessus en pleine largeur
@@ -7156,7 +7171,7 @@ function htmlSemaine(rows, H = 40) {
         <b>${p.sport}${haut <= 30 && coach ? ` <em>· ${coach}</em>` : ''}</b>${haut > 46 ? `<small>${hhmm(d)} – ${hhmm(f)}</small>${coach ? `<small>${coach}</small>` : ''}`
           : haut > 30 ? `<small>${hhmm(d)} – ${hhmm(f)}${coach ? ' · ' + coach : ''}</small>` : ''}</button>`;
     }).join('');
-    const ligneNow = i === auj && nowMin >= debut * 60 && nowMin <= fin * 60 ? `<div class="pw-now" style="top:${(nowMin - debut * 60) / 60 * H}px"></div>` : '';
+    const ligneNow = i === auj && nowMin >= debut * 60 && nowMin <= fin * 60 ? `<div class="pw-now" title="${hhmm(nowMin)} (heure du Maroc)" style="top:${(nowMin - debut * 60) / 60 * H}px"></div>` : '';
     return `<div class="pw-col ${i === auj ? 'auj' : ''}">${fonds}${evs}${ligneNow}</div>`;
   }).join('');
   const entete = PLAN_JOURS.map((j, i) => {
