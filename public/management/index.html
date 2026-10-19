@@ -465,7 +465,7 @@ html[data-theme="dark"] .plan-vues button.on{color:#0b0c0f}
 .plan-leg{display:inline-flex;align-items:center;gap:6px}
 .plan-leg i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .pw-scroll{overflow-x:auto}
-.pw{min-width:820px;--h:40px;padding-bottom:14px}
+.pw{min-width:820px;--h:20px;padding-bottom:14px}
 .pw-head,.pw-body{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr))}
 .pw-head{position:sticky;top:0;z-index:2}
 .pw-day{text-align:center;padding:8px 4px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--border)}
@@ -486,6 +486,8 @@ html[data-theme="dark"] .plan-vues button.on{color:#0b0c0f}
 .pw-fond span{position:sticky;top:0;display:block;padding:4px 7px;font-size:10.5px;color:color-mix(in srgb,var(--c) 70%,var(--text));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pw-fond:hover{background-color:color-mix(in srgb,var(--c) 8%,transparent)}
 .pw-ev{z-index:1}
+.pw-ev.mini{padding:2px 7px}
+.pw-ev b em{font-style:normal;font-weight:500;color:var(--text2);font-size:10.5px}
 .pw-now{position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:4}
 .pw-now::before{content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--red)}
 .pl-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
@@ -6846,7 +6848,7 @@ function placerSeances(list) {
   return res;
 }
 
-function htmlSemaine(rows, H = 40) {
+function htmlSemaine(rows, H = 20) {
   const debut = rows.length ? Math.floor(Math.min(...rows.map(r => minutesDe(r.heure_debut))) / 60) : 8;
   const fin = rows.length ? Math.ceil(Math.max(...rows.map(r => minutesDe(r.heure_fin))) / 60) : 22;
   const nbH = Math.max(fin - debut, 1), auj = indexAujourdhui();
@@ -6868,9 +6870,9 @@ function htmlSemaine(rows, H = 40) {
     const evs = placerSeances(duJour.filter(r => !estLongue(r))).map(({ p, d, f, c, n }) => {
       const top = (d - debut * 60) / 60 * H, haut = Math.max((f - d) / 60 * H - 3, 20);
       const coach = coachsSeance(p).join(', ');
-      return `<button type="button" class="pw-ev" title="${p.sport} · ${hhmm(d)}–${hhmm(f)}${coach ? ' · ' + coach : ''}" onclick="ouvrirSeance('${p.id}')"
+      return `<button type="button" class="pw-ev${haut <= 30 ? ' mini' : ''}" title="${p.sport} · ${hhmm(d)}–${hhmm(f)}${coach ? ' · ' + coach : ''}" onclick="ouvrirSeance('${p.id}')"
         style="--c:${couleurSport(p.sport)};top:${top + 1}px;height:${haut}px;left:calc(${c / n * 100}% + ${2 + decale}px);width:calc(${100 / n}% - ${4 + decale}px)">
-        <b>${p.sport}</b>${haut > 46 ? `<small>${hhmm(d)} – ${hhmm(f)}</small>${coach ? `<small>${coach}</small>` : ''}`
+        <b>${p.sport}${haut <= 30 && coach ? ` <em>· ${coach}</em>` : ''}</b>${haut > 46 ? `<small>${hhmm(d)} – ${hhmm(f)}</small>${coach ? `<small>${coach}</small>` : ''}`
           : haut > 30 ? `<small>${hhmm(d)} – ${hhmm(f)}${coach ? ' · ' + coach : ''}</small>` : ''}</button>`;
     }).join('');
     const ligneNow = i === auj && nowMin >= debut * 60 && nowMin <= fin * 60 ? `<div class="pw-now" style="top:${(nowMin - debut * 60) / 60 * H}px"></div>` : '';
