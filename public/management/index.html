@@ -1041,6 +1041,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           </div>
           <div class="fr"><div class="fg"><label data-i18n="clients.prenom">Prénom</label><input id="c-prenom" placeholder="Prénom" onblur="this.value=formatPrenom(this.value)"></div><div class="fg"><label data-i18n="clients.nom">Nom</label><input id="c-nom" placeholder="Nom" onblur="this.value=formatNom(this.value)"></div></div>
           <div class="fr"><div class="fg"><label data-i18n="clients.tel">Téléphone</label><input id="c-tel" placeholder="06 00 00 00 00"></div><div class="fg"><label><span data-i18n="clients.tel2">Téléphone 2</span> <span style="color:var(--text3);font-weight:400" data-i18n="clients.optionnel">(facultatif)</span></label><input id="c-tel2" placeholder="06 00 00 00 00"></div></div>
+          <div class="fr"><div class="fg"><label data-i18n="clients.num_adh">N° adhérent</label><input id="c-num" type="number" min="1" step="1" inputmode="numeric" placeholder="1234"></div></div>
           <div class="fr"><div class="fg"><label data-i18n="clients.cin">CIN</label><input id="c-cin" placeholder="AB123456"></div><div class="fg"><label data-i18n="clients.email">E-mail</label><input id="c-email" type="email" placeholder="exemple@email.com"></div></div>
           <div class="fr"><div class="fg"><label data-i18n="clients.dob">Date de naissance</label><input id="c-dob" type="date"></div><div class="fg"><label data-i18n="clients.sexe">Sexe</label><select id="c-sexe"><option value="Homme" data-i18n="clients.homme">Homme</option><option value="Femme" data-i18n="clients.femme">Femme</option></select></div></div>
           <div class="fr"><div class="fg"><label data-i18n="clients.date_insc">Date d'inscription</label><input id="c-date" type="date"></div><div class="fg"></div></div>
@@ -2179,6 +2180,8 @@ const I18N = {
     'clients.email':     'E-mail',
     'clients.cin':       'CIN',
     'clients.num_adh':   'N° adhérent',
+    'clients.num_pris':  'Ce numéro d'adhérent est déjà attribué à un autre client.',
+    'clients.num_sql':   'Exécutez d'abord le script SQL 17 (numéro d'adhérent) dans Supabase.',
     'clients.photo':     'Photo du client',
     'clients.cin_doc':   'Document CIN',
     'clients.dob':       'Date de naissance',
@@ -2888,6 +2891,8 @@ const I18N = {
     'clients.email':    'البريد الإلكتروني',
     'clients.cin':      'البطاقة الوطنية',
     'clients.num_adh':  'رقم المنخرط',
+    'clients.num_pris': 'رقم المنخرط هذا مستعمل من طرف عميل آخر.',
+    'clients.num_sql':  'نفّذ أولاً سكريبت SQL رقم 17 في Supabase.',
     'clients.photo':    'صورة الزبون',
     'clients.cin_doc':  'وثيقة البطاقة الوطنية',
     'clients.dob':      'تاريخ الميلاد',
@@ -4695,6 +4700,8 @@ async function saveClient() {
     telephone:        document.getElementById('c-tel').value.trim(),
     ...((document.getElementById('c-tel2').value.trim() || window._clientEditTel2Connu)
       ? { telephone2: document.getElementById('c-tel2').value.trim() || null } : {}),
+    ...((document.getElementById('c-num').value.trim() || window._clientEditNumConnu)
+      ? { numero_adherent: parseInt(document.getElementById('c-num').value, 10) || null } : {}),
     cin:              document.getElementById('c-cin').value.trim()||null,
     email:            document.getElementById('c-email').value.trim()||null,
     date_naissance:   document.getElementById('c-dob').value||null,
@@ -4724,7 +4731,10 @@ async function saveClient() {
   const { data: saved, error } = id
     ? await sb.from('clients').update(obj).eq('id', id).select().single()
     : await sb.from('clients').insert(obj).select().single();
-  if (error) { showToast(/telephone2/.test(error.message) ? t('clients.tel2_sql') : error.message, 'e'); return; }
+  if (error) {
+    showToast(/clients_numero_adherent_uniq|numero_adherent.*(duplicate|unique)/i.test(error.message) ? t('clients.num_pris')
+      : /numero_adherent/.test(error.message) ? t('clients.num_sql')
+      : /telephone2/.test(error.message) ? t('clients.tel2_sql') : error.message, 'e'); return; }
 
   // Upload photo et CIN si fichiers sélectionnés
   const clientId = saved?.id || id;
@@ -5269,6 +5279,8 @@ function editClient(c) {
   document.getElementById('c-tel2').value = c.telephone2||'';
   window._clientEditTel2Connu = 'telephone2' in c;
   document.getElementById('c-cin').value = c.cin||'';
+  document.getElementById('c-num').value = c.numero_adherent||'';
+  window._clientEditNumConnu = 'numero_adherent' in c;
   document.getElementById('c-email').value = c.email||'';
   document.getElementById('c-dob').value = c.date_naissance||'';
   // Photo
@@ -5309,9 +5321,10 @@ function closeClientForm() {
 
 function resetClientForm() {
   window._clientEditTel2Connu = false;
+  window._clientEditNumConnu = false;
   ['c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i => document.getElementById(i).dataset.touche = '');
   document.getElementById('c-formule').value = 'Mensualité';
-  ['c-id','c-prenom','c-nom','c-tel','c-tel2','c-email','c-cin','c-dob','c-date','c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i=>{
+  ['c-id','c-prenom','c-nom','c-tel','c-tel2','c-email','c-num','c-cin','c-dob','c-date','c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i=>{
     const el = document.getElementById(i); if(el) el.value='';
   });
   document.getElementById('client-form-title').textContent = t('clients.new');
