@@ -2495,10 +2495,14 @@ function showLoginErr(msg) {
 
 // Cookie « de session » (sans date d'expiration) : le navigateur le supprime à sa fermeture.
 // Absent au chargement alors qu'une connexion est enregistrée → navigateur fermé entre-temps → nouvelle connexion.
+// Certains navigateurs (intégrés à WhatsApp, Facebook, Instagram…) interdisent les cookies : chaque accès est protégé,
+// et le contrôle « navigateur fermé » ne s'applique que si les cookies fonctionnent sur l'appareil.
 const sessionNavigateur = {
-  ouvrir() { document.cookie = 'lc_app_session=1; Path=/; SameSite=Strict' + (location.protocol === 'https:' ? '; Secure' : ''); },
-  active() { return /(?:^|;\s*)lc_app_session=1/.test(document.cookie); },
-  fermer() { document.cookie = 'lc_app_session=; Max-Age=0; Path=/; SameSite=Strict' + (location.protocol === 'https:' ? '; Secure' : ''); }
+  _ecrire(v) { try { document.cookie = v + '; Path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (_) {} },
+  active() { try { return /(?:^|;\s*)lc_app_session=1/.test(document.cookie); } catch (_) { return false; } },
+  ouvrir() { this._ecrire('lc_app_session=1'); stockage.set('cookies_ok', this.active() ? '1' : '0'); },
+  fermer() { this._ecrire('lc_app_session=; Max-Age=0'); },
+  fermeDepuis() { return stockage.get('cookies_ok') === '1' && !this.active(); }
 };
 
 async function doLogout() {
@@ -5246,7 +5250,7 @@ setInterval(() => {
       // Nouvelle connexion obligatoire (sauf super admin) si le navigateur a été fermé depuis
       // ou si l'application est rouverte après plus de 10 minutes sans activité
       const s = parseInt(stockage.get('derniere_activite') || '', 10);
-      const navigateurFerme = !sessionNavigateur.active();
+      const navigateurFerme = sessionNavigateur.fermeDepuis();
       const inactif = !isNaN(s) && Date.now() - s >= INACTIVITE_MAX;
       if (navigateurFerme || inactif) {
         const { data: p } = await sb.from('profils').select('role').eq('id', session.user.id).maybeSingle();

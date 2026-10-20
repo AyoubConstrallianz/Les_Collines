@@ -7,16 +7,21 @@
 (function () {
   'use strict';
   var NOM = 'lc_consent', VERSION = 1;
+  var memoire = null;   // choix de la page en cours (si le navigateur interdit les cookies)
 
   function lire() {
-    var m = document.cookie.match(/(?:^|;\s*)lc_consent=([^;]*)/);
-    if (!m) return null;
-    try { var c = JSON.parse(decodeURIComponent(m[1])); return c && c.v === VERSION ? c : null; } catch (e) { return null; }
+    var m = null;
+    try { m = document.cookie.match(/(?:^|;\s*)lc_consent=([^;]*)/); } catch (e) {}   // certains navigateurs intégrés interdisent les cookies
+    if (!m) return memoire;
+    try { var c = JSON.parse(decodeURIComponent(m[1])); return c && c.v === VERSION ? c : memoire; } catch (e) { return memoire; }
   }
   function ecrire(externes) {
     var c = { v: VERSION, externes: !!externes, date: new Date().toISOString().slice(0, 10) };
-    document.cookie = NOM + '=' + encodeURIComponent(JSON.stringify(c)) + '; Path=/; SameSite=Lax'
-      + (location.protocol === 'https:' ? '; Secure' : '');
+    memoire = c;
+    try {
+      document.cookie = NOM + '=' + encodeURIComponent(JSON.stringify(c)) + '; Path=/; SameSite=Lax'
+        + (location.protocol === 'https:' ? '; Secure' : '');
+    } catch (e) {}
     return c;
   }
 
