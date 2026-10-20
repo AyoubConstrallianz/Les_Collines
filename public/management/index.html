@@ -1241,7 +1241,25 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div id="p-par-type"></div>
           </div>
         </div>
-        <div class="card">
+        <div class="plan-vues" style="margin-bottom:12px">
+          <button id="pv-individuel" class="on" onclick="vuePaiements('individuel')" data-i18n="pf.individuel">Pack individuel</button>
+          <button id="pv-famille" onclick="vuePaiements('famille')" data-i18n="pf.famille">Pack famille</button>
+        </div>
+        <div class="card" id="pf-card" style="display:none">
+          <div class="toolbar">
+            <button class="btn btn-p" onclick="ouvrirInscriptionFamille()" style="white-space:nowrap" id="pf-new" data-i18n="fm.btn_inscription">+ Inscription famille</button>
+            <input id="pf-q" placeholder="Rechercher une famille ou un membre…" data-i18n-ph="pf.recherche_ph" oninput="renderFamillesListe()" style="max-width:260px">
+            <select id="pf-filtre" onchange="renderFamillesListe()">
+              <option value="" data-i18n="pf.toutes">Toutes les familles</option>
+              <option value="retard" data-i18n="pf.f_retard">Avec un membre en retard</option>
+              <option value="ajour" data-i18n="pf.f_ajour">Tous les membres à jour</option>
+            </select>
+            <span id="pf-resultat" style="font-size:12px;color:var(--text2);margin-inline-start:auto"></span>
+          </div>
+          <div id="pf-sql"></div>
+          <table><thead><tr><th data-i18n="fm.famille">Famille</th><th data-i18n="fm.membres">Membres de la famille</th><th data-i18n="pf.situation">Situation</th><th data-i18n="pf.mensualite">Mensualité famille</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="pf-tb"></tbody></table>
+        </div>
+        <div class="card" id="pi-card">
           <div class="toolbar">
             <button class="btn btn-p" onclick="openPaiementChoix()" style="white-space:nowrap" id="btn-new-paie"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="paie.nouveau">Nouveau paiement</span></button>
             <input id="sp-q" placeholder="Rechercher..." oninput="loadPaiements()" style="max-width:240px">
@@ -2632,6 +2650,23 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "pf.individuel": "Pack individuel",
+    "pf.famille": "Pack famille",
+    "pf.recherche_ph": "Rechercher une famille ou un membre…",
+    "pf.toutes": "Toutes les familles",
+    "pf.f_retard": "Avec un membre en retard",
+    "pf.f_ajour": "Tous les membres à jour",
+    "pf.situation": "Situation",
+    "pf.mensualite": "Mensualité famille",
+    "pf.familles_n": "famille(s)",
+    "pf.a_jour": "à jour →",
+    "pf.retard_depuis": "en retard depuis",
+    "pf.aucun_actif": "Aucun membre actif",
+    "pf.en_retard": "en retard",
+    "pf.tous_a_jour": "Tous à jour",
+    "pf.ajout_membre": "+ Membre existant",
+    "pf.aucune": "Aucune famille — utilisez « + Inscription famille »",
+    "pf.aucune_filtre": "Aucune famille ne correspond",
     "fm.ajout_existant_titre": "Ajouter un client existant à la famille",
     "fm.ajout_existant": "+ Ajouter un client existant",
     "fm.recherche_client_ph": "Rechercher par nom ou téléphone…",
@@ -3702,6 +3737,23 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "pf.individuel": "الباقة الفردية",
+    "pf.famille": "باقة العائلة",
+    "pf.recherche_ph": "ابحث عن عائلة أو فرد…",
+    "pf.toutes": "كل العائلات",
+    "pf.f_retard": "بها فرد متأخر",
+    "pf.f_ajour": "جميع الأفراد مؤدون",
+    "pf.situation": "الوضعية",
+    "pf.mensualite": "الواجب الشهري للعائلة",
+    "pf.familles_n": "عائلة",
+    "pf.a_jour": "مؤدى →",
+    "pf.retard_depuis": "متأخر منذ",
+    "pf.aucun_actif": "لا يوجد فرد نشط",
+    "pf.en_retard": "متأخر",
+    "pf.tous_a_jour": "الكل مؤدى",
+    "pf.ajout_membre": "+ فرد مسجل",
+    "pf.aucune": "لا توجد عائلات — استعمل « + تسجيل عائلة »",
+    "pf.aucune_filtre": "لا توجد عائلة مطابقة",
     "fm.ajout_existant_titre": "إضافة زبون مسجل إلى العائلة",
     "fm.ajout_existant": "+ إضافة زبون مسجل",
     "fm.recherche_client_ph": "ابحث بالاسم أو الهاتف…",
@@ -4699,6 +4751,7 @@ function toggleLang() {
     else if (pageId === 'boutique') { loadBoutique(); document.getElementById('bv-titre').textContent = t(document.getElementById('bv-id').value ? 'bq.modifier' : 'bq.nouvelle'); }
     else if (pageId === 'associes') { renderAssocies(); }
     else if (pageId === 'validations') { renderValidations(); }
+    if (pageId === 'paiements' && _pf.vue === 'famille') renderFamillesListe();
   }
   majCompteurValidations();
 }
@@ -5153,7 +5206,7 @@ function nav(page, btn) {
   if (page==='dashboard')   loadDashboard();
   if (page==='clients' || page==='paiements') chargerFamilles();
   if (page==='clients')     { loadSportsForSelect('sc-sport',true).then(()=>{ loadSportsCheckboxes([]); loadClients(); loadImpayes(); }); }
-  if (page==='paiements')   { loadClientsForSelect('p-client'); loadPaiements(); }
+  if (page==='paiements')   { loadClientsForSelect('p-client'); loadPaiements(); if (_pf.vue === 'famille') loadFamillesListe(); }
   if (page==='sports')      { loadSports(); }
   if (page==='charges')     loadCharges();
   if (page==='presence')    { loadPresenceInit(); }
@@ -9062,6 +9115,7 @@ async function saveAjoutMembre() {
   const f = _fam.fiche;
   if (f && document.getElementById('client-fiche-modal').classList.contains('open')) afficherFamilleFiche(f.c, f.idx);
   if (document.getElementById('page-clients').classList.contains('active')) loadClients();
+  if (_pf.vue === 'famille') loadFamillesListe();
 }
 
 function famillePreviewForm() {
@@ -9186,6 +9240,7 @@ async function saveInscriptionFamille() {
     await chargerFamilles();
     if (document.getElementById('page-clients').classList.contains('active')) { loadClients(); loadImpayes(); }
     if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
+    if (_pf.vue === 'famille') loadFamillesListe();
   } catch (e) { showToast(e.message, 'e'); }
   btn.disabled = false;
 }
@@ -9264,6 +9319,7 @@ async function savePaiementFamille() {
   document.getElementById('fp-modal').classList.remove('open');
   if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
   if (document.getElementById('page-clients').classList.contains('active')) { loadClients(); loadImpayes(); }
+  if (_pf.vue === 'famille') loadFamillesListe();
 }
 
 // ── Fiche client : la famille, arrêter / reprendre l'abonnement d'un membre ──
@@ -9303,7 +9359,71 @@ async function changerAbonnementMembre(id, actif, idx) {
   if (CLIENTS_CACHE[idx]?.id === id) Object.assign(CLIENTS_CACHE[idx], maj);
   await chargerFamilles();
   loadClients(); loadImpayes();
+  if (_pf.vue === 'famille') loadFamillesListe();
   if (CLIENTS_CACHE[idx]?.id === id) showClientFiche(idx);
+}
+
+// ════════════════════════════════════════════════════════════
+// PAIEMENTS : vue « Pack famille » (liste des familles et situation de chaque membre)
+// ════════════════════════════════════════════════════════════
+let _pf = { vue: 'individuel', sit: {} };
+
+function vuePaiements(v) {
+  _pf.vue = v;
+  document.getElementById('pv-individuel').classList.toggle('on', v === 'individuel');
+  document.getElementById('pv-famille').classList.toggle('on', v === 'famille');
+  document.getElementById('pi-card').style.display = v === 'individuel' ? '' : 'none';
+  document.getElementById('pf-card').style.display = v === 'famille' ? '' : 'none';
+  if (v === 'famille') loadFamillesListe();
+}
+
+async function loadFamillesListe() {
+  await chargerFamilles();
+  document.getElementById('pf-sql').innerHTML = _fam.ok ? '' : `<div class="al al-e">${t('fm.sql_33')}</div>`;
+  document.getElementById('pf-new').style.display = PERMS.clients?.ecrire ? '' : 'none';
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
+  const ids = _fam.membres.map(m => m.id);
+  _pf.sit = {};
+  if (ids.length) {
+    const { data } = await fetchAllRows(() => sb.from('paiements').select('client_id,date_paiement,type').in('client_id', ids).in('type', TYPES_PERIODIQUES).order('id'));
+    _pf.sit = situationAbonnements(data || []);
+  }
+  renderFamillesListe();
+}
+
+function renderFamillesListe() {
+  const q = (document.getElementById('pf-q')?.value || '').toLowerCase().trim();
+  const filtre = document.getElementById('pf-filtre')?.value || '';
+  const canPay = PERMS.paiements?.ecrire, canW = PERMS.clients?.ecrire;
+  const lignes = _fam.familles.map(f => {
+    const membres = membresFamille(f.id), actifs = membres.filter(membreActif), tarifFam = actifs.length >= 2;
+    const enRetard = actifs.filter(m => !_pf.sit[m.id]?.aJour);
+    const mensuel = actifs.reduce((s, m) => s + montantAbonnement(m.sports || (m.sport ? [m.sport] : []), 'Mensualité', tarifFam), 0);
+    return { f, membres, actifs, tarifFam, enRetard, mensuel };
+  }).filter(x => (!q || `${x.f.nom} ${x.membres.map(m => m.prenom + ' ' + m.nom).join(' ')}`.toLowerCase().includes(q))
+    && (filtre !== 'retard' || x.enRetard.length) && (filtre !== 'ajour' || (x.actifs.length && !x.enRetard.length)));
+  document.getElementById('pf-resultat').innerHTML = `<strong>${lignes.length}</strong> ${t('pf.familles_n')}`;
+  const etat = m => {
+    if (!membreActif(m)) return `<span class="badge b-d" style="font-size:9px">${t('fm.arrete')}</span>`;
+    const s = _pf.sit[m.id];
+    if (s?.aJour) return `<span class="badge b-g" style="font-size:9px">${t('pf.a_jour')} ${dateCourte(s.fin)}</span>`;
+    if (s?.finPassee) return `<span class="badge b-w" style="font-size:9px">${t('pf.retard_depuis')} ${dateCourte(s.finPassee)}</span>`;
+    return `<span class="badge b-w" style="font-size:9px">${t('msg.never_paid')}</span>`;
+  };
+  document.getElementById('pf-tb').innerHTML = lignes.length ? lignes.map(x => `<tr>
+      <td><strong>${echapper(x.f.nom)}</strong><div style="font-size:11px;color:var(--text3)">${x.actifs.length} ${t('fm.actifs')} / ${x.membres.length}</div></td>
+      <td>${x.membres.map(m => `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:2px 0;font-size:13px">
+          <a href="#" onclick="ouvrirFicheClient('${m.id}');return false" style="color:inherit;font-weight:600;${membreActif(m) ? '' : 'opacity:.5'}">${echapper(m.prenom + ' ' + m.nom)}</a>
+          <span style="font-size:11px;color:var(--text3)">${echapper((m.sports || []).join(', '))}</span> ${etat(m)}</div>`).join('') || '—'}</td>
+      <td>${!x.actifs.length ? `<span class="badge b-d">${t('pf.aucun_actif')}</span>`
+        : x.enRetard.length ? `<span class="badge b-w">${x.enRetard.length} ${t('pf.en_retard')}</span>` : `<span class="badge b-g">${t('pf.tous_a_jour')}</span>`}
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">${x.tarifFam ? t('fm.tarif_famille_court') : t('fm.tarif_normal_court')}</div></td>
+      <td style="font-weight:700;color:var(--green);white-space:nowrap">${fmt(x.mensuel)}</td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${canPay && x.actifs.length ? `<button class="btn btn-sm btn-p" onclick="ouvrirPaiementFamille('${x.f.id}')">${t('fm.payer_famille')}</button>` : ''}
+        ${canW ? `<button class="btn btn-sm" onclick="ouvrirAjoutMembre('${x.f.id}')">${t('pf.ajout_membre')}</button>` : ''}
+      </div></td></tr>`).join('')
+    : `<tr class="empty-row"><td colspan="5">${_fam.familles.length ? t('pf.aucune_filtre') : t('pf.aucune')}</td></tr>`;
 }
 
 // ════════════════════════════════════════════════════════════
