@@ -1,11 +1,12 @@
 /* ── Gestion des cookies ──
    - Cookies nécessaires (connexion à l'espace adhérent, mémorisation du choix) : toujours actifs.
    - Contenus externes (carte Google Maps, vidéos YouTube) : chargés seulement avec l'accord du visiteur.
-   Le choix est gardé 6 mois dans le cookie « lc_consent » et peut être modifié à tout moment
+   Le choix est gardé dans le cookie « lc_consent » jusqu'à la fermeture du navigateur (cookie de session)
+   et peut être modifié à tout moment
    (lien « Gérer les cookies » ou tout élément portant l'attribut data-cookies-ouvrir). */
 (function () {
   'use strict';
-  var NOM = 'lc_consent', VERSION = 1, DUREE = 60 * 60 * 24 * 182;   // ≈ 6 mois, en secondes
+  var NOM = 'lc_consent', VERSION = 1;
 
   function lire() {
     var m = document.cookie.match(/(?:^|;\s*)lc_consent=([^;]*)/);
@@ -14,7 +15,7 @@
   }
   function ecrire(externes) {
     var c = { v: VERSION, externes: !!externes, date: new Date().toISOString().slice(0, 10) };
-    document.cookie = NOM + '=' + encodeURIComponent(JSON.stringify(c)) + '; Max-Age=' + DUREE + '; Path=/; SameSite=Lax'
+    document.cookie = NOM + '=' + encodeURIComponent(JSON.stringify(c)) + '; Path=/; SameSite=Lax'
       + (location.protocol === 'https:' ? '; Secure' : '');
     return c;
   }

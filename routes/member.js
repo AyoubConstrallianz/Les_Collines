@@ -32,7 +32,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.get('/logout', (req, res) => {
-  delete req.session.member;
+  req.session = null;   // supprime le cookie de connexion
   res.redirect('/membre/login');
 });
 

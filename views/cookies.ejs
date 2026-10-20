@@ -60,13 +60,13 @@
     <p>Un cookie est un petit fichier enregistré par votre navigateur quand vous visitez un site. Il permet par exemple de rester connecté d'une page à l'autre ou de mémoriser un choix.</p>
 
     <h2>Les cookies utilisés</h2>
-    <p><strong>Aucun cookie publicitaire ni outil de mesure d'audience</strong> n'est utilisé sur ce site.</p>
+    <p><strong>Aucun cookie publicitaire ni outil de mesure d'audience</strong> n'est utilisé sur ce site. Les cookies du site sont des cookies de session : ils sont <strong>supprimés à la fermeture du navigateur</strong>, et votre choix vous est donc demandé à chaque nouvelle visite.</p>
     <table class="pc-table">
       <thead><tr><th>Cookie</th><th>Déposé par</th><th>À quoi il sert</th><th>Durée</th></tr></thead>
       <tbody>
         <tr class="pc-groupe"><td colspan="4">Nécessaires — toujours actifs</td></tr>
-        <tr><td>lc_session<br>lc_session.sig</td><td data-l="Déposé par"><%= site.name %></td><td data-l="Usage">Garder un adhérent connecté à son espace. Créé seulement à la connexion ; son contenu est signé et ne peut pas être modifié.</td><td data-l="Durée">Supprimé après 10 minutes sans activité ou à la déconnexion</td></tr>
-        <tr><td>lc_consent</td><td data-l="Déposé par"><%= site.name %></td><td data-l="Usage">Mémoriser votre choix concernant les cookies.</td><td data-l="Durée">6 mois</td></tr>
+        <tr><td>lc_session<br>lc_session.sig</td><td data-l="Déposé par"><%= site.name %></td><td data-l="Usage">Garder un adhérent connecté à son espace. Créé seulement à la connexion ; son contenu est signé et ne peut pas être modifié.</td><td data-l="Durée">Supprimé à la fermeture du navigateur ou à la déconnexion ; session terminée après 10 minutes sans activité</td></tr>
+        <tr><td>lc_consent</td><td data-l="Déposé par"><%= site.name %></td><td data-l="Usage">Mémoriser votre choix concernant les cookies.</td><td data-l="Durée">Supprimé à la fermeture du navigateur</td></tr>
         <tr class="pc-groupe"><td colspan="4">Contenus externes — seulement avec votre accord</td></tr>
         <tr><td>Google Maps</td><td data-l="Déposé par">Google</td><td data-l="Usage">Afficher la carte interactive de la salle (rubrique Contact).</td><td data-l="Durée">Fixée par Google</td></tr>
         <tr><td>YouTube</td><td data-l="Déposé par">Google (YouTube)</td><td data-l="Usage">Lire les vidéos d'entraînement de l'espace adhérent (mode « confidentialité renforcée »).</td><td data-l="Durée">Fixée par Google</td></tr>
@@ -79,10 +79,10 @@
       <span id="pc-etat">Votre choix actuel : …</span>
       <button type="button" data-cookies-ouvrir>Gérer mes cookies</button>
     </div>
-    <p style="margin-top:1rem">Vous pouvez aussi supprimer les cookies à tout moment depuis les réglages de votre navigateur. Votre choix vous sera alors demandé de nouveau.</p>
+    <p style="margin-top:1rem">Vous pouvez aussi supprimer les cookies à tout moment depuis les réglages de votre navigateur. Les cookies déposés par Google (si vous avez accepté les contenus externes) suivent les règles de Google et se suppriment depuis ces réglages.</p>
 
     <h2>Application de gestion de la salle</h2>
-    <p>L'application interne utilisée par l'équipe de la salle enregistre dans le navigateur (stockage local) la connexion et les préférences d'affichage (thème, langue). Ces informations sont nécessaires à son fonctionnement et ne servent à aucun suivi.</p>
+    <p>L'application interne utilisée par l'équipe de la salle enregistre dans le navigateur (stockage local) la connexion et les préférences d'affichage (thème, langue), ainsi qu'un cookie de session « lc_app_session » supprimé à la fermeture du navigateur. Ces informations sont nécessaires à son fonctionnement et ne servent à aucun suivi.</p>
 
     <h2>Contact</h2>
     <p>Pour toute question sur les cookies ou sur vos données personnelles (loi n° 09-08 relative à la protection des personnes physiques à l'égard du traitement des données à caractère personnel), contactez-nous :

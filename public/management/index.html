@@ -2493,8 +2493,17 @@ function showLoginErr(msg) {
   document.getElementById('btn-login').disabled = false;
 }
 
+// Cookie « de session » (sans date d'expiration) : le navigateur le supprime à sa fermeture.
+// Absent au chargement alors qu'une connexion est enregistrée → navigateur fermé entre-temps → nouvelle connexion.
+const sessionNavigateur = {
+  ouvrir() { document.cookie = 'lc_app_session=1; Path=/; SameSite=Strict' + (location.protocol === 'https:' ? '; Secure' : ''); },
+  active() { return /(?:^|;\s*)lc_app_session=1/.test(document.cookie); },
+  fermer() { document.cookie = 'lc_app_session=; Max-Age=0; Path=/; SameSite=Strict' + (location.protocol === 'https:' ? '; Secure' : ''); }
+};
+
 async function doLogout() {
   ME = null; PERMS = {};
+  sessionNavigateur.fermer();
   clearInterval(window._vaTimer);
   const cloche = document.getElementById('tb-cloche'); if (cloche) cloche.style.display = 'none';
   const pan = document.getElementById('notif-panel'); if (pan) pan.style.display = 'none';
@@ -2512,6 +2521,7 @@ async function initApp(authUser) {
   if (errProfil && errProfil.code !== 'PGRST116') { await sb.auth.signOut({ scope: 'local' }).catch(() => {}); showLoginErr(t('login.session_expiree')); return; }
   if (!profil || !profil.actif) { await sb.auth.signOut({ scope: 'local' }).catch(() => {}); showLoginErr(t('login.disabled')); return; }
   ME = { ...profil, email: authUser.email };
+  sessionNavigateur.ouvrir();
 
   // Habilitations
   if (ME.role === 'super_admin') {
@@ -2679,6 +2689,7 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "sess.fermee": "Le navigateur a été fermé : votre session est terminée. Reconnectez-vous.",
     "inact.avert": "Aucune activité : déconnexion automatique dans %s s",
     "inact.rester": "Rester connecté",
     "inact.deconnecte": "Vous avez été déconnecté après 10 minutes d’inactivité. Reconnectez-vous.",
@@ -3776,6 +3787,7 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "sess.fermee": "تم إغلاق المتصفح : انتهت جلستك. يرجى تسجيل الدخول من جديد.",
     "inact.avert": "لا يوجد نشاط : سيتم تسجيل الخروج تلقائياً بعد %s ثانية",
     "inact.rester": "البقاء متصلاً",
     "inact.deconnecte": "تم تسجيل خروجك بعد 10 دقائق من عدم النشاط. يرجى تسجيل الدخول من جديد.",
@@ -5231,13 +5243,16 @@ setInterval(() => {
     const { data: { session }, error } = await sb.auth.getSession();
     if (error) throw error;
     if (session) {
-      // Application rouverte après plus de 10 minutes sans activité : nouvelle connexion obligatoire (sauf super admin)
+      // Nouvelle connexion obligatoire (sauf super admin) si le navigateur a été fermé depuis
+      // ou si l'application est rouverte après plus de 10 minutes sans activité
       const s = parseInt(stockage.get('derniere_activite') || '', 10);
-      if (!isNaN(s) && Date.now() - s >= INACTIVITE_MAX) {
+      const navigateurFerme = !sessionNavigateur.active();
+      const inactif = !isNaN(s) && Date.now() - s >= INACTIVITE_MAX;
+      if (navigateurFerme || inactif) {
         const { data: p } = await sb.from('profils').select('role').eq('id', session.user.id).maybeSingle();
         if (p?.role !== 'super_admin') {
           await sb.auth.signOut({ scope: 'local' }).catch(() => {});
-          showLoginErr(t('inact.deconnecte'));
+          showLoginErr(t(navigateurFerme ? 'sess.fermee' : 'inact.deconnecte'));
           return;
         }
       }
