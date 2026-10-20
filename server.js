@@ -41,11 +41,22 @@ if (!secretSession) {
 app.use(cookieSession({
   name: 'lc_session',
   keys: [secretSession],
-  maxAge: 1000 * 60 * 60 * 8,  // 8 heures
+  maxAge: 1000 * 60 * 10,      // 10 minutes d'inactivité (renouvelé à chaque requête, voir ci-dessous)
   httpOnly: true,              // illisible par le JavaScript de la page
   sameSite: 'lax',             // non envoyé par les formulaires d'autres sites
   secure: PROD                 // HTTPS uniquement en production
 }));
+// Session glissante : chaque requête d'un utilisateur connecté renouvelle le cookie (au plus une fois par minute) ;
+// sans activité pendant 10 minutes, le cookie expire et il faut se reconnecter.
+// Le serveur vérifie aussi l'heure de la dernière activité : un ancien cookie renvoyé après coup est refusé.
+app.use((req, res, next) => {
+  if (req.session && (req.session.admin || req.session.member)) {
+    const minute = Math.floor(Date.now() / 60000);
+    if (req.session.vu && minute - req.session.vu >= 10) req.session = {};   // session expirée → déconnecté
+    else req.session.vu = minute;
+  }
+  next();
+});
 
 // ── Routes ──
 app.use('/', indexRouter);

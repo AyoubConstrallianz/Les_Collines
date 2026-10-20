@@ -535,6 +535,9 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .fi-sports input{width:auto;accent-color:var(--blue)}
 #fi-recap input[type=number],#fp-table input[type=number]{padding:6px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);font:inherit;font-size:13px}
 #fi-recap input:disabled{opacity:.4}
+/* Avertissement d'inactivité */
+.inactivite-avert{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:3000;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;
+  background:var(--bg2);color:var(--text);border:1px solid var(--amber);border-radius:var(--rl);box-shadow:0 18px 40px -12px rgba(0,0,0,.4);padding:12px 16px;font-size:14px;font-weight:600;max-width:calc(100vw - 32px)}
 @media print{
   @page{size:A4 landscape;margin:8mm}
   body.print-planning *{visibility:hidden !important}
@@ -2502,6 +2505,7 @@ async function doLogout() {
 }
 
 async function initApp(authUser) {
+  marquerActivite(true);   // connexion = activité
   // Charge le profil + habilitations
   const { data: profil, error: errProfil } = await sb.from('profils').select('*').eq('id', authUser.id).single();
   // Jeton expiré ou refusé (≠ profil introuvable) : on repart d'une session propre
@@ -2675,6 +2679,9 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "inact.avert": "Aucune activité : déconnexion automatique dans %s s",
+    "inact.rester": "Rester connecté",
+    "inact.deconnecte": "Vous avez été déconnecté après 10 minutes d’inactivité. Reconnectez-vous.",
     "nt.titre": "Notifications",
     "nt.tout_vu": "Tout marquer comme vu",
     "nt.connexions": "Connexions (7 derniers jours)",
@@ -3769,6 +3776,9 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "inact.avert": "لا يوجد نشاط : سيتم تسجيل الخروج تلقائياً بعد %s ثانية",
+    "inact.rester": "البقاء متصلاً",
+    "inact.deconnecte": "تم تسجيل خروجك بعد 10 دقائق من عدم النشاط. يرجى تسجيل الدخول من جديد.",
     "nt.titre": "الإشعارات",
     "nt.tout_vu": "تعليم الكل كمقروء",
     "nt.connexions": "تسجيلات الدخول (آخر 7 أيام)",
@@ -5173,12 +5183,63 @@ document.addEventListener('DOMContentLoaded', () => {
   if (LANG === 'ar') applyLang();
 });
 
+// ── Déconnexion automatique après 10 minutes d'inactivité ─────────────────
+// Activité = souris, clavier, toucher, défilement. Avertissement 1 minute avant.
+// Dernière activité partagée entre les onglets (stockage local) ; mémoire seule si le stockage est bloqué.
+const INACTIVITE_MAX = 10 * 60 * 1000, INACTIVITE_AVERTIR = 60 * 1000;
+let _inact = { dernier: Date.now() };
+function derniereActivite() {
+  const s = parseInt(stockage.get('derniere_activite') || '', 10);
+  return Math.max(isNaN(s) ? 0 : s, _inact.dernier || 0);
+}
+function marquerActivite(force) {
+  if (!ME && force !== true) return;
+  const now = Date.now();
+  if (force !== true && now - (_inact.dernier || 0) < 5000) return;   // au plus une écriture toutes les 5 s
+  _inact.dernier = now;
+  stockage.set('derniere_activite', String(now));
+  const av = document.getElementById('inactivite-avert'); if (av) av.style.display = 'none';
+}
+['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'wheel'].forEach(ev =>
+  document.addEventListener(ev, () => marquerActivite(), { passive: true, capture: true }));
+function avertissementInactivite(secondes) {
+  let av = document.getElementById('inactivite-avert');
+  if (!av) {
+    av = document.createElement('div'); av.id = 'inactivite-avert'; av.className = 'inactivite-avert';
+    av.addEventListener('mousedown', e => e.stopPropagation(), true);
+    document.body.appendChild(av);
+  }
+  av.innerHTML = `<span>⏱ ${t('inact.avert').replace('%s', secondes)}</span><button class="btn btn-sm btn-p" onclick="marquerActivite(true)">${t('inact.rester')}</button>`;
+  av.style.display = '';
+}
+async function deconnexionInactivite() {
+  await doLogout();
+  const av = document.getElementById('inactivite-avert'); if (av) av.style.display = 'none';
+  showLoginErr(t('inact.deconnecte'));
+}
+setInterval(() => {
+  if (!ME) return;
+  const ecoule = Date.now() - derniereActivite();
+  if (ecoule >= INACTIVITE_MAX) deconnexionInactivite();
+  else if (ecoule >= INACTIVITE_MAX - INACTIVITE_AVERTIR) avertissementInactivite(Math.ceil((INACTIVITE_MAX - ecoule) / 1000));
+  else { const av = document.getElementById('inactivite-avert'); if (av && av.style.display !== 'none') av.style.display = 'none'; }
+}, 1000);
+
 // Vérifie la session au chargement (session corrompue ou expirée → nettoyée, retour à l'écran de connexion)
 (async () => {
   try {
     const { data: { session }, error } = await sb.auth.getSession();
     if (error) throw error;
-    if (session) await initApp(session.user);
+    if (session) {
+      // Application rouverte après plus de 10 minutes sans activité : nouvelle connexion obligatoire
+      const s = parseInt(stockage.get('derniere_activite') || '', 10);
+      if (!isNaN(s) && Date.now() - s >= INACTIVITE_MAX) {
+        await sb.auth.signOut({ scope: 'local' }).catch(() => {});
+        showLoginErr(t('inact.deconnecte'));
+        return;
+      }
+      await initApp(session.user);
+    }
   } catch (_) {
     await sb.auth.signOut({ scope: 'local' }).catch(() => {});
   }
