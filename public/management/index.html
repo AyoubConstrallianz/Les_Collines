@@ -7165,7 +7165,7 @@ async function loadPaiements() {
 
   // Filtres appliqués côté client (sur chaque mouvement ; une transaction n'affiche que ses mouvements retenus)
   const typesConnus = ['Mensualité','Trimestriel','Semestriel','Annuel','Inscription','Assurance','Équipement'];
-  const list = (allData||[]).filter(p => {
+  const filtrees = (allData||[]).filter(p => {
     const spts = p.clients?.sports || (p.clients?.sport ? [p.clients.sport] : []);
     if (mois && !p.date_paiement?.startsWith(mois)) return false;
     if (fDu && (p.date_paiement || '') < fDu) return false;
@@ -7175,9 +7175,17 @@ async function loadPaiements() {
     if (fType === '__abo__' && !DUREE_ABONNEMENT[p.type]) return false;
     if (fType === '__autre__' && typesConnus.includes(p.type)) return false;
     if (fType && !fType.startsWith('__') && p.type !== fType) return false;
-    if (q && !(p.clients?.prenom+' '+p.clients?.nom+' '+spts.join(' ')+' '+(p.numero_recu||'')+' '+(p.note||'')).toLowerCase().includes(q)) return false;
     return true;
   });
+  // Recherche : appliquée à l'encaissement entier (si une ligne correspond — nom, sport, n° de reçu, note —
+  // toutes les lignes de la transaction restent affichées, ex. une inscription ajoutée sans la note de la famille)
+  const cleTx = p => p.transaction_id || p.id;
+  const correspond = p => {
+    const spts = p.clients?.sports || (p.clients?.sport ? [p.clients.sport] : []);
+    return (p.clients?.prenom+' '+p.clients?.nom+' '+spts.join(' ')+' '+(p.numero_recu||'')+' '+(p.note||'')).toLowerCase().includes(q);
+  };
+  const txTrouvees = q ? new Set(filtrees.filter(correspond).map(cleTx)) : null;
+  const list = q ? filtrees.filter(p => txTrouvees.has(cleTx(p))) : filtrees;
   const filtreActif = q || mois || fSport || fType || fMode || fDu || fAu;
   const totalFiltre = list.reduce((a, p) => a + parseFloat(p.montant || 0), 0);
   const nbTx = grouperTransactions(list).length;
