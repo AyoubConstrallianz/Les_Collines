@@ -41,18 +41,18 @@ if (!secretSession) {
 app.use(cookieSession({
   name: 'lc_session',
   keys: [secretSession],
-  // Pas de maxAge : cookie de session, supprimé par le navigateur à sa fermeture.
-  // L'inactivité de 10 minutes est contrôlée par le serveur (voir ci-dessous).
+  maxAge: 1000 * 60 * 10,      // 10 minutes d'inactivité (renouvelé à chaque requête, voir ci-dessous)
   httpOnly: true,              // illisible par le JavaScript de la page
   sameSite: 'lax',             // non envoyé par les formulaires d'autres sites
   secure: PROD                 // HTTPS uniquement en production
 }));
-// Heure de la dernière activité enregistrée dans la session (au plus une mise à jour par minute) :
-// après 10 minutes sans activité, la session est vidée et il faut se reconnecter.
+// Session glissante : chaque requête d'un utilisateur connecté renouvelle le cookie (au plus une fois par minute) ;
+// sans activité pendant 10 minutes, le cookie expire et il faut se reconnecter.
+// Le serveur vérifie aussi l'heure de la dernière activité : un ancien cookie renvoyé après coup est refusé.
 app.use((req, res, next) => {
   if (req.session && (req.session.admin || req.session.member)) {
     const minute = Math.floor(Date.now() / 60000);
-    if (req.session.vu && minute - req.session.vu >= 10) Object.keys(req.session).forEach(k => delete req.session[k]);   // session expirée → déconnecté
+    if (req.session.vu && minute - req.session.vu >= 10) req.session = {};   // session expirée → déconnecté
     else req.session.vu = minute;
   }
   next();

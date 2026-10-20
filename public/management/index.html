@@ -2529,21 +2529,8 @@ function showLoginErr(msg) {
   document.getElementById('btn-login').disabled = false;
 }
 
-// Cookie « de session » (sans date d'expiration) : le navigateur le supprime à sa fermeture.
-// Absent au chargement alors qu'une connexion est enregistrée → navigateur fermé entre-temps → nouvelle connexion.
-// Certains navigateurs (intégrés à WhatsApp, Facebook, Instagram…) interdisent les cookies : chaque accès est protégé,
-// et le contrôle « navigateur fermé » ne s'applique que si les cookies fonctionnent sur l'appareil.
-const sessionNavigateur = {
-  _ecrire(v) { try { document.cookie = v + '; Path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (_) {} },
-  active() { try { return /(?:^|;\s*)lc_app_session=1/.test(document.cookie); } catch (_) { return false; } },
-  ouvrir() { this._ecrire('lc_app_session=1'); stockage.set('cookies_ok', this.active() ? '1' : '0'); },
-  fermer() { this._ecrire('lc_app_session=; Max-Age=0'); },
-  fermeDepuis() { return stockage.get('cookies_ok') === '1' && !this.active(); }
-};
-
 async function doLogout() {
   ME = null; PERMS = {};
-  sessionNavigateur.fermer();
   clearInterval(window._vaTimer);
   const cloche = document.getElementById('tb-cloche'); if (cloche) cloche.style.display = 'none';
   const pan = document.getElementById('notif-panel'); if (pan) pan.style.display = 'none';
@@ -2561,7 +2548,6 @@ async function initApp(authUser) {
   if (errProfil && errProfil.code !== 'PGRST116') { await sb.auth.signOut({ scope: 'local' }).catch(() => {}); showLoginErr(t('login.session_expiree')); return; }
   if (!profil || !profil.actif) { await sb.auth.signOut({ scope: 'local' }).catch(() => {}); showLoginErr(t('login.disabled')); return; }
   ME = { ...profil, email: authUser.email };
-  sessionNavigateur.ouvrir();
 
   // Habilitations
   if (ME.role === 'super_admin') {
@@ -2732,7 +2718,6 @@ const I18N = {
     "err.capture": "Faites une capture d'écran et envoyez-la à l'administrateur.",
     "err.lent": "La base de données met très longtemps à répondre depuis ce réseau.",
     "err.reseau": "Connexion à la base de données impossible depuis ce réseau",
-    "sess.fermee": "Le navigateur a été fermé : votre session est terminée. Reconnectez-vous.",
     "inact.avert": "Aucune activité : déconnexion automatique dans %s s",
     "inact.rester": "Rester connecté",
     "inact.deconnecte": "Vous avez été déconnecté après 10 minutes d’inactivité. Reconnectez-vous.",
@@ -3833,7 +3818,6 @@ const I18N = {
     "err.capture": "التقط صورة للشاشة وأرسلها إلى المسؤول.",
     "err.lent": "قاعدة البيانات تستغرق وقتاً طويلاً جداً للرد من هذه الشبكة.",
     "err.reseau": "تعذر الاتصال بقاعدة البيانات من هذه الشبكة",
-    "sess.fermee": "تم إغلاق المتصفح : انتهت جلستك. يرجى تسجيل الدخول من جديد.",
     "inact.avert": "لا يوجد نشاط : سيتم تسجيل الخروج تلقائياً بعد %s ثانية",
     "inact.rester": "البقاء متصلاً",
     "inact.deconnecte": "تم تسجيل خروجك بعد 10 دقائق من عدم النشاط. يرجى تسجيل الدخول من جديد.",
@@ -5289,16 +5273,13 @@ setInterval(() => {
     const { data: { session }, error } = await sb.auth.getSession();
     if (error) throw error;
     if (session) {
-      // Nouvelle connexion obligatoire (sauf super admin) si le navigateur a été fermé depuis
-      // ou si l'application est rouverte après plus de 10 minutes sans activité
+      // Application rouverte après plus de 10 minutes sans activité : nouvelle connexion obligatoire (sauf super admin)
       const s = parseInt(stockage.get('derniere_activite') || '', 10);
-      const navigateurFerme = sessionNavigateur.fermeDepuis();
-      const inactif = !isNaN(s) && Date.now() - s >= INACTIVITE_MAX;
-      if (navigateurFerme || inactif) {
+      if (!isNaN(s) && Date.now() - s >= INACTIVITE_MAX) {
         const { data: p } = await sb.from('profils').select('role').eq('id', session.user.id).maybeSingle();
         if (p?.role !== 'super_admin') {
           await sb.auth.signOut({ scope: 'local' }).catch(() => {});
-          showLoginErr(t(navigateurFerme ? 'sess.fermee' : 'inact.deconnecte'));
+          showLoginErr(t('inact.deconnecte'));
           return;
         }
       }

@@ -180,8 +180,6 @@ footer { background: var(--black); border-top: 1px solid var(--border); padding:
 .footer-copy { font-size: .8rem; color: var(--muted); text-align: right; }
 .footer-copy span { color: var(--lime); }
 .footer-copy p { margin-top: .3rem; font-size: .75rem; }
-.footer-liens a, .footer-liens button { color: var(--muted); text-decoration: underline; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
-.footer-liens a:hover, .footer-liens button:hover { color: var(--lime); }
 
 /* ── Back to top ── */
 .back-top { position: fixed; bottom: 2rem; right: 2rem; width: 44px; height: 44px; background: var(--lime); color: var(--black); border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: all .3s; z-index: 40; box-shadow: 0 4px 20px rgba(200,247,0,.25); }
