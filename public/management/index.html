@@ -1077,7 +1077,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div id="c-sports-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-top:6px;padding:10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)"></div>
           </div>
           <div class="fg" id="c-famille-wrap" style="margin-bottom:10px;display:none"><label><span data-i18n="fm.famille">Famille</span> <span style="font-weight:400;color:var(--text3)" data-i18n="fm.famille_aide">(pack famille : tarif famille à partir de 2 membres actifs)</span></label>
-            <select id="c-famille-sel" onchange="document.getElementById('c-mensuel-custom').dataset.touche='';updateTarifPreview()"></select></div>
+            <select id="c-famille-sel" onchange="choixFamilleFormulaire(this)"></select></div>
           <div id="c-tarif-preview" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--blue-bg);border-radius:var(--r);font-size:13px;border:1px solid rgba(59,130,246,.2)">
             <div class="tarif-grid">
               <div class="fg" id="c-formule-wrap">
@@ -2250,6 +2250,22 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
   </div>
 </div>
 
+<!-- ══ MODAL AJOUT D'UN CLIENT EXISTANT À UNE FAMILLE ═══════ -->
+<div class="mo" id="fa-modal" style="z-index:1100">
+  <div class="mo-box" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div class="mo-title" style="margin-bottom:0" data-i18n="fm.ajout_existant_titre">Ajouter un client existant à la famille</div>
+      <button class="btn btn-sm" onclick="document.getElementById('fa-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+    </div>
+    <input type="hidden" id="fa-fid">
+    <div id="fa-famille" style="font-weight:600;margin-bottom:10px"></div>
+    <div class="fg" style="margin-bottom:6px"><label data-i18n="bq.client">Client</label>
+      <input id="fa-client" list="fa-clients" placeholder="Rechercher par nom ou téléphone…" data-i18n-ph="fm.recherche_client_ph" autocomplete="off" oninput="faInfo()"><datalist id="fa-clients"></datalist></div>
+    <div id="fa-info" style="font-size:12px;color:var(--text2);min-height:18px;margin-bottom:10px"></div>
+    <div class="btns"><button class="btn btn-p" onclick="saveAjoutMembre()" data-i18n="fm.ajouter">Ajouter à la famille</button><button class="btn" onclick="document.getElementById('fa-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
+  </div>
+</div>
+
 <!-- ══ MODAL PAIEMENT FAMILLE ═══════════════════════════════ -->
 <div class="mo" id="fp-modal">
   <div class="mo-box" style="max-width:820px">
@@ -2270,6 +2286,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
     <div style="overflow-x:auto"><table id="fp-table"></table></div>
     <div class="btns" style="margin-top:12px">
       <button class="btn btn-p" onclick="savePaiementFamille()" id="fp-valider" data-i18n="fm.encaisser">Encaisser les paiements</button>
+      <button class="btn" id="fp-ajout-existant" onclick="ouvrirAjoutMembre(document.getElementById('fp-famille').value)" data-i18n="fm.ajout_existant">+ Ajouter un client existant</button>
       <button class="btn" onclick="document.getElementById('fp-modal').classList.remove('open');ouvrirInscriptionFamille()" data-i18n="fm.nouvelle_famille">+ Nouvelle famille</button>
       <button class="btn" onclick="document.getElementById('fp-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button>
     </div>
@@ -2615,6 +2632,17 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "fm.ajout_existant_titre": "Ajouter un client existant à la famille",
+    "fm.ajout_existant": "+ Ajouter un client existant",
+    "fm.recherche_client_ph": "Rechercher par nom ou téléphone…",
+    "fm.ajouter": "Ajouter à la famille",
+    "fm.creer_famille": "+ Créer une nouvelle famille…",
+    "fm.nom_nouvelle": "Nom de la nouvelle famille :",
+    "fm.famille_creee": "Famille créée — enregistrez la fiche pour y ajouter ce client",
+    "fm.deja_famille": "Déjà membre de « %s » : il sera déplacé.",
+    "fm.client_introuvable": "Choisissez un client dans la liste",
+    "fm.deplacer_confirm": "%s fait partie de « %a ».\nLe déplacer dans « %b » ?",
+    "fm.ajoute": "%s ajouté(e) à la famille",
     "fm.btn_inscription": "+ Inscription famille",
     "fm.inscription_titre": "Inscription famille (pack famille)",
     "fm.nom_famille": "Nom de la famille",
@@ -3674,6 +3702,17 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "fm.ajout_existant_titre": "إضافة زبون مسجل إلى العائلة",
+    "fm.ajout_existant": "+ إضافة زبون مسجل",
+    "fm.recherche_client_ph": "ابحث بالاسم أو الهاتف…",
+    "fm.ajouter": "إضافة إلى العائلة",
+    "fm.creer_famille": "+ إنشاء عائلة جديدة…",
+    "fm.nom_nouvelle": "اسم العائلة الجديدة :",
+    "fm.famille_creee": "تم إنشاء العائلة — احفظ البطاقة لإضافة هذا الزبون إليها",
+    "fm.deja_famille": "عضو في « %s » : سيتم نقله.",
+    "fm.client_introuvable": "اختر زبوناً من القائمة",
+    "fm.deplacer_confirm": "%s ينتمي إلى « %a ».\nنقله إلى « %b » ؟",
+    "fm.ajoute": "تمت إضافة %s إلى العائلة",
     "fm.btn_inscription": "+ تسجيل عائلة",
     "fm.inscription_titre": "تسجيل عائلة (باقة العائلة)",
     "fm.nom_famille": "اسم العائلة",
@@ -5854,7 +5893,7 @@ async function saveClient() {
     ...((document.getElementById('c-num').value.trim() || window._clientEditNumConnu)
       ? { numero_adherent: parseInt(document.getElementById('c-num').value, 10) || null } : {}),
     ...((document.getElementById('c-famille-sel')?.value || window._clientEditFamIdConnu)
-      ? { famille_id: document.getElementById('c-famille-sel').value || null } : {}),
+      ? { famille_id: (document.getElementById('c-famille-sel').value || '').replace('__nouvelle__', '') || null } : {}),
     cin:              document.getElementById('c-cin').value.trim()||null,
     email:            document.getElementById('c-email').value.trim()||null,
     date_naissance:   document.getElementById('c-dob').value||null,
@@ -8952,12 +8991,73 @@ function tarifFamilleApplicable(c) {
 // ── Fiche client : choix de la famille ──
 function remplirSelectFamille(valeur) {
   const sel = document.getElementById('c-famille-sel'); if (!sel) return;
-  sel.innerHTML = `<option value="">${t('fm.aucune')}</option>` + _fam.familles.map(f => `<option value="${f.id}">${echapper(f.nom)} (${nbActifsFamille(f.id)} ${t('fm.actifs')})</option>`).join('');
+  sel.innerHTML = `<option value="">${t('fm.aucune')}</option>` + _fam.familles.map(f => `<option value="${f.id}">${echapper(f.nom)} (${nbActifsFamille(f.id)} ${t('fm.actifs')})</option>`).join('')
+    + (PERMS.clients?.ecrire ? `<option value="__nouvelle__">${t('fm.creer_famille')}</option>` : '');
   sel.value = valeur || '';
   document.getElementById('c-famille-wrap').style.display = _fam.ok ? '' : 'none';
 }
+// Choix d'une famille dans la fiche client ; « Créer une nouvelle famille… » crée la famille à la volée
+async function choixFamilleFormulaire(sel) {
+  if (sel.value === '__nouvelle__') {
+    const nomClient = formatNom(document.getElementById('c-nom').value);
+    const nom = (prompt(t('fm.nom_nouvelle'), nomClient ? `${t('fm.famille')} ${nomClient}` : '') || '').trim();
+    if (!nom) { sel.value = ''; return; }
+    const { data, error } = await sb.from('familles').insert({ nom }).select().single();
+    if (error) { showToast(/relation|schema cache/i.test(error.message) ? t('fm.sql_33') : error.message, 'e'); sel.value = ''; return; }
+    await logAudit('CREATE', 'clients', `Famille ${nom}`);
+    await chargerFamilles();
+    remplirSelectFamille(data.id);
+    showToast(t('fm.famille_creee'), 's');
+  }
+  document.getElementById('c-mensuel-custom').dataset.touche = '';
+  updateTarifPreview();
+}
+
+// Ajouter un client déjà enregistré à une famille
+async function ouvrirAjoutMembre(fid) {
+  if (!fid) { showToast(t('fm.choisir_famille'), 'e'); return; }
+  const { data } = await fetchAllRows(() => sb.from('clients').select('id,prenom,nom,telephone,numero_adherent,famille_id').order('id'));
+  _fam.choix = {};
+  const options = (data || []).filter(c => c.famille_id !== fid)
+    .sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr'))
+    .map(c => {
+      const lib = `${c.prenom} ${c.nom}${c.telephone ? ' — ' + c.telephone : ''}${c.numero_adherent ? ' — N° ' + String(c.numero_adherent).padStart(4, '0') : ''}`;
+      _fam.choix[lib] = c; return `<option value="${echapper(lib)}">`;
+    });
+  document.getElementById('fa-clients').innerHTML = options.join('');
+  document.getElementById('fa-fid').value = fid;
+  document.getElementById('fa-famille').textContent = nomFamille(fid);
+  document.getElementById('fa-client').value = '';
+  document.getElementById('fa-info').textContent = '';
+  document.getElementById('fa-modal').classList.add('open');
+  setTimeout(() => document.getElementById('fa-client').focus(), 50);
+}
+
+function faInfo() {
+  const c = _fam.choix?.[document.getElementById('fa-client').value];
+  document.getElementById('fa-info').innerHTML = !c ? '' : c.famille_id
+    ? `<span style="color:var(--amber-text)">${t('fm.deja_famille').replace('%s', echapper(nomFamille(c.famille_id)))}</span>`
+    : `<span style="color:var(--green-text)">✓ ${echapper(c.prenom + ' ' + c.nom)}</span>`;
+}
+
+async function saveAjoutMembre() {
+  const fid = document.getElementById('fa-fid').value, c = _fam.choix?.[document.getElementById('fa-client').value];
+  if (!c) { showToast(t('fm.client_introuvable'), 'e'); return; }
+  if (c.famille_id && !confirm(t('fm.deplacer_confirm').replace('%s', `${c.prenom} ${c.nom}`).replace('%a', nomFamille(c.famille_id)).replace('%b', nomFamille(fid)))) return;
+  const { error } = await sb.from('clients').update({ famille_id: fid, famille_actif: true, updated_at: new Date().toISOString() }).eq('id', c.id);
+  if (error) { showToast(/famille_/.test(error.message) ? t('fm.sql_33') : error.message, 'e'); return; }
+  await logAudit('UPDATE', 'clients', `${c.prenom} ${c.nom} ajouté(e) à ${nomFamille(fid)}`);
+  showToast(t('fm.ajoute').replace('%s', `${c.prenom} ${c.nom}`), 's');
+  document.getElementById('fa-modal').classList.remove('open');
+  await chargerFamilles();
+  if (document.getElementById('fp-modal').classList.contains('open')) fpCharger();
+  const f = _fam.fiche;
+  if (f && document.getElementById('client-fiche-modal').classList.contains('open')) afficherFamilleFiche(f.c, f.idx);
+  if (document.getElementById('page-clients').classList.contains('active')) loadClients();
+}
+
 function famillePreviewForm() {
-  const fid = document.getElementById('c-famille-sel')?.value; if (!fid) return false;
+  const fid = document.getElementById('c-famille-sel')?.value; if (!fid || fid === '__nouvelle__') return false;
   return nbActifsFamille(fid, document.getElementById('c-id').value) + 1 >= 2;
 }
 
@@ -9161,6 +9261,7 @@ async function savePaiementFamille() {
 // ── Fiche client : la famille, arrêter / reprendre l'abonnement d'un membre ──
 async function afficherFamilleFiche(c, idx) {
   const zone = document.getElementById('fiche-famille'); if (!zone || !c.famille_id) return;
+  _fam.fiche = { c, idx };
   await chargerFamilles();
   const membres = membresFamille(c.famille_id), actifs = membres.filter(membreActif);
   const canW = PERMS.clients?.ecrire, canPay = PERMS.paiements?.ecrire, moi = membres.find(m => m.id === c.id) || c;
@@ -9174,6 +9275,7 @@ async function afficherFamilleFiche(c, idx) {
       <span class="badge ${membreActif(m) ? 'b-g' : 'b-d'}" style="font-size:9px">${membreActif(m) ? t('fm.actif') : t('fm.arrete')}</span></div>`).join('')}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
       ${canPay ? `<button class="btn btn-sm btn-p" onclick="document.getElementById('client-fiche-modal').classList.remove('open');ouvrirPaiementFamille('${c.famille_id}')">${t('fm.payer_famille')}</button>` : ''}
+      ${canW ? `<button class="btn btn-sm" onclick="ouvrirAjoutMembre('${c.famille_id}')">${t('fm.ajout_existant')}</button>` : ''}
       ${canW ? (membreActif(moi)
         ? `<button class="btn btn-sm btn-d" onclick="changerAbonnementMembre('${c.id}', false, ${idx})">${t('fm.arreter')}</button>`
         : `<button class="btn btn-sm" onclick="changerAbonnementMembre('${c.id}', true, ${idx})">${t('fm.reprendre')}</button>`) : ''}
