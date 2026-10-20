@@ -517,6 +517,14 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .va-champs{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--text2)}
 .va-champs b{color:var(--text);font-weight:600}
 @media (max-width:480px){ #tb-cloche{display:none !important} }
+/* Inscription famille */
+.fi-membre{border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;background:var(--bg3)}
+.fi-membre-tete{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.fi-sports{display:flex;flex-wrap:wrap;gap:6px}
+.fi-sports label{display:flex;align-items:center;gap:5px;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--r-full);background:var(--bg2);cursor:pointer}
+.fi-sports input{width:auto;accent-color:var(--blue)}
+#fi-recap input[type=number],#fp-table input[type=number]{padding:6px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);font:inherit;font-size:13px}
+#fi-recap input:disabled{opacity:.4}
 @media print{
   @page{size:A4 landscape;margin:8mm}
   body.print-planning *{visibility:hidden !important}
@@ -1068,7 +1076,8 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <label><span data-i18n="clients.sports">Sports pratiqués</span> <span style="color:var(--text3);font-weight:400" data-i18n="clients.sports_hint">(sélectionnez un ou plusieurs)</span></label>
             <div id="c-sports-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-top:6px;padding:10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)"></div>
           </div>
-          <label style="display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13px;cursor:pointer"><input type="checkbox" id="c-famille" onchange="document.getElementById('c-mensuel-custom').dataset.touche='';updateTarifPreview()" style="width:auto"> <span data-i18n="fam.case">Pack famille (tarif famille réduit)</span></label>
+          <div class="fg" id="c-famille-wrap" style="margin-bottom:10px;display:none"><label><span data-i18n="fm.famille">Famille</span> <span style="font-weight:400;color:var(--text3)" data-i18n="fm.famille_aide">(pack famille : tarif famille à partir de 2 membres actifs)</span></label>
+            <select id="c-famille-sel" onchange="document.getElementById('c-mensuel-custom').dataset.touche='';updateTarifPreview()"></select></div>
           <div id="c-tarif-preview" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--blue-bg);border-radius:var(--r);font-size:13px;border:1px solid rgba(59,130,246,.2)">
             <div class="tarif-grid">
               <div class="fg" id="c-formule-wrap">
@@ -1103,6 +1112,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div class="toolbar">
             <button class="btn" onclick="openImport()" style="white-space:nowrap;display:none" id="btn-import"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> <span data-i18n="imp.btn">Importer Excel</span></button>
             <button class="btn" onclick="openDoublons()" style="white-space:nowrap;display:none" id="btn-doublons"><span data-i18n="doublons.btn">Doublons</span> <span class="badge b-w" id="doublons-count">0</span></button>
+            <button class="btn" onclick="ouvrirInscriptionFamille()" style="white-space:nowrap;display:none" id="btn-famille" data-i18n="fm.btn_inscription">+ Inscription famille</button>
             <input id="sc-q" placeholder="Rechercher..." oninput="loadClients()" style="flex:1;max-width:260px">
             <select id="sc-sport" onchange="loadClients()"><option value="" data-i18n="select.all_sports">Tous les sports</option></select>
             <select id="sc-stat" onchange="loadClients()"><option value="" data-i18n="clients.tous_statuts">Tous statuts</option><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option><option value="En attente" data-i18n="clients.attente">En attente de validation</option></select>
@@ -1144,6 +1154,11 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
                 <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <strong data-i18n="paie.choix_ancien">Client existant</strong>
                 <span data-i18n="paie.choix_ancien_desc">Rechercher le client et enregistrer son paiement</span>
+              </button>
+              <button type="button" class="paie-choix" onclick="closePaiementChoix();ouvrirPaiementFamille()">
+                <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <strong data-i18n="fm.choix_famille">Famille (pack famille)</strong>
+                <span data-i18n="fm.choix_famille_desc">Payer tous les membres en une fois, ou inscrire une nouvelle famille</span>
               </button>
             </div>
           </div>
@@ -2204,6 +2219,63 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
   </div><!-- /layout -->
 </div><!-- /app -->
 
+<!-- ══ MODAL INSCRIPTION FAMILLE ════════════════════════════ -->
+<div class="mo" id="fi-modal">
+  <div class="mo-box" style="max-width:900px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div class="mo-title" style="margin-bottom:0" data-i18n="fm.inscription_titre">Inscription famille (pack famille)</div>
+      <button class="btn btn-sm" onclick="document.getElementById('fi-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+    </div>
+    <div id="fi-alerte"></div>
+    <div class="g3">
+      <div class="fg"><label data-i18n="fm.nom_famille">Nom de la famille</label><input id="fi-nom" placeholder="Famille …" data-i18n-ph="fm.nom_famille_ph"></div>
+      <div class="fg"><label data-i18n="clients.date_insc">Date d'inscription</label><input id="fi-date" type="date"></div>
+      <div class="fg"><label data-i18n="fm.tel_commun">Téléphone (commun)</label><input id="fi-tel" placeholder="06 00 00 00 00"></div>
+    </div>
+    <div class="g3">
+      <div class="fg"><label data-i18n="clients.formule">Formule</label><select id="fi-formule" onchange="fiRecalculer()">
+        <option value="Mensualité" data-i18n="clients.f_mensuel">Mensuel</option><option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option>
+        <option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option><option value="Annuel" data-i18n="paie.t_annuel">Annuel</option></select></div>
+      <div class="fg"><label data-i18n="vs.mode">Mode</label><select id="fi-mode"><option value="Espèces">Espèces</option><option value="Virement">Virement</option><option value="Chèque">Chèque</option></select></div>
+      <div class="fg" style="justify-content:flex-end;gap:4px">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="fi-avec-inscr" checked onchange="fiRecalculer()" style="width:auto"> <span data-i18n="paie.frais_inscr">Frais d'inscription</span></label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="fi-avec-assur" checked onchange="fiRecalculer()" style="width:auto"> <span data-i18n="paie.frais_assur">Assurance</span></label>
+      </div>
+    </div>
+    <div class="ct" style="font-size:13px;margin:6px 0" data-i18n="fm.membres">Membres de la famille</div>
+    <div id="fi-membres"></div>
+    <button type="button" class="btn btn-sm" onclick="fiAjouterMembre()" style="margin:4px 0 12px" data-i18n="fm.ajouter_membre">+ Ajouter un membre</button>
+    <div id="fi-recap" style="overflow-x:auto"></div>
+    <div class="btns" style="margin-top:12px"><button class="btn btn-p" onclick="saveInscriptionFamille()" id="fi-valider" data-i18n="fm.inscrire">Inscrire la famille et encaisser</button><button class="btn" onclick="document.getElementById('fi-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
+  </div>
+</div>
+
+<!-- ══ MODAL PAIEMENT FAMILLE ═══════════════════════════════ -->
+<div class="mo" id="fp-modal">
+  <div class="mo-box" style="max-width:820px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div class="mo-title" style="margin-bottom:0" data-i18n="fm.paiement_titre">Paiement famille</div>
+      <button class="btn btn-sm" onclick="document.getElementById('fp-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+    </div>
+    <div id="fp-alerte"></div>
+    <div class="g3">
+      <div class="fg"><label data-i18n="fm.famille">Famille</label><select id="fp-famille" onchange="fpCharger()"></select></div>
+      <div class="fg"><label data-i18n="clients.formule">Formule</label><select id="fp-formule" onchange="fpRecalculer()">
+        <option value="Mensualité" data-i18n="clients.f_mensuel">Mensuel</option><option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option>
+        <option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option><option value="Annuel" data-i18n="paie.t_annuel">Annuel</option></select></div>
+      <div class="fg"><label data-i18n="bq.date">Date</label><input id="fp-date" type="date"></div>
+    </div>
+    <div class="fr"><div class="fg"><label data-i18n="vs.mode">Mode</label><select id="fp-mode"><option value="Espèces">Espèces</option><option value="Virement">Virement</option><option value="Chèque">Chèque</option></select></div><div class="fg"></div></div>
+    <div id="fp-info" style="margin-bottom:8px"></div>
+    <div style="overflow-x:auto"><table id="fp-table"></table></div>
+    <div class="btns" style="margin-top:12px">
+      <button class="btn btn-p" onclick="savePaiementFamille()" id="fp-valider" data-i18n="fm.encaisser">Encaisser les paiements</button>
+      <button class="btn" onclick="document.getElementById('fp-modal').classList.remove('open');ouvrirInscriptionFamille()" data-i18n="fm.nouvelle_famille">+ Nouvelle famille</button>
+      <button class="btn" onclick="document.getElementById('fp-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL VERSEMENT À UN ASSOCIÉ ══════════════════════════ -->
 <div class="mo" id="vs-modal">
   <div class="mo-box" style="max-width:480px">
@@ -2543,6 +2615,52 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "fm.btn_inscription": "+ Inscription famille",
+    "fm.inscription_titre": "Inscription famille (pack famille)",
+    "fm.nom_famille": "Nom de la famille",
+    "fm.nom_famille_ph": "Ex : Famille ALAOUI",
+    "fm.tel_commun": "Téléphone (commun)",
+    "fm.membres": "Membres de la famille",
+    "fm.membre": "Membre",
+    "fm.ajouter_membre": "+ Ajouter un membre",
+    "fm.retirer": "Retirer",
+    "fm.inscrire": "Inscrire la famille et encaisser",
+    "fm.famille": "Famille",
+    "fm.famille_aide": "(pack famille : tarif famille à partir de 2 membres actifs)",
+    "fm.aucune": "— Aucune famille —",
+    "fm.actifs": "actif(s)",
+    "fm.tarif_famille_ok": "Tarif famille appliqué : %n membres actifs.",
+    "fm.tarif_famille_min": "Le tarif famille s’applique à partir de 2 membres.",
+    "fm.tarif_normal_un": "Un seul membre actif : tarif normal (plus de tarif famille).",
+    "fm.tarif_famille_court": "Tarif famille",
+    "fm.tarif_normal_court": "Tarif normal (1 membre actif)",
+    "fm.total_famille": "Total famille",
+    "fm.nom_requis": "Indiquez le nom de la famille",
+    "fm.deux_membres": "Une famille compte au moins 2 membres",
+    "fm.membre_incomplet": "prénom, nom et au moins une discipline obligatoires",
+    "fm.inscrite": "Famille inscrite : %n membres, %r encaissement(s) (un reçu par membre)",
+    "fm.paiement_titre": "Paiement famille",
+    "fm.choisir": "— Choisir une famille —",
+    "fm.choisir_famille": "Choisissez une famille",
+    "fm.paye_jusqu": "Payé jusqu’au",
+    "fm.arrete": "arrêté",
+    "fm.actif": "actif",
+    "fm.encaisser": "Encaisser les paiements",
+    "fm.nouvelle_famille": "+ Nouvelle famille",
+    "fm.rien_a_payer": "Aucun membre à payer",
+    "fm.paiement_ok": "%n paiement(s) enregistré(s) — un reçu par membre",
+    "fm.cette_fiche": "cette fiche",
+    "fm.payer_famille": "Payer la famille",
+    "fm.arreter": "Arrêter l'abonnement",
+    "fm.reprendre": "Reprendre l'abonnement",
+    "fm.arret_confirm": "Arrêter l'abonnement de %s ?\nIl/elle ne sera plus compté(e) dans la famille ni dans les impayés.",
+    "fm.arret_dernier": "Il ne restera qu’un seul membre actif : il repassera au tarif normal.",
+    "fm.reprise_confirm": "Reprendre l'abonnement de %s ?",
+    "fm.repris": "Abonnement repris",
+    "fm.arrete_ok": "Abonnement arrêté",
+    "fm.choix_famille": "Famille (pack famille)",
+    "fm.choix_famille_desc": "Payer tous les membres en une fois, ou inscrire une nouvelle famille",
+    "fm.sql_33": "Exécutez d'abord le script SQL 33 (familles) dans Supabase.",
     "fam.case": "Pack famille (tarif famille réduit)",
     "fam.badge": "Pack famille",
     "fam.court": "tarif pack famille",
@@ -3556,6 +3674,52 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "fm.btn_inscription": "+ تسجيل عائلة",
+    "fm.inscription_titre": "تسجيل عائلة (باقة العائلة)",
+    "fm.nom_famille": "اسم العائلة",
+    "fm.nom_famille_ph": "مثال : عائلة العلوي",
+    "fm.tel_commun": "الهاتف (مشترك)",
+    "fm.membres": "أفراد العائلة",
+    "fm.membre": "فرد",
+    "fm.ajouter_membre": "+ إضافة فرد",
+    "fm.retirer": "إزالة",
+    "fm.inscrire": "تسجيل العائلة والتحصيل",
+    "fm.famille": "العائلة",
+    "fm.famille_aide": "(باقة العائلة : تعريفة عائلية ابتداءً من فردين نشطين)",
+    "fm.aucune": "— بدون عائلة —",
+    "fm.actifs": "نشط",
+    "fm.tarif_famille_ok": "تُطبَّق التعريفة العائلية : %n أفراد نشطين.",
+    "fm.tarif_famille_min": "تُطبَّق التعريفة العائلية ابتداءً من فردين.",
+    "fm.tarif_normal_un": "فرد واحد نشط فقط : تعريفة عادية (لا تعريفة عائلية).",
+    "fm.tarif_famille_court": "تعريفة عائلية",
+    "fm.tarif_normal_court": "تعريفة عادية (فرد نشط واحد)",
+    "fm.total_famille": "مجموع العائلة",
+    "fm.nom_requis": "أدخل اسم العائلة",
+    "fm.deux_membres": "العائلة تضم فردين على الأقل",
+    "fm.membre_incomplet": "الاسم الشخصي والعائلي وتخصص واحد على الأقل إلزامية",
+    "fm.inscrite": "تم تسجيل العائلة : %n أفراد، %r تحصيل (وصل لكل فرد)",
+    "fm.paiement_titre": "أداء العائلة",
+    "fm.choisir": "— اختر عائلة —",
+    "fm.choisir_famille": "اختر عائلة",
+    "fm.paye_jusqu": "مؤدى إلى غاية",
+    "fm.arrete": "متوقف",
+    "fm.actif": "نشط",
+    "fm.encaisser": "تحصيل الأداءات",
+    "fm.nouvelle_famille": "+ عائلة جديدة",
+    "fm.rien_a_payer": "لا يوجد فرد للأداء",
+    "fm.paiement_ok": "تم تسجيل %n أداء — وصل لكل فرد",
+    "fm.cette_fiche": "هذه البطاقة",
+    "fm.payer_famille": "أداء العائلة",
+    "fm.arreter": "إيقاف الاشتراك",
+    "fm.reprendre": "استئناف الاشتراك",
+    "fm.arret_confirm": "إيقاف اشتراك %s ؟\nلن يُحتسب ضمن العائلة ولا ضمن غير المؤدين.",
+    "fm.arret_dernier": "سيبقى فرد واحد نشط فقط : سيعود إلى التعريفة العادية.",
+    "fm.reprise_confirm": "استئناف اشتراك %s ؟",
+    "fm.repris": "تم استئناف الاشتراك",
+    "fm.arrete_ok": "تم إيقاف الاشتراك",
+    "fm.choix_famille": "عائلة (باقة العائلة)",
+    "fm.choix_famille_desc": "أداء جميع الأفراد دفعة واحدة، أو تسجيل عائلة جديدة",
+    "fm.sql_33": "نفّذ أولاً سكريبت SQL رقم 33 (العائلات) في Supabase.",
     "fam.case": "باقة العائلة (تعريفة عائلية مخفضة)",
     "fam.badge": "باقة العائلة",
     "fam.court": "تعريفة باقة العائلة",
@@ -4948,6 +5112,7 @@ function nav(page, btn) {
 
   // Charge les données
   if (page==='dashboard')   loadDashboard();
+  if (page==='clients' || page==='paiements') chargerFamilles();
   if (page==='clients')     { loadSportsForSelect('sc-sport',true).then(()=>{ loadSportsCheckboxes([]); loadClients(); loadImpayes(); }); }
   if (page==='paiements')   { loadClientsForSelect('p-client'); loadPaiements(); }
   if (page==='sports')      { loadSports(); }
@@ -5376,7 +5541,7 @@ function updateTarifPreview() {
   const inscription = sports.reduce((a,s)=>Math.max(a, parseFloat(SPORTS_CACHE.find(x=>x.nom===s)?.tarif_inscription)||0), 0);
   // Les montants modifiés à la main ne sont pas recalculés
   const set = (id, v) => { const el = document.getElementById(id); if (el.dataset.touche !== '1') el.value = v; };
-  set('c-mensuel-custom', montantAbonnement(sports, formule, document.getElementById('c-famille')?.checked));
+  set('c-mensuel-custom', montantAbonnement(sports, formule, famillePreviewForm()));
   set('c-inscr-custom', inscription);
   set('c-assur-custom', montantAssurance() || 0);
   document.getElementById('c-abo-label').textContent = nouveau ? t('clients.abonnement') : t('clients.mensualite');
@@ -5426,7 +5591,7 @@ function selectClient(c) {
   document.getElementById('p-client').value = c.id;
   document.getElementById('p-client-search').value = c.prenom + ' ' + c.nom;
   document.getElementById('p-client-search').dataset.sports = JSON.stringify(c.sports||(c.sport?[c.sport]:[]));
-  document.getElementById('p-client-search').dataset.famille = c.pack_famille ? '1' : '';
+  document.getElementById('p-client-search').dataset.famille = tarifFamilleApplicable(c) ? '1' : '';
   document.getElementById('p-client-dropdown').classList.remove('open');
   document.getElementById('p-date').value = today();
   onPaiementTypeChange();
@@ -5652,7 +5817,7 @@ async function loadClients() {
         const badges  = sports.map(s=>`<span class="badge b-i" style="margin-right:3px">${s}</span>`).join('');
         return `<tr style="cursor:pointer" onclick="showClientFiche(${i},event)">
           <td style="color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600">${c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '—'}</td>
-          <td><div style="display:flex;align-items:center;gap:8px">${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}<strong>${c.prenom} ${c.nom}</strong>${c.pack_famille ? ` <span class="badge b-i" style="font-size:9px">${t('fam.badge')}</span>` : ''}</div></td>
+          <td><div style="display:flex;align-items:center;gap:8px">${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}<strong>${c.prenom} ${c.nom}</strong>${c.famille_id || c.pack_famille ? ` <span class="badge ${c.famille_id && c.famille_actif === false ? 'b-d' : 'b-i'}" style="font-size:9px">${t('fam.badge')}${c.famille_id && c.famille_actif === false ? ' · ' + t('fm.arrete') : ''}</span>` : ''}</div></td>
           <td style="font-size:12px">${c.cin||'—'}</td>
           <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>')||'—'}</td>
           <td>${badges||'—'}</td>
@@ -5668,6 +5833,8 @@ async function loadClients() {
   // Import Excel : réservé au Super Admin
   const btnImport = document.getElementById('btn-import');
   if (btnImport) btnImport.style.display = ME?.role === 'super_admin' ? '' : 'none';
+  const btnFam = document.getElementById('btn-famille');
+  if (btnFam) btnFam.style.display = PERMS.clients?.ecrire ? '' : 'none';
   // Icônes tri
   ['num','nom','date','statut'].forEach(c => {
     const el = document.getElementById('sort-ico-'+c);
@@ -5686,8 +5853,8 @@ async function saveClient() {
       ? { telephone2: document.getElementById('c-tel2').value.trim() || null } : {}),
     ...((document.getElementById('c-num').value.trim() || window._clientEditNumConnu)
       ? { numero_adherent: parseInt(document.getElementById('c-num').value, 10) || null } : {}),
-    ...((document.getElementById('c-famille').checked || window._clientEditFamilleConnu)
-      ? { pack_famille: document.getElementById('c-famille').checked } : {}),
+    ...((document.getElementById('c-famille-sel')?.value || window._clientEditFamIdConnu)
+      ? { famille_id: document.getElementById('c-famille-sel').value || null } : {}),
     cin:              document.getElementById('c-cin').value.trim()||null,
     email:            document.getElementById('c-email').value.trim()||null,
     date_naissance:   document.getElementById('c-dob').value||null,
@@ -5720,6 +5887,7 @@ async function saveClient() {
   if (error) {
     showToast(/clients_numero_adherent_uniq|numero_adherent.*(duplicate|unique)/i.test(error.message) ? t('clients.num_pris')
       : /numero_adherent/.test(error.message) ? t('clients.num_sql')
+      : /famille_id|famille_actif|familles/.test(error.message) ? t('fm.sql_33')
       : /pack_famille/.test(error.message) ? t('fam.sql_32')
       : /telephone2/.test(error.message) ? t('clients.tel2_sql') : error.message, 'e'); return; }
 
@@ -5769,7 +5937,7 @@ function ouvrirInscriptionModal(client, montantsSaisis = {}) {
   const saisi = k => montantsSaisis[k] !== undefined && montantsSaisis[k] !== '' ? parseFloat(montantsSaisis[k]) || 0 : null;
 
   const formule = montantsSaisis.formule || 'Mensualité';
-  const abo   = saisi('abonnement') ?? montantAbonnement(sports, formule, !!client.pack_famille);
+  const abo   = saisi('abonnement') ?? montantAbonnement(sports, formule, tarifFamilleApplicable(client));
   const inscr = saisi('inscr') ?? sports.reduce((a,s)=>Math.max(a, parseFloat(SPORTS_CACHE.find(x=>x.nom===s)?.tarif_inscription)||0), 0);
   const assur = saisi('assur') ?? montantAssurance();
   if (!abo && !inscr && !assur) return false;
@@ -5794,7 +5962,7 @@ function ouvrirInscriptionModal(client, montantsSaisis = {}) {
 function changerFormuleInscription() {
   const c = window._inscrClient;
   const sports = c?.sports || (c?.sport ? [c.sport] : []);
-  document.getElementById('inscr-abo-montant').value = montantAbonnement(sports, document.getElementById('inscr-formule').value, !!c?.pack_famille) || '';
+  document.getElementById('inscr-abo-montant').value = montantAbonnement(sports, document.getElementById('inscr-formule').value, tarifFamilleApplicable(c)) || '';
   majTotalInscription();
 }
 
@@ -5944,7 +6112,7 @@ async function showClientFiche(idx, event) {
         <div style="font-size:18px;font-weight:700;margin-bottom:2px">${c.prenom} ${c.nom}</div>
         <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${t('clients.fiche_inscrit')} ${c.date_inscription||'—'}</div>
         ${infoLine(t('clients.num_adh'), c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '')}
-        ${infoLine(t('fam.badge'), c.pack_famille ? t('fam.oui') : '')}
+        ${infoLine(t('fam.badge'), !c.famille_id && c.pack_famille ? t('fam.oui') : '')}
         ${infoLine(t('clients.tel'), c.telephone)}
         ${infoLine(t('clients.tel2'), c.telephone2)}
         ${infoLine(t('clients.email'), c.email)}
@@ -5963,6 +6131,7 @@ async function showClientFiche(idx, event) {
         })())}
       </div>
     </div>
+    <div id="fiche-famille"></div>
     ${cinHtml}
     ${moisDoublons.size ? `<div style="margin-top:12px;padding:8px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--red);font-weight:500"><span style="font-size:16px">⚠</span> ${t('paie.doublon_warning')}</div>` : ''}
     ${paieHtml}`;
@@ -5974,6 +6143,7 @@ async function showClientFiche(idx, event) {
   };
   document.getElementById('fiche-btn-carte').onclick = () => generateCarteAdherent(c, sports, mensuel);
   document.getElementById('client-fiche-modal').classList.add('open');
+  if (c.famille_id) afficherFamilleFiche(c, idx);
 }
 
 // Libellé lisible d'un encaissement : « Mensualité Karaté — Octobre 2026 »
@@ -6268,8 +6438,8 @@ function editClient(c) {
   window._clientEditTel2Connu = 'telephone2' in c;
   document.getElementById('c-cin').value = c.cin||'';
   document.getElementById('c-num').value = c.numero_adherent||'';
-  document.getElementById('c-famille').checked = !!c.pack_famille;
-  window._clientEditFamilleConnu = 'pack_famille' in c;
+  window._clientEditFamIdConnu = 'famille_id' in c;
+  chargerFamilles().then(() => remplirSelectFamille(c.famille_id));
   window._clientEditNumConnu = 'numero_adherent' in c;
   document.getElementById('c-email').value = c.email||'';
   document.getElementById('c-dob').value = c.date_naissance||'';
@@ -6300,6 +6470,7 @@ function openClientForm() {
   resetClientForm();
   document.getElementById('c-date').value = today();  // date d'inscription = date des paiements
   loadSportsCheckboxes([]);
+  chargerFamilles().then(() => remplirSelectFamille(''));
   prefillNumeroAdherent();
   document.getElementById('client-form-modal').classList.add('open');
 }
@@ -6322,7 +6493,8 @@ function resetClientForm() {
   window._clientEditTel2Connu = false;
   window._clientEditNumConnu = false;
   window._clientEditFamilleConnu = false;
-  const cf = document.getElementById('c-famille'); if (cf) cf.checked = false;
+  window._clientEditFamIdConnu = false;
+  const cf = document.getElementById('c-famille-sel'); if (cf) cf.value = '';
   ['c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i => document.getElementById(i).dataset.touche = '');
   document.getElementById('c-formule').value = 'Mensualité';
   ['c-id','c-prenom','c-nom','c-tel','c-tel2','c-email','c-num','c-cin','c-dob','c-date','c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i=>{
@@ -7508,7 +7680,7 @@ function montantProposeModif(type) {
   const sports = c.sports || (c.sport ? [c.sport] : []);
   if (type === 'Assurance') return montantAssurance() || 0;
   if (type === 'Inscription') return sports.reduce((a, s) => Math.max(a, parseFloat(SPORTS_CACHE.find(x => x.nom === s)?.tarif_inscription) || 0), 0);
-  if (DUREE_ABONNEMENT[type]) return montantAbonnement(sports, type, !!c.pack_famille);
+  if (DUREE_ABONNEMENT[type]) return montantAbonnement(sports, type, tarifFamilleApplicable(c));
   return 0;
 }
 
@@ -8748,6 +8920,280 @@ async function delAssocie(id) {
   if (error) { showToast(error.message, 'e'); return; }
   await logAudit('DELETE', 'associes', `${a?.prenom} ${a?.nom}`);
   loadAssocies();
+}
+
+// ════════════════════════════════════════════════════════════
+// FAMILLES (pack famille) : inscription groupée, paiement groupé, arrêt d'un membre
+// Tarif famille tant qu'il reste au moins 2 membres actifs dans la famille
+// ════════════════════════════════════════════════════════════
+let _fam = { ok: false, familles: [], membres: [] };
+
+async function chargerFamilles() {
+  const [rf, rm] = await Promise.all([
+    sb.from('familles').select('*').order('nom'),
+    sb.from('clients').select('id,prenom,nom,sports,sport,famille_id,famille_actif,statut,pack_famille,telephone').not('famille_id', 'is', null)
+  ]);
+  _fam.ok = !rf.error && !rm.error;
+  _fam.familles = rf.data || [];
+  _fam.membres = rm.data || [];
+  return _fam;
+}
+const membreActif = c => c.famille_actif !== false && c.statut !== 'Suspendu';
+const membresFamille = fid => _fam.membres.filter(c => c.famille_id === fid);
+const nbActifsFamille = (fid, sauf) => membresFamille(fid).filter(c => membreActif(c) && c.id !== sauf).length;
+const nomFamille = fid => _fam.familles.find(f => f.id === fid)?.nom || '—';
+// Tarif famille : membre actif d'une famille d'au moins 2 membres actifs (ou ancien « pack famille » coché, sans famille)
+function tarifFamilleApplicable(c) {
+  if (!c) return false;
+  if (c.famille_id) return membreActif(c) && nbActifsFamille(c.famille_id, c.id) + 1 >= 2;
+  return !!c.pack_famille;
+}
+
+// ── Fiche client : choix de la famille ──
+function remplirSelectFamille(valeur) {
+  const sel = document.getElementById('c-famille-sel'); if (!sel) return;
+  sel.innerHTML = `<option value="">${t('fm.aucune')}</option>` + _fam.familles.map(f => `<option value="${f.id}">${echapper(f.nom)} (${nbActifsFamille(f.id)} ${t('fm.actifs')})</option>`).join('');
+  sel.value = valeur || '';
+  document.getElementById('c-famille-wrap').style.display = _fam.ok ? '' : 'none';
+}
+function famillePreviewForm() {
+  const fid = document.getElementById('c-famille-sel')?.value; if (!fid) return false;
+  return nbActifsFamille(fid, document.getElementById('c-id').value) + 1 >= 2;
+}
+
+// ── Inscription famille ──
+function ouvrirInscriptionFamille() {
+  if (!SPORTS_CACHE.length) { sb.from('sports').select('*').order('nom').then(({ data }) => { SPORTS_CACHE = data || []; ouvrirInscriptionFamille(); }); return; }
+  loadParametres().then(() => fiRecalculer());
+  document.getElementById('fi-alerte').innerHTML = _fam.ok ? '' : `<div class="al al-e">${t('fm.sql_33')}</div>`;
+  document.getElementById('fi-nom').value = '';
+  document.getElementById('fi-tel').value = '';
+  document.getElementById('fi-date').value = today();
+  document.getElementById('fi-formule').value = 'Mensualité';
+  document.getElementById('fi-membres').innerHTML = '';
+  fiAjouterMembre(); fiAjouterMembre();
+  document.getElementById('fi-modal').classList.add('open');
+}
+
+function fiAjouterMembre() {
+  const zone = document.getElementById('fi-membres'), n = zone.children.length + 1;
+  const d = document.createElement('div');
+  d.className = 'fi-membre';
+  d.innerHTML = `<div class="fi-membre-tete"><strong>${t('fm.membre')} ${n}</strong>
+      <button type="button" class="btn btn-sm" onclick="this.closest('.fi-membre').remove();fiRenumeroter();fiRecalculer()" title="${t('fm.retirer')}">&times;</button></div>
+    <div class="g3" style="margin-bottom:6px">
+      <div class="fg"><label>${t('clients.prenom')}</label><input class="fi-prenom" oninput="fiRecalculer()"></div>
+      <div class="fg"><label>${t('clients.nom')}</label><input class="fi-nomm" oninput="fiNomAuto(this);fiRecalculer()"></div>
+      <div class="fg"><label>${t('clients.sexe')}</label><select class="fi-sexe"><option value="Homme">${t('clients.homme')}</option><option value="Femme">${t('clients.femme')}</option></select></div>
+    </div>
+    <div class="fi-sports">${SPORTS_CACHE.map(s => `<label><input type="checkbox" value="${echapper(s.nom)}" onchange="fiRecalculer()"> ${echapper(s.nom)}</label>`).join('')}</div>`;
+  zone.appendChild(d);
+  fiRecalculer();
+}
+function fiRenumeroter() { document.querySelectorAll('#fi-membres .fi-membre-tete strong').forEach((el, i) => { el.textContent = `${t('fm.membre')} ${i + 1}`; }); }
+// Nom de la famille proposé à partir du nom du premier membre
+function fiNomAuto(input) {
+  const champ = document.getElementById('fi-nom');
+  if (!champ.value.trim() || champ.dataset.auto === '1') { champ.value = input.value.trim() ? `${t('fm.famille')} ${formatNom(input.value)}` : ''; champ.dataset.auto = '1'; }
+}
+
+function fiMembres() {
+  return [...document.querySelectorAll('#fi-membres .fi-membre')].map(d => ({
+    prenom: d.querySelector('.fi-prenom').value.trim(), nom: d.querySelector('.fi-nomm').value.trim(),
+    sexe: d.querySelector('.fi-sexe').value, sports: [...d.querySelectorAll('.fi-sports input:checked')].map(i => i.value)
+  }));
+}
+
+function fiRecalculer() {
+  const zone = document.getElementById('fi-recap'); if (!zone) return;
+  const membres = fiMembres(), formule = document.getElementById('fi-formule').value;
+  const famille = membres.length >= 2;
+  const avecInscr = document.getElementById('fi-avec-inscr').checked, avecAssur = document.getElementById('fi-avec-assur').checked;
+  const lignes = membres.map((m, i) => {
+    const abo = montantAbonnement(m.sports, formule, famille);
+    const ins = avecInscr ? m.sports.reduce((a, s) => Math.max(a, parseFloat(SPORTS_CACHE.find(x => x.nom === s)?.tarif_inscription) || 0), 0) : 0;
+    const ass = avecAssur ? (montantAssurance() || 0) : 0;
+    return `<tr><td><strong>${echapper(`${formatPrenom(m.prenom)} ${formatNom(m.nom)}`.trim()) || `${t('fm.membre')} ${i + 1}`}</strong><div style="font-size:11px;color:var(--text3)">${echapper(m.sports.join(', ')) || '—'}</div></td>
+      <td><input type="number" class="fi-abo" min="0" step="0.01" value="${abo}" oninput="fiTotal()" style="width:100px"></td>
+      <td><input type="number" class="fi-ins" min="0" step="0.01" value="${ins}" oninput="fiTotal()" style="width:90px" ${avecInscr ? '' : 'disabled'}></td>
+      <td><input type="number" class="fi-ass" min="0" step="0.01" value="${ass}" oninput="fiTotal()" style="width:90px" ${avecAssur ? '' : 'disabled'}></td>
+      <td class="fi-tot" style="font-weight:700;white-space:nowrap"></td></tr>`;
+  }).join('');
+  zone.innerHTML = `<div class="al ${famille ? 'al-s' : 'al-i'}" style="margin-bottom:8px;font-size:12px">${famille ? t('fm.tarif_famille_ok').replace('%n', membres.length) : t('fm.tarif_famille_min')}</div>
+    <table class="tbl-compacte"><thead><tr><th>${t('fm.membre')}</th><th>${t('clients.abonnement')}</th><th>${t('paie.frais_inscr')}</th><th>${t('paie.frais_assur')}</th><th>${t('bq.total')}</th></tr></thead>
+    <tbody>${lignes}</tbody><tfoot><tr><td colspan="4" style="text-align:end;font-weight:800">${t('fm.total_famille')}</td><td id="fi-total-gen" style="font-weight:800;white-space:nowrap"></td></tr></tfoot></table>`;
+  fiTotal();
+}
+
+function fiTotal() {
+  let gen = 0;
+  document.querySelectorAll('#fi-recap tbody tr').forEach(tr => {
+    const v = c => { const el = tr.querySelector(c); return el && !el.disabled ? (parseFloat(el.value) || 0) : 0; };
+    const tot = v('.fi-abo') + v('.fi-ins') + v('.fi-ass'); gen += tot;
+    tr.querySelector('.fi-tot').textContent = fmtDH2(tot);
+  });
+  const g = document.getElementById('fi-total-gen'); if (g) g.textContent = fmtDH2(gen);
+}
+
+async function saveInscriptionFamille() {
+  const membres = fiMembres();
+  const nom = document.getElementById('fi-nom').value.trim();
+  if (!nom) { showToast(t('fm.nom_requis'), 'e'); return; }
+  if (membres.length < 2) { showToast(t('fm.deux_membres'), 'e'); return; }
+  const incomplet = membres.findIndex(m => !m.prenom || !m.nom || !m.sports.length);
+  if (incomplet >= 0) { showToast(`${t('fm.membre')} ${incomplet + 1} : ${t('fm.membre_incomplet')}`, 'e'); return; }
+  const formule = document.getElementById('fi-formule').value, mode = document.getElementById('fi-mode').value;
+  const date = document.getElementById('fi-date').value || today(), tel = document.getElementById('fi-tel').value.trim() || null;
+  const montants = [...document.querySelectorAll('#fi-recap tbody tr')].map(tr => {
+    const v = c => { const el = tr.querySelector(c); return el && !el.disabled ? (parseFloat(el.value) || 0) : 0; };
+    return { abo: v('.fi-abo'), ins: v('.fi-ins'), ass: v('.fi-ass') };
+  });
+  const btn = document.getElementById('fi-valider'); btn.disabled = true;
+  try {
+    const { data: fam, error: e1 } = await sb.from('familles').insert({ nom }).select().single();
+    if (e1) throw new Error(/relation|schema cache|familles/i.test(e1.message) ? t('fm.sql_33') : e1.message);
+    const { data: crees, error: e2 } = await sb.from('clients').insert(membres.map(m => ({
+      prenom: formatPrenom(m.prenom), nom: formatNom(m.nom), sexe: m.sexe, sports: m.sports, sport: m.sports[0],
+      telephone: tel, date_inscription: date, statut: 'Actif', famille_id: fam.id, famille_actif: true, updated_at: new Date().toISOString()
+    }))).select();
+    if (e2) { await sb.from('familles').delete().eq('id', fam.id); throw new Error(e2.message); }
+    // Un encaissement (et un reçu) par membre : abonnement au tarif famille + inscription + assurance
+    const note = `${t('fam.badge')} — ${nom}`;
+    let nbRecus = 0, erreurs = [];
+    for (let i = 0; i < crees.length; i++) {
+      const m = montants[i] || {}, c = crees[i];
+      const lignes = [
+        m.abo > 0 && { type: formule, montant: m.abo },
+        m.ins > 0 && { type: 'Inscription', montant: m.ins },
+        m.ass > 0 && { type: 'Assurance', montant: m.ass }
+      ].filter(Boolean).map(l => ({ ...l, client_id: c.id, date_paiement: date, mode, note, created_by: ME.id }));
+      if (!lignes.length) continue;
+      const r = await insererTransaction(lignes);
+      if (r.error) erreurs.push(`${c.prenom} : ${r.error.message}`); else nbRecus++;
+    }
+    await logAudit('CREATE', 'clients', `Inscription famille ${nom} : ${crees.length} membres`);
+    if (erreurs.length) showToast(erreurs.join(' · '), 'e');
+    else showToast(t('fm.inscrite').replace('%n', crees.length).replace('%r', nbRecus), 's');
+    document.getElementById('fi-modal').classList.remove('open');
+    await chargerFamilles();
+    if (document.getElementById('page-clients').classList.contains('active')) { loadClients(); loadImpayes(); }
+    if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
+  } catch (e) { showToast(e.message, 'e'); }
+  btn.disabled = false;
+}
+
+// ── Paiement famille : tous les membres actifs dans une seule fenêtre ──
+async function ouvrirPaiementFamille(fid) {
+  await chargerFamilles();
+  document.getElementById('fp-alerte').innerHTML = _fam.ok ? '' : `<div class="al al-e">${t('fm.sql_33')}</div>`;
+  const sel = document.getElementById('fp-famille');
+  sel.innerHTML = `<option value="">${t('fm.choisir')}</option>` + _fam.familles.map(f => `<option value="${f.id}">${echapper(f.nom)}</option>`).join('');
+  sel.value = fid || '';
+  document.getElementById('fp-date').value = today();
+  document.getElementById('fp-formule').value = 'Mensualité';
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
+  document.getElementById('fp-modal').classList.add('open');
+  fpCharger();
+}
+
+async function fpCharger() {
+  const fid = document.getElementById('fp-famille').value;
+  _fam.sit = {};
+  if (fid) {
+    const ids = membresFamille(fid).map(c => c.id);
+    if (ids.length) {
+      const { data } = await sb.from('paiements').select('client_id,date_paiement,type').in('client_id', ids).in('type', TYPES_PERIODIQUES);
+      _fam.sit = situationAbonnements(data || []);
+    }
+  }
+  fpRecalculer();
+}
+
+function fpRecalculer() {
+  const fid = document.getElementById('fp-famille').value, formule = document.getElementById('fp-formule').value;
+  const info = document.getElementById('fp-info'), table = document.getElementById('fp-table');
+  if (!fid) { info.innerHTML = ''; table.innerHTML = `<tbody><tr class="empty-row"><td>${t('fm.choisir_famille')}</td></tr></tbody>`; return; }
+  const membres = membresFamille(fid), actifs = membres.filter(membreActif), famille = actifs.length >= 2;
+  info.innerHTML = `<div class="al ${famille ? 'al-s' : 'al-i'}" style="margin:0;font-size:12px">${famille
+    ? t('fm.tarif_famille_ok').replace('%n', actifs.length) : t('fm.tarif_normal_un')}</div>`;
+  const sit = _fam.sit || {};
+  table.innerHTML = `<thead><tr><th></th><th>${t('fm.membre')}</th><th>${t('clients.sports')}</th><th>${t('fm.paye_jusqu')}</th><th>${t('vs.montant')}</th></tr></thead><tbody>`
+    + membres.map(c => {
+      const sports = c.sports || (c.sport ? [c.sport] : []), actif = membreActif(c);
+      const s = sit[c.id], fin = s?.fin || s?.finPassee;
+      return `<tr style="${actif ? '' : 'opacity:.5'}"><td><input type="checkbox" class="fp-coche" data-id="${c.id}" ${actif ? 'checked' : 'disabled'} onchange="fpTotal()" style="width:auto"></td>
+        <td><strong>${echapper(c.prenom + ' ' + c.nom)}</strong>${actif ? '' : ` <span class="badge b-d" style="font-size:9px">${t('fm.arrete')}</span>`}</td>
+        <td style="font-size:12px">${echapper(sports.join(', ')) || '—'}</td>
+        <td style="font-size:12px">${fin ? `<span style="color:${s?.aJour ? 'var(--green-text)' : 'var(--red-text)'}">${dateFr(fin)}</span>` : '—'}</td>
+        <td>${actif ? `<input type="number" class="fp-montant" data-id="${c.id}" min="0" step="0.01" value="${montantAbonnement(sports, formule, famille)}" oninput="fpTotal()" style="width:110px">` : '—'}</td></tr>`;
+    }).join('') + `</tbody><tfoot><tr><td colspan="4" style="text-align:end;font-weight:800">${t('fm.total_famille')}</td><td id="fp-total" style="font-weight:800;white-space:nowrap"></td></tr></tfoot>`;
+  fpTotal();
+}
+
+function fpLignes() {
+  return [...document.querySelectorAll('#fp-table .fp-coche:checked')].map(cb => ({
+    id: cb.dataset.id, montant: parseFloat(document.querySelector(`#fp-table .fp-montant[data-id="${cb.dataset.id}"]`)?.value) || 0
+  })).filter(l => l.montant > 0);
+}
+function fpTotal() { const el = document.getElementById('fp-total'); if (el) el.textContent = fmtDH2(fpLignes().reduce((s, l) => s + l.montant, 0)); }
+
+async function savePaiementFamille() {
+  const fid = document.getElementById('fp-famille').value;
+  const lignes = fpLignes();
+  if (!fid || !lignes.length) { showToast(t('fm.rien_a_payer'), 'e'); return; }
+  const formule = document.getElementById('fp-formule').value, mode = document.getElementById('fp-mode').value;
+  const date = document.getElementById('fp-date').value || today(), note = `${t('fam.badge')} — ${nomFamille(fid)}`;
+  const btn = document.getElementById('fp-valider'); btn.disabled = true;
+  let ok = 0; const erreurs = [];
+  for (const l of lignes) {
+    const r = await insererTransaction([{ client_id: l.id, type: formule, montant: l.montant, date_paiement: date, mode, note, created_by: ME.id }]);
+    if (r.error) erreurs.push(r.error.message); else ok++;
+  }
+  btn.disabled = false;
+  await logAudit('CREATE', 'paiements', `Paiement famille ${nomFamille(fid)} : ${ok} membre(s), ${fmtDH2(lignes.reduce((s, l) => s + l.montant, 0))}`);
+  if (erreurs.length) showToast(erreurs.join(' · '), 'e');
+  else showToast(t('fm.paiement_ok').replace('%n', ok), 's');
+  document.getElementById('fp-modal').classList.remove('open');
+  if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
+  if (document.getElementById('page-clients').classList.contains('active')) { loadClients(); loadImpayes(); }
+}
+
+// ── Fiche client : la famille, arrêter / reprendre l'abonnement d'un membre ──
+async function afficherFamilleFiche(c, idx) {
+  const zone = document.getElementById('fiche-famille'); if (!zone || !c.famille_id) return;
+  await chargerFamilles();
+  const membres = membresFamille(c.famille_id), actifs = membres.filter(membreActif);
+  const canW = PERMS.clients?.ecrire, canPay = PERMS.paiements?.ecrire, moi = membres.find(m => m.id === c.id) || c;
+  zone.innerHTML = `<div style="margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <strong>${t('fam.badge')} — ${echapper(nomFamille(c.famille_id))}</strong>
+      <span class="badge ${actifs.length >= 2 ? 'b-g' : 'b-w'}" style="font-size:10px">${actifs.length >= 2 ? t('fm.tarif_famille_court') : t('fm.tarif_normal_court')}</span>
+    </div>
+    ${membres.map(m => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:3px 0">
+      <span>${echapper(m.prenom + ' ' + m.nom)}${m.id === c.id ? ` <span style="color:var(--text3)">(${t('fm.cette_fiche')})</span>` : ''} · <span style="color:var(--text3)">${echapper((m.sports || []).join(', '))}</span></span>
+      <span class="badge ${membreActif(m) ? 'b-g' : 'b-d'}" style="font-size:9px">${membreActif(m) ? t('fm.actif') : t('fm.arrete')}</span></div>`).join('')}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+      ${canPay ? `<button class="btn btn-sm btn-p" onclick="document.getElementById('client-fiche-modal').classList.remove('open');ouvrirPaiementFamille('${c.famille_id}')">${t('fm.payer_famille')}</button>` : ''}
+      ${canW ? (membreActif(moi)
+        ? `<button class="btn btn-sm btn-d" onclick="changerAbonnementMembre('${c.id}', false, ${idx})">${t('fm.arreter')}</button>`
+        : `<button class="btn btn-sm" onclick="changerAbonnementMembre('${c.id}', true, ${idx})">${t('fm.reprendre')}</button>`) : ''}
+    </div></div>`;
+}
+
+async function changerAbonnementMembre(id, actif, idx) {
+  const m = _fam.membres.find(x => x.id === id); if (!m) return;
+  const restants = nbActifsFamille(m.famille_id, id);
+  if (!actif && !confirm(t('fm.arret_confirm').replace('%s', `${m.prenom} ${m.nom}`) + (restants === 1 ? '\n\n' + t('fm.arret_dernier') : ''))) return;
+  if (actif && !confirm(t('fm.reprise_confirm').replace('%s', `${m.prenom} ${m.nom}`))) return;
+  const maj = { famille_actif: actif, statut: actif ? 'Actif' : 'Suspendu', updated_at: new Date().toISOString() };
+  const { error } = await sb.from('clients').update(maj).eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('UPDATE', 'clients', `${actif ? 'Reprise' : 'Arrêt'} abonnement famille : ${m.prenom} ${m.nom}`);
+  showToast(t(actif ? 'fm.repris' : 'fm.arrete_ok'), 's');
+  if (CLIENTS_CACHE[idx]?.id === id) Object.assign(CLIENTS_CACHE[idx], maj);
+  await chargerFamilles();
+  loadClients(); loadImpayes();
+  if (CLIENTS_CACHE[idx]?.id === id) showClientFiche(idx);
 }
 
 // ════════════════════════════════════════════════════════════
