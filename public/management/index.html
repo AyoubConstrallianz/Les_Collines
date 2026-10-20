@@ -1068,6 +1068,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <label><span data-i18n="clients.sports">Sports pratiqués</span> <span style="color:var(--text3);font-weight:400" data-i18n="clients.sports_hint">(sélectionnez un ou plusieurs)</span></label>
             <div id="c-sports-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-top:6px;padding:10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)"></div>
           </div>
+          <label style="display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13px;cursor:pointer"><input type="checkbox" id="c-famille" onchange="document.getElementById('c-mensuel-custom').dataset.touche='';updateTarifPreview()" style="width:auto"> <span data-i18n="fam.case">Pack famille (tarif famille réduit)</span></label>
           <div id="c-tarif-preview" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--blue-bg);border-radius:var(--r);font-size:13px;border:1px solid rgba(59,130,246,.2)">
             <div class="tarif-grid">
               <div class="fg" id="c-formule-wrap">
@@ -1270,6 +1271,9 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="fr"><div class="fg"><label data-i18n="sports.tarif_m">Tarif mensuel (DH)</label><input id="s-tarif" type="number" placeholder="0"></div><div class="fg"><label data-i18n="sports.tarif_t">Tarif trimestriel (3 mois) (DH)</label><input id="s-tarif-trim" type="number" placeholder="0"></div></div>
             <div class="fr"><div class="fg"><label data-i18n="sports.tarif_s">Tarif semestriel (6 mois) (DH)</label><input id="s-tarif-sem" type="number" placeholder="0"></div><div class="fg"><label data-i18n="sports.tarif_a">Tarif annuel (DH)</label><input id="s-tarif-annuel" type="number" placeholder="0"></div></div>
             <div class="fr"><div class="fg"><label data-i18n="sports.tarif_i">Tarif inscription (DH)</label><input id="s-inscr" type="number" placeholder="0"></div><div class="fg"></div></div>
+            <div style="font-size:12px;font-weight:700;color:var(--blue-text);margin:4px 0 6px" data-i18n="fam.titre_sport">Pack famille — tarif par membre (DH)</div>
+            <div class="fr"><div class="fg"><label data-i18n="fam.mensuel">Pack famille mensuel</label><input id="s-fam-mensuel" type="number" placeholder="0"></div><div class="fg"><label data-i18n="fam.trimestriel">Pack famille trimestriel</label><input id="s-fam-trim" type="number" placeholder="0"></div></div>
+            <div class="fr"><div class="fg"><label data-i18n="fam.semestriel">Pack famille semestriel</label><input id="s-fam-sem" type="number" placeholder="0"></div><div class="fg"><label data-i18n="fam.annuel">Pack famille annuel</label><input id="s-fam-annuel" type="number" placeholder="0"></div></div>
             <div class="fr">
               <div class="fg"><label data-i18n="sports.coach">Coach assigné</label><select id="s-coach"><option value="">— Aucun coach —</option></select></div>
               <div class="fg"><label data-i18n="sports.horaires">Horaires</label><input id="s-horaires" placeholder="Lun-Mer 18h-20h"></div>
@@ -2539,6 +2543,20 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "fam.case": "Pack famille (tarif famille réduit)",
+    "fam.badge": "Pack famille",
+    "fam.court": "tarif pack famille",
+    "fam.oui": "Oui (tarif famille)",
+    "fam.titre_sport": "Pack famille — tarif par membre (DH)",
+    "fam.mensuel": "Pack famille mensuel",
+    "fam.trimestriel": "Pack famille trimestriel",
+    "fam.semestriel": "Pack famille semestriel",
+    "fam.annuel": "Pack famille annuel",
+    "fam.l_mensuel": "mensuel",
+    "fam.l_trim": "trimestriel",
+    "fam.l_sem": "semestriel",
+    "fam.l_annuel": "annuel",
+    "fam.sql_32": "Exécutez d'abord le script SQL 32 (pack famille) dans Supabase.",
     "ap.titre": "Alimentation par la caisse de la salle",
     "ap.nouveau": "+ Alimenter la boutique",
     "ap.note": "L'argent pris dans la caisse de la salle s'ajoute à la caisse de la boutique et devient une charge de la salle (catégorie « Alimentation boutique » dans Charges & Dépenses).",
@@ -3538,6 +3556,20 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "fam.case": "باقة العائلة (تعريفة عائلية مخفضة)",
+    "fam.badge": "باقة العائلة",
+    "fam.court": "تعريفة باقة العائلة",
+    "fam.oui": "نعم (تعريفة عائلية)",
+    "fam.titre_sport": "باقة العائلة — التعريفة لكل فرد (درهم)",
+    "fam.mensuel": "باقة العائلة الشهرية",
+    "fam.trimestriel": "باقة العائلة 3 أشهر",
+    "fam.semestriel": "باقة العائلة 6 أشهر",
+    "fam.annuel": "باقة العائلة السنوية",
+    "fam.l_mensuel": "شهري",
+    "fam.l_trim": "3 أشهر",
+    "fam.l_sem": "6 أشهر",
+    "fam.l_annuel": "سنوي",
+    "fam.sql_32": "نفّذ أولاً سكريبت SQL رقم 32 (باقة العائلة) في Supabase.",
     "ap.titre": "التمويل من صندوق القاعة",
     "ap.nouveau": "+ تمويل المتجر",
     "ap.note": "المال المأخوذ من صندوق القاعة يُضاف إلى صندوق المتجر ويُسجَّل كمصروف للقاعة (فئة « تمويل المتجر » في المصاريف).",
@@ -5222,16 +5254,25 @@ function joursRetard(s, ref = today()) {
 }
 
 // Montant d'un abonnement pour les sports d'un client
-function montantAbonnement(sports, type) {
-  return (sports || []).reduce((a, nom) => {
-    const sp = SPORTS_CACHE.find(x => x.nom === nom);
-    if (!sp) return a;
-    const m = parseFloat(sp.tarif_mensuel) || 0;
-    if (type === 'Semestriel') return a + (parseFloat(sp.tarif_semestriel) || m * 6);
-    if (type === 'Annuel') return a + (parseFloat(sp.tarif_annuel) || m * 12);
-    if (type === 'Trimestriel') return a + (parseFloat(sp.tarif_trimestriel) || m * 3);
-    return a + m;
-  }, 0);
+// Tarif d'un sport pour une formule. Pack famille : tarif famille s'il est renseigné
+// (à défaut, mensuel famille × nombre de mois), sinon tarif normal.
+const COLONNE_FAMILLE = { 'Mensualité': 'famille_mensuel', 'Trimestriel': 'famille_trimestriel', 'Semestriel': 'famille_semestriel', 'Annuel': 'famille_annuel' };
+function tarifSport(sp, type, famille = false) {
+  if (!sp) return 0;
+  const m = parseFloat(sp.tarif_mensuel) || 0;
+  if (famille && COLONNE_FAMILLE[type]) {
+    const f = parseFloat(sp[COLONNE_FAMILLE[type]]) || 0, fm = parseFloat(sp.famille_mensuel) || 0;
+    if (f > 0) return f;
+    if (fm > 0) return fm * DUREE_ABONNEMENT[type];
+  }
+  if (type === 'Semestriel') return parseFloat(sp.tarif_semestriel) || m * 6;
+  if (type === 'Annuel') return parseFloat(sp.tarif_annuel) || m * 12;
+  if (type === 'Trimestriel') return parseFloat(sp.tarif_trimestriel) || m * 3;
+  if (type === 'Inscription') return parseFloat(sp.tarif_inscription) || 0;
+  return m;
+}
+function montantAbonnement(sports, type, famille = false) {
+  return (sports || []).reduce((a, nom) => a + tarifSport(SPORTS_CACHE.find(x => x.nom === nom), type, famille), 0);
 }
 
 // Une transaction = les lignes de paiement enregistrées ensemble (ex. mensualité + inscription + assurance)
@@ -5335,7 +5376,7 @@ function updateTarifPreview() {
   const inscription = sports.reduce((a,s)=>Math.max(a, parseFloat(SPORTS_CACHE.find(x=>x.nom===s)?.tarif_inscription)||0), 0);
   // Les montants modifiés à la main ne sont pas recalculés
   const set = (id, v) => { const el = document.getElementById(id); if (el.dataset.touche !== '1') el.value = v; };
-  set('c-mensuel-custom', montantAbonnement(sports, formule));
+  set('c-mensuel-custom', montantAbonnement(sports, formule, document.getElementById('c-famille')?.checked));
   set('c-inscr-custom', inscription);
   set('c-assur-custom', montantAssurance() || 0);
   document.getElementById('c-abo-label').textContent = nouveau ? t('clients.abonnement') : t('clients.mensualite');
@@ -5385,6 +5426,7 @@ function selectClient(c) {
   document.getElementById('p-client').value = c.id;
   document.getElementById('p-client-search').value = c.prenom + ' ' + c.nom;
   document.getElementById('p-client-search').dataset.sports = JSON.stringify(c.sports||(c.sport?[c.sport]:[]));
+  document.getElementById('p-client-search').dataset.famille = c.pack_famille ? '1' : '';
   document.getElementById('p-client-dropdown').classList.remove('open');
   document.getElementById('p-date').value = today();
   onPaiementTypeChange();
@@ -5439,33 +5481,22 @@ async function onPaiementTypeChange() {
   const isAnnuel  = type === 'Annuel';
 
   if (isInscr || isMensuel || isTrim || isSem || isAnnuel) {
-    const key = isInscr ? 'tarif_inscription' : isTrim ? 'tarif_trimestriel' : isSem ? 'tarif_semestriel' : isAnnuel ? 'tarif_annuel' : 'tarif_mensuel';
-    // Pour trim/annuel : si pas de tarif spécifique, calculer depuis le mensuel
-    const total = sports.reduce((a,s)=>{
-      const sp = sportMap[s];
-      if (!sp) return a;
-      if (isTrim) return a + (sp.tarif_trimestriel || sp.tarif_mensuel * 3);
-      if (isSem) return a + (sp.tarif_semestriel || sp.tarif_mensuel * 6);
-      if (isAnnuel) return a + (sp.tarif_annuel || sp.tarif_mensuel * 12);
-      return a + (sp[key]||0);
-    },0);
+    // Tarifs du sport (pack famille si le client en bénéficie) ; trim/sem/annuel sans tarif : calculés depuis le mensuel
+    const famille = searchEl.dataset.famille === '1';
+    const total = sports.reduce((a, s) => a + tarifSport(sportMap[s], type, famille), 0);
 
     // Auto-remplir le montant
     document.getElementById('p-montant').value = total;
 
     // Hint sous le label
     const hint = isMensuel ? t('paie.hint_calc') : isTrim ? t('paie.hint_trim') : isSem ? t('paie.hint_sem') : isAnnuel ? t('paie.hint_annuel') : t('paie.hint_inscr');
-    document.getElementById('p-montant-hint').textContent = `· ${hint}`;
+    document.getElementById('p-montant-hint').textContent = `· ${hint}${famille && !isInscr ? ' · ' + t('fam.court') : ''}`;
 
     // Détail par sport
     const lines = sports.map(s=>{
       const sp = sportMap[s];
       if (!sp) return '';
-      let val;
-      if (isTrim) val = sp.tarif_trimestriel || sp.tarif_mensuel * 3;
-      else if (isSem) val = sp.tarif_semestriel || sp.tarif_mensuel * 6;
-      else if (isAnnuel) val = sp.tarif_annuel || sp.tarif_mensuel * 12;
-      else val = sp[key]||0;
+      const val = tarifSport(sp, type, famille);
       return `<span style="margin-right:12px"><svg width="13" height="13" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><path d="M12 8v8m-4-4h8"/></svg> ${s} : <strong>${fmt(val)}</strong></span>`;
     }).join('');
     const detail = document.getElementById('p-sports-detail');
@@ -5621,7 +5652,7 @@ async function loadClients() {
         const badges  = sports.map(s=>`<span class="badge b-i" style="margin-right:3px">${s}</span>`).join('');
         return `<tr style="cursor:pointer" onclick="showClientFiche(${i},event)">
           <td style="color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600">${c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '—'}</td>
-          <td><div style="display:flex;align-items:center;gap:8px">${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}<strong>${c.prenom} ${c.nom}</strong></div></td>
+          <td><div style="display:flex;align-items:center;gap:8px">${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}<strong>${c.prenom} ${c.nom}</strong>${c.pack_famille ? ` <span class="badge b-i" style="font-size:9px">${t('fam.badge')}</span>` : ''}</div></td>
           <td style="font-size:12px">${c.cin||'—'}</td>
           <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>')||'—'}</td>
           <td>${badges||'—'}</td>
@@ -5655,6 +5686,8 @@ async function saveClient() {
       ? { telephone2: document.getElementById('c-tel2').value.trim() || null } : {}),
     ...((document.getElementById('c-num').value.trim() || window._clientEditNumConnu)
       ? { numero_adherent: parseInt(document.getElementById('c-num').value, 10) || null } : {}),
+    ...((document.getElementById('c-famille').checked || window._clientEditFamilleConnu)
+      ? { pack_famille: document.getElementById('c-famille').checked } : {}),
     cin:              document.getElementById('c-cin').value.trim()||null,
     email:            document.getElementById('c-email').value.trim()||null,
     date_naissance:   document.getElementById('c-dob').value||null,
@@ -5687,6 +5720,7 @@ async function saveClient() {
   if (error) {
     showToast(/clients_numero_adherent_uniq|numero_adherent.*(duplicate|unique)/i.test(error.message) ? t('clients.num_pris')
       : /numero_adherent/.test(error.message) ? t('clients.num_sql')
+      : /pack_famille/.test(error.message) ? t('fam.sql_32')
       : /telephone2/.test(error.message) ? t('clients.tel2_sql') : error.message, 'e'); return; }
 
   // Upload photo et CIN si fichiers sélectionnés
@@ -5735,7 +5769,7 @@ function ouvrirInscriptionModal(client, montantsSaisis = {}) {
   const saisi = k => montantsSaisis[k] !== undefined && montantsSaisis[k] !== '' ? parseFloat(montantsSaisis[k]) || 0 : null;
 
   const formule = montantsSaisis.formule || 'Mensualité';
-  const abo   = saisi('abonnement') ?? montantAbonnement(sports, formule);
+  const abo   = saisi('abonnement') ?? montantAbonnement(sports, formule, !!client.pack_famille);
   const inscr = saisi('inscr') ?? sports.reduce((a,s)=>Math.max(a, parseFloat(SPORTS_CACHE.find(x=>x.nom===s)?.tarif_inscription)||0), 0);
   const assur = saisi('assur') ?? montantAssurance();
   if (!abo && !inscr && !assur) return false;
@@ -5760,7 +5794,7 @@ function ouvrirInscriptionModal(client, montantsSaisis = {}) {
 function changerFormuleInscription() {
   const c = window._inscrClient;
   const sports = c?.sports || (c?.sport ? [c.sport] : []);
-  document.getElementById('inscr-abo-montant').value = montantAbonnement(sports, document.getElementById('inscr-formule').value) || '';
+  document.getElementById('inscr-abo-montant').value = montantAbonnement(sports, document.getElementById('inscr-formule').value, !!c?.pack_famille) || '';
   majTotalInscription();
 }
 
@@ -5910,6 +5944,7 @@ async function showClientFiche(idx, event) {
         <div style="font-size:18px;font-weight:700;margin-bottom:2px">${c.prenom} ${c.nom}</div>
         <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${t('clients.fiche_inscrit')} ${c.date_inscription||'—'}</div>
         ${infoLine(t('clients.num_adh'), c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '')}
+        ${infoLine(t('fam.badge'), c.pack_famille ? t('fam.oui') : '')}
         ${infoLine(t('clients.tel'), c.telephone)}
         ${infoLine(t('clients.tel2'), c.telephone2)}
         ${infoLine(t('clients.email'), c.email)}
@@ -6233,6 +6268,8 @@ function editClient(c) {
   window._clientEditTel2Connu = 'telephone2' in c;
   document.getElementById('c-cin').value = c.cin||'';
   document.getElementById('c-num').value = c.numero_adherent||'';
+  document.getElementById('c-famille').checked = !!c.pack_famille;
+  window._clientEditFamilleConnu = 'pack_famille' in c;
   window._clientEditNumConnu = 'numero_adherent' in c;
   document.getElementById('c-email').value = c.email||'';
   document.getElementById('c-dob').value = c.date_naissance||'';
@@ -6284,6 +6321,8 @@ function closeClientForm() {
 function resetClientForm() {
   window._clientEditTel2Connu = false;
   window._clientEditNumConnu = false;
+  window._clientEditFamilleConnu = false;
+  const cf = document.getElementById('c-famille'); if (cf) cf.checked = false;
   ['c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i => document.getElementById(i).dataset.touche = '');
   document.getElementById('c-formule').value = 'Mensualité';
   ['c-id','c-prenom','c-nom','c-tel','c-tel2','c-email','c-num','c-cin','c-dob','c-date','c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i=>{
@@ -7007,6 +7046,7 @@ function openPaiementForm() {
   document.getElementById('p-client').value = '';
   document.getElementById('p-client-search').value = '';
   document.getElementById('p-client-search').dataset.sports = '[]';
+  document.getElementById('p-client-search').dataset.famille = '';
   document.getElementById('paiement-form-modal').classList.add('open');
 }
 
@@ -7468,7 +7508,7 @@ function montantProposeModif(type) {
   const sports = c.sports || (c.sport ? [c.sport] : []);
   if (type === 'Assurance') return montantAssurance() || 0;
   if (type === 'Inscription') return sports.reduce((a, s) => Math.max(a, parseFloat(SPORTS_CACHE.find(x => x.nom === s)?.tarif_inscription) || 0), 0);
-  if (DUREE_ABONNEMENT[type]) return montantAbonnement(sports, type);
+  if (DUREE_ABONNEMENT[type]) return montantAbonnement(sports, type, !!c.pack_famille);
   return 0;
 }
 
@@ -7625,6 +7665,7 @@ async function loadSports() {
             ${s.tarif_semestriel?`<span>${t('sports.lbl_semestriel')}: <strong style="color:var(--green)">${fmt(s.tarif_semestriel)}</strong></span>`:''}
             ${s.tarif_annuel?`<span>${t('sports.lbl_annuel')}: <strong style="color:var(--green)">${fmt(s.tarif_annuel)}</strong></span>`:''}
             <span>${t('sports.lbl_inscription')}: <strong>${fmt(s.tarif_inscription)}</strong></span>
+            ${['famille_mensuel', 'famille_trimestriel', 'famille_semestriel', 'famille_annuel'].some(k => parseFloat(s[k])) ? `<span style="flex-basis:100%;color:var(--blue-text)">${t('fam.badge')} : ${[['famille_mensuel', 'fam.l_mensuel'], ['famille_trimestriel', 'fam.l_trim'], ['famille_semestriel', 'fam.l_sem'], ['famille_annuel', 'fam.l_annuel']].filter(([k]) => parseFloat(s[k])).map(([k, l]) => `${t(l)} <strong>${fmt(s[k])}</strong>`).join(' · ')}</span>` : ''}
             ${s.coach?`<span style="display:flex;align-items:center;gap:4px;color:var(--text2)">${t('sports.lbl_coach')}: <strong style="color:var(--text)">${s.coach}</strong> ${coachBadge}</span>`:''}
           </div>
           ${s.horaires?`<div style="font-size:11px;color:var(--text3);margin-top:3px">${s.horaires}</div>`:''}
@@ -7654,13 +7695,19 @@ async function saveSport() {
       ? { tarif_semestriel: parseFloat(document.getElementById('s-tarif-sem').value)||0 } : {}),
     tarif_annuel:     parseFloat(document.getElementById('s-tarif-annuel').value)||0,
     tarif_inscription:parseFloat(document.getElementById('s-inscr').value)||0,
+    // Tarifs pack famille : envoyés seulement s'ils sont remplis ou déjà connus (script 32 non exécuté = pas d'erreur)
+    ...((['s-fam-mensuel', 's-fam-trim', 's-fam-sem', 's-fam-annuel'].some(i => parseFloat(document.getElementById(i).value)) || window._sportEditFamConnu) ? {
+      famille_mensuel:     parseFloat(document.getElementById('s-fam-mensuel').value) || 0,
+      famille_trimestriel: parseFloat(document.getElementById('s-fam-trim').value) || 0,
+      famille_semestriel:  parseFloat(document.getElementById('s-fam-sem').value) || 0,
+      famille_annuel:      parseFloat(document.getElementById('s-fam-annuel').value) || 0 } : {}),
     horaires:         document.getElementById('s-horaires').value,
     coach:            document.getElementById('s-coach').value||null,
     description:      document.getElementById('s-desc').value
   };
   if (!obj.nom) { showToast(t('sports.name_required'),'e'); return; }
   const { error } = id ? await sb.from('sports').update(obj).eq('id',id) : await sb.from('sports').insert(obj);
-  if (error) { showToast(/tarif_semestriel/.test(error.message) ? t('sports.sem_sql') : error.message,'e'); return; }
+  if (error) { showToast(/famille_/.test(error.message) ? t('fam.sql_32') : /tarif_semestriel/.test(error.message) ? t('sports.sem_sql') : error.message,'e'); return; }
   SPORTS_CACHE = [];
   showToast(id?'Modifié':'Ajouté','s'); resetSportForm(); loadSports();
 }
@@ -7674,6 +7721,11 @@ function editSport(s) {
   window._sportEditSemConnu = 'tarif_semestriel' in s;
   document.getElementById('s-tarif-annuel').value = s.tarif_annuel||'';
   document.getElementById('s-inscr').value    = s.tarif_inscription;
+  document.getElementById('s-fam-mensuel').value = parseFloat(s.famille_mensuel) || '';
+  document.getElementById('s-fam-trim').value    = parseFloat(s.famille_trimestriel) || '';
+  document.getElementById('s-fam-sem').value     = parseFloat(s.famille_semestriel) || '';
+  document.getElementById('s-fam-annuel').value  = parseFloat(s.famille_annuel) || '';
+  window._sportEditFamConnu = 'famille_mensuel' in s;
   document.getElementById('s-horaires').value = s.horaires||'';
   document.getElementById('s-desc').value     = s.description||'';
   // Sélectionne le coach dans le select après chargement
@@ -7689,7 +7741,8 @@ function editSport(s) {
 
 function resetSportForm() {
   window._sportEditSemConnu = false;
-  ['s-id','s-nom','s-tarif','s-tarif-trim','s-tarif-sem','s-tarif-annuel','s-inscr','s-horaires','s-desc'].forEach(i=>document.getElementById(i).value='');
+  window._sportEditFamConnu = false;
+  ['s-id','s-nom','s-tarif','s-tarif-trim','s-tarif-sem','s-tarif-annuel','s-inscr','s-horaires','s-desc','s-fam-mensuel','s-fam-trim','s-fam-sem','s-fam-annuel'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('s-coach').value = '';
   document.getElementById('sport-form-title').textContent = t('sports.add_title');
 }
