@@ -1469,6 +1469,15 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="sc"><div class="sc-label" data-i18n="bb.benef_total">Bénéfice depuis le début</div><div class="sc-val" id="bb-k-benef">—</div></div>
             <div class="sc"><div class="sc-label" data-i18n="bq.valeur_stock">Valeur du stock</div><div class="sc-val" id="bb-k-stock">—</div></div>
           </div>
+          <div class="card" id="bb-apports-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.5rem">
+              <div class="ct" style="margin:0" data-i18n="ap.titre">Alimentation par la caisse de la salle</div>
+              <button class="btn btn-p" id="bb-apport-new" onclick="ouvrirApport()" data-i18n="ap.nouveau">+ Alimenter la boutique</button>
+            </div>
+            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="ap.note">L'argent pris dans la caisse de la salle s'ajoute à la caisse de la boutique et devient une charge de la salle (catégorie « Alimentation boutique » dans Charges & Dépenses).</p>
+            <div id="bb-apports-sql"></div>
+            <table id="bb-apports"></table>
+          </div>
           <div class="card" id="bb-flux-card">
             <div class="ct" data-i18n="bb.flux_titre">Le capital de la boutique : où est l'argent ?</div>
             <table id="bb-flux" style="max-width:620px"></table>
@@ -1552,6 +1561,21 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="fg" style="margin-bottom:10px"><label data-i18n="bq.note">Note</label><input id="bm-note" placeholder="Fournisseur, facture…" data-i18n-ph="bq.note_ph"></div>
             <div id="bm-apercu" style="font-size:12px;color:var(--text2);margin-bottom:10px"></div>
             <div class="btns"><button class="btn btn-p" onclick="saveMouvement()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('bm-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre alimentation par la caisse de la salle (après la fenêtre d'entrée de stock pour passer au-dessus) -->
+        <div class="mo" id="ap-modal" style="z-index:1100">
+          <div class="mo-box" style="max-width:440px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+              <div class="mo-title" style="margin-bottom:0" data-i18n="ap.titre_modal">Alimenter la boutique</div>
+              <button class="btn btn-sm" onclick="document.getElementById('ap-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+            </div>
+            <div class="fr"><div class="fg"><label data-i18n="ap.montant_dh">Montant pris dans la caisse de la salle (DH)</label><input id="ap-montant" type="number" min="0" step="0.01"></div>
+              <div class="fg"><label data-i18n="bq.date">Date</label><input id="ap-date" type="date"></div></div>
+            <div class="fg" style="margin-bottom:10px"><label data-i18n="bq.note">Note</label><input id="ap-note" placeholder="Ex : achat de gants" data-i18n-ph="ap.note_ph"></div>
+            <div class="al al-i" style="margin-bottom:12px;font-size:12px" data-i18n="ap.info">Ce montant sera ajouté à la caisse de la boutique et enregistré comme charge de la salle.</div>
+            <div class="btns"><button class="btn btn-p" onclick="saveApport()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('ap-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
           </div>
         </div>
       </div>
@@ -2515,6 +2539,19 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "ap.titre": "Alimentation par la caisse de la salle",
+    "ap.nouveau": "+ Alimenter la boutique",
+    "ap.note": "L'argent pris dans la caisse de la salle s'ajoute à la caisse de la boutique et devient une charge de la salle (catégorie « Alimentation boutique » dans Charges & Dépenses).",
+    "ap.titre_modal": "Alimenter la boutique",
+    "ap.montant_dh": "Montant pris dans la caisse de la salle (DH)",
+    "ap.note_ph": "Ex : achat de gants",
+    "ap.info": "Ce montant sera ajouté à la caisse de la boutique et enregistré comme charge de la salle.",
+    "ap.flux": "Alimentation par la caisse de la salle",
+    "ap.depuis_achat": "Alimenter depuis la caisse de la salle",
+    "ap.aucun": "Aucune alimentation par la caisse de la salle",
+    "ap.enregistre": "Boutique alimentée — charge ajoutée à la salle",
+    "ap.suppr_confirm": "Supprimer cette alimentation de %s ?\nLa charge correspondante de la salle sera aussi supprimée.",
+    "ap.sql_31": "Exécutez le script SQL 31 (alimentation par la caisse de la salle) dans Supabase.",
     "bb.flux_titre": "Le capital de la boutique : où est l'argent ?",
     "bb.flux_note": "Le capital investi par les associés sert à acheter le stock. L'argent des ventes revient dans la caisse de la boutique, d'où sont faits les versements aux associés.",
     "bb.flux_capital": "Capital investi par les associés",
@@ -2912,6 +2949,7 @@ const I18N = {
     'charges.c_entretien':'Entretien',
     'charges.c_assurance':'Assurance',
     'charges.c_autre':   'Autre',
+    'charges.c_alim_boutique': 'Alimentation boutique',
     'charges.c_salaires': 'Salaires',
     'charges.sal_libelle': 'Salaire',
     'charges.sal_mois':  'mois',
@@ -3500,6 +3538,19 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "ap.titre": "التمويل من صندوق القاعة",
+    "ap.nouveau": "+ تمويل المتجر",
+    "ap.note": "المال المأخوذ من صندوق القاعة يُضاف إلى صندوق المتجر ويُسجَّل كمصروف للقاعة (فئة « تمويل المتجر » في المصاريف).",
+    "ap.titre_modal": "تمويل المتجر",
+    "ap.montant_dh": "المبلغ المأخوذ من صندوق القاعة (درهم)",
+    "ap.note_ph": "مثال : شراء القفازات",
+    "ap.info": "سيُضاف هذا المبلغ إلى صندوق المتجر ويُسجَّل كمصروف للقاعة.",
+    "ap.flux": "التمويل من صندوق القاعة",
+    "ap.depuis_achat": "التمويل من صندوق القاعة",
+    "ap.aucun": "لا يوجد تمويل من صندوق القاعة",
+    "ap.enregistre": "تم تمويل المتجر — أُضيف مصروف للقاعة",
+    "ap.suppr_confirm": "حذف هذا التمويل بمبلغ %s ؟\nسيُحذف أيضاً المصروف المقابل للقاعة.",
+    "ap.sql_31": "نفّذ سكريبت SQL رقم 31 (التمويل من صندوق القاعة) في Supabase.",
     "bb.flux_titre": "رأس مال المتجر : أين المال ؟",
     "bb.flux_note": "يُستعمل رأس المال الذي استثمره الشركاء لشراء المخزون. أموال المبيعات تعود إلى صندوق المتجر، ومنه تُصرف الدفعات للشركاء.",
     "bb.flux_capital": "رأس المال المستثمر من طرف الشركاء",
@@ -3897,6 +3948,7 @@ const I18N = {
     'charges.c_entretien':'صيانة',
     'charges.c_assurance':'تأمين',
     'charges.c_autre':  'أخرى',
+    'charges.c_alim_boutique': 'تمويل المتجر',
     'charges.c_salaires': 'الأجور',
     'charges.sal_libelle': 'أجر',
     'charges.sal_mois': 'شهر',
@@ -7684,7 +7736,7 @@ async function loadCharges() {
   const chY = data.filter(c=>moisDe(c)?.startsWith(year+'')).reduce((a,c)=>a+parseFloat(c.montant||0),0);
   document.getElementById('ch-mois-v').textContent  = fmt(chM);
   document.getElementById('ch-annee-v').textContent = fmt(chY);
-  const catTr={'Loyer':t('charges.c_loyer'),'Électricité':t('charges.c_elec'),'Eau':t('charges.c_eau'),'Internet':t('charges.c_internet'),'Équipement':t('charges.c_equip'),'Entretien':t('charges.c_entretien'),'Assurance':t('charges.c_assurance'),'Autre':t('charges.c_autre'),'Salaires':t('charges.c_salaires')};
+  const catTr={'Alimentation boutique':t('charges.c_alim_boutique'),'Loyer':t('charges.c_loyer'),'Électricité':t('charges.c_elec'),'Eau':t('charges.c_eau'),'Internet':t('charges.c_internet'),'Équipement':t('charges.c_equip'),'Entretien':t('charges.c_entretien'),'Assurance':t('charges.c_assurance'),'Autre':t('charges.c_autre'),'Salaires':t('charges.c_salaires')};
   const recTr={'Hebdomadaire':t('charges.r_hebdo'),'Ponctuelle':t('charges.r_ponctuelle'),'Mensuelle':t('charges.r_mensuelle'),'Annuelle':t('charges.r_annuelle')};
   const cats = {};
   (data||[]).forEach(c=>{ const k=catTr[c.categorie]||c.categorie; cats[k]=(cats[k]||0)+parseFloat(c.montant||0); });
@@ -8196,7 +8248,8 @@ async function ouvrirMouvement(pid, mode) {
     ap.textContent = `${t('bq.stock_apres')} : ${apres}${mode === 'Ajustement' ? ` (${apres - p.stock >= 0 ? '+' : ''}${apres - p.stock})` : ''}`;
     if (mode === 'Achat' && typeof _bb.caisse === 'number') {
       const cout = n * (parseFloat(document.getElementById('bm-prix').value) || 0), reste = _bb.caisse - cout;
-      ap.innerHTML += `<br>${t('bq.total')} : <strong>${fmtDH2(cout)}</strong> · ${t('bb.caisse_dispo')} : <strong>${fmtDH2(_bb.caisse)}</strong> → ${t('bb.apres_achat')} : <strong style="color:${reste < 0 ? 'var(--red)' : 'var(--green)'}">${fmtDH2(reste)}</strong>`;
+      ap.innerHTML += `<br>${t('bq.total')} : <strong>${fmtDH2(cout)}</strong> · ${t('bb.caisse_dispo')} : <strong>${fmtDH2(_bb.caisse)}</strong> → ${t('bb.apres_achat')} : <strong style="color:${reste < 0 ? 'var(--red)' : 'var(--green)'}">${fmtDH2(reste)}</strong>`
+        + (reste < 0 && peutAlimenter() ? `<br><button type="button" class="btn btn-sm" style="margin-top:6px" onclick="ouvrirApport(${Math.ceil(-reste)})">${t('ap.depuis_achat')} (${fmtDH2(Math.ceil(-reste))})</button>` : '');
     }
   };
   document.getElementById('bm-qte').oninput = maj; document.getElementById('bm-prix').oninput = maj; maj();
@@ -8249,6 +8302,55 @@ async function delMouvement(id) {
   loadBoutique();
 }
 
+// ── Alimentation de la boutique par la caisse de la salle (devient une charge de la salle) ──
+const peutAlimenter = () => !!(PERMS.boutique?.ecrire && PERMS.charges?.ecrire) && Array.isArray(_bb.apports);
+
+function renderApports() {
+  const carte = document.getElementById('bb-apports-card'); if (!carte) return;
+  const ok = Array.isArray(_bb.apports);
+  document.getElementById('bb-apports-sql').innerHTML = ok ? '' : `<div class="al al-e">${t('ap.sql_31')}</div>`;
+  document.getElementById('bb-apport-new').style.display = peutAlimenter() ? '' : 'none';
+  const canD = PERMS.boutique?.supprimer && PERMS.charges?.supprimer;
+  const liste = _bb.apports || [];
+  const total = liste.reduce((s, x) => s + (parseFloat(x.montant) || 0), 0);
+  document.getElementById('bb-apports').innerHTML = !ok ? '' : `<thead><tr><th>${t('bq.date')}</th><th>${t('vs.montant')}</th><th>${t('bq.note')}</th><th>${t('common.actions')}</th></tr></thead><tbody>`
+    + (liste.length ? liste.map(x => `<tr><td>${dateCourte(x.date_apport)}</td><td style="font-weight:700">${fmtDH2(x.montant)}</td>
+        <td style="font-size:12px;color:var(--text2)">${echapper(x.note || '')}</td>
+        <td>${canD ? `<button class="btn btn-sm btn-d" onclick="delApport('${x.id}')">${t('msg.suppr')}</button>` : ''}</td></tr>`).join('')
+        + `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('as.total_an')}</td><td style="font-weight:800">${fmtDH2(total)}</td><td></td><td></td></tr>`
+      : `<tr class="empty-row"><td colspan="4">${t('ap.aucun')}</td></tr>`) + '</tbody>';
+}
+
+function ouvrirApport(montant) {
+  document.getElementById('ap-montant').value = montant || '';
+  document.getElementById('ap-date').value = today();
+  document.getElementById('ap-note').value = '';
+  document.getElementById('ap-modal').classList.add('open');
+}
+
+async function saveApport() {
+  const montant = parseFloat(document.getElementById('ap-montant').value);
+  if (!montant || montant <= 0) { showToast(t('as.montant_invalide'), 'e'); return; }
+  const obj = { montant, date_apport: document.getElementById('ap-date').value || today(), note: document.getElementById('ap-note').value.trim() || null };
+  const { error } = await sb.from('boutique_apports').insert(obj);
+  if (error) { showToast(/relation|schema cache/i.test(error.message) ? t('ap.sql_31') : error.message, 'e'); return; }
+  await logAudit('CREATE', 'boutique', `Alimentation par la caisse de la salle : ${fmtDH2(montant)}`);
+  showToast(t('ap.enregistre'), 's');
+  document.getElementById('ap-modal').classList.remove('open');
+  await loadBilanBoutique();
+  // Fenêtre d'entrée de stock encore ouverte : la caisse disponible est mise à jour
+  if (document.getElementById('bm-modal').classList.contains('open')) document.getElementById('bm-qte').dispatchEvent(new Event('input'));
+}
+
+async function delApport(id) {
+  const x = (_bb.apports || []).find(a => a.id === id);
+  if (!confirm(t('ap.suppr_confirm').replace('%s', fmtDH2(x?.montant)))) return;
+  const { error } = await sb.from('boutique_apports').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE', 'boutique', `Alimentation par la caisse de la salle ${fmtDH2(x?.montant)}`);
+  loadBilanBoutique();
+}
+
 // ── Bilan & associés de la boutique (indépendant du club) ────
 let _bb = { ventes: [], achats: 0, associes: [], charge: false };
 
@@ -8260,6 +8362,8 @@ async function loadBilanBoutique() {
     fetchAllRows(() => sb.from('stock_mouvements').select('type,quantite,prix_unitaire,date_mouvement').eq('type', 'Achat').order('id')),
     chargerVersements('boutique')
   ]);
+  const rap = await sb.from('boutique_apports').select('*').order('date_apport', { ascending: false }).order('created_at', { ascending: false });
+  _bb.apports = rap.error ? null : (rap.data || []);   // null = script 31 non exécuté
   _bb.achatsListe = rs.data || [];
   _bb.ventes = rv.data || [];
   _bb.associes = (ra.data || []).filter(estActif);
@@ -8327,7 +8431,8 @@ function renderBilanBoutique() {
   // Capital → achats de stock → ventes → versements : caisse de la boutique et valeur totale
   const versTot = versementsActifs('boutique') ? _vs.boutique.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0)
     : associes.reduce((s, a) => s + (parseFloat(a.deja_verse_boutique) || 0), 0);
-  const caisseB = Math.round((capitalTot - _bb.achats + ventesTot - versTot) * 100) / 100;
+  const apportsTot = (_bb.apports || []).reduce((s, x) => s + (parseFloat(x.montant) || 0), 0);
+  const caisseB = Math.round((capitalTot + apportsTot - _bb.achats + ventesTot - versTot) * 100) / 100;
   _bb.caisse = PERMS.associes?.lire ? caisseB : null;
   const lf = (signe, lib, v, gras, style = '') => `<tr${gras ? ' style="border-top:2px solid var(--border2);background:var(--bg3)"' : ''}>
       <td style="${gras ? 'font-weight:800' : ''}">${signe ? `<span style="display:inline-block;width:16px;color:var(--text3)">${signe}</span>` : ''}${lib}</td>
@@ -8335,6 +8440,7 @@ function renderBilanBoutique() {
   document.getElementById('bb-flux-card').style.display = PERMS.associes?.lire ? '' : 'none';
   document.getElementById('bb-flux').innerHTML = '<tbody>'
     + lf('+', t('bb.flux_capital'), capitalTot)
+    + (apportsTot ? lf('+', t('ap.flux'), apportsTot) : '')
     + lf('−', t('bb.flux_achats'), -_bb.achats, false, 'color:var(--red-text)')
     + lf('+', t('bb.flux_ventes'), ventesTot, false, 'color:var(--green-text)')
     + lf('−', t('bb.flux_versements'), -versTot, false, 'color:var(--red-text)')
@@ -8361,6 +8467,8 @@ function renderBilanBoutique() {
   // Caisse de la boutique : ventes − achats de stock de chaque mois
   const soldesCaisse = {};
   Object.entries(parMois).forEach(([m, l]) => { soldesCaisse[m] = (soldesCaisse[m] || 0) + l.ventes; });
+  (_bb.apports || []).forEach(x => { const m = String(x.date_apport).slice(0, 7); soldesCaisse[m] = (soldesCaisse[m] || 0) + (parseFloat(x.montant) || 0); });
+  renderApports();
   (_bb.achatsListe || []).forEach(x => { const m = String(x.date_mouvement).slice(0, 7); soldesCaisse[m] = (soldesCaisse[m] || 0) - (x.quantite || 0) * (parseFloat(x.prix_unitaire) || 0); });
   renderVersementsCaisse('boutique', associes, soldesCaisse, capitalTot, an, t('vs.ventes_moins_achats'));
   document.getElementById('bb-mois').innerHTML = tete + '<tbody>' + (corps || `<tr class="empty-row"><td colspan="${4 + associes.length}">${t('bq.aucune_mois')}</td></tr>`)

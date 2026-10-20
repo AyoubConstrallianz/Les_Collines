@@ -82,7 +82,7 @@ CREATE POLICY "versements_associes_delete" ON public.versements_associes FOR DEL
 -- ── Validation des gérants (script 25) : suivre aussi les versements ─────────
 DO $$
 BEGIN
-  IF to_regproc('public.suivre_modif_gerant') IS NOT NULL THEN
+  IF to_regproc('public.suivre_modif_gerant') IS NOT NULL AND to_regclass('public.modifications') IS NOT NULL THEN
     EXECUTE 'DROP TRIGGER IF EXISTS trg_suivi_gerant ON public.versements_associes';
     EXECUTE 'CREATE TRIGGER trg_suivi_gerant AFTER INSERT OR UPDATE OR DELETE ON public.versements_associes FOR EACH ROW EXECUTE FUNCTION public.suivre_modif_gerant()';
   END IF;

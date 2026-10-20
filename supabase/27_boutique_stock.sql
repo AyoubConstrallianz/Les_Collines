@@ -145,7 +145,7 @@ END $$;
 -- Le stock recalculé automatiquement n'est pas une « modification » à valider.
 DO $$
 BEGIN
-  IF to_regproc('public.suivre_modif_gerant') IS NOT NULL THEN
+  IF to_regproc('public.suivre_modif_gerant') IS NOT NULL AND to_regclass('public.modifications') IS NOT NULL THEN
     EXECUTE 'DROP TRIGGER IF EXISTS trg_suivi_gerant ON public.produits';
     EXECUTE 'CREATE TRIGGER trg_suivi_gerant AFTER INSERT OR UPDATE OR DELETE ON public.produits FOR EACH ROW EXECUTE FUNCTION public.suivre_modif_gerant()';
     EXECUTE 'DROP TRIGGER IF EXISTS trg_suivi_gerant ON public.stock_mouvements';
@@ -165,6 +165,7 @@ DECLARE
   v_ligne JSONB := COALESCE(v_apres, v_avant);
   v_nom   TEXT;
 BEGIN
+  IF to_regclass('public.modifications') IS NULL THEN RETURN NULL; END IF;   -- script 25 non exécuté
   IF public.get_my_role() IS DISTINCT FROM 'gerant' THEN RETURN NULL; END IF;
   -- Sorties de stock créées automatiquement par une vente : suivies via la vente elle-même
   IF TG_TABLE_NAME = 'stock_mouvements' AND (v_ligne->>'vente_id') IS NOT NULL THEN RETURN NULL; END IF;
