@@ -13,6 +13,10 @@ router.get('/', (req, res) => {
   res.render('index', { site: getSite() });
 });
 
+router.get('/cookies', (req, res) => {
+  res.render('cookies', { site: getSite() });
+});
+
 // ── Sitemap XML ──
 router.get('/sitemap.xml', (req, res) => {
   const domain = 'https://lescollinesfitness.com';

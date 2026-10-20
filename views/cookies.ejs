@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Politique de cookies — <%= site.name %></title>
+  <meta name="description" content="Cookies utilisés sur le site de <%= site.name %> et comment gérer vos choix." />
+  <meta name="robots" content="noindex, follow" />
+  <link rel="icon" type="image/png" href="/images/logo-square.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .pc-entete { position: sticky; top: 0; z-index: 50; height: 64px; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; background: rgba(8,8,8,.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    .pc-logo { font-family: var(--font-h); font-size: 1.3rem; font-weight: 900; color: var(--lime); text-transform: uppercase; }
+    .pc-retour { font-family: var(--font-h); font-size: .8rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .pc-retour:hover { color: var(--lime); }
+    .pc { max-width: 860px; margin: 0 auto; padding: 3rem 2rem 4rem; }
+    .pc h1 { font-family: var(--font-h); font-size: clamp(2.2rem, 6vw, 3.4rem); font-weight: 900; text-transform: uppercase; line-height: 1; }
+    .pc h1 span { color: var(--lime); }
+    .pc-maj { color: var(--muted); font-size: .85rem; margin-top: .6rem; }
+    .pc h2 { font-family: var(--font-h); font-size: 1.4rem; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; margin: 2.5rem 0 .8rem; color: var(--lime); }
+    .pc p, .pc li { color: #c8c8c8; font-size: .95rem; }
+    .pc p + p { margin-top: .7rem; }
+    .pc ul { padding-left: 1.2rem; margin-top: .5rem; }
+    .pc a { color: var(--white); text-decoration: underline; }
+    .pc strong { color: var(--white); }
+    .pc-table { width: 100%; border-collapse: collapse; margin-top: .8rem; font-size: .88rem; }
+    .pc-table th { text-align: left; font-family: var(--font-h); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: .6rem .7rem; border-bottom: 1px solid var(--border); }
+    .pc-table td { padding: .75rem .7rem; border-bottom: 1px solid var(--border); vertical-align: top; color: #c8c8c8; }
+    .pc-table td:first-child { color: var(--white); font-weight: 600; white-space: nowrap; }
+    .pc-groupe td { background: var(--card); font-family: var(--font-h); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--lime) !important; font-size: .8rem; }
+    .pc-choix { margin-top: 1rem; padding: 1.2rem; background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--lime); border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .pc-choix button { background: var(--lime); color: var(--black); border: 0; border-radius: 3px; padding: .7rem 1.3rem; font-family: var(--font-h); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+    .pc-choix button:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+    @media (max-width: 640px) {
+      .pc-entete { padding: 0 1rem; }
+      .pc { padding: 2rem 1rem 3rem; }
+      .pc-table thead { display: none; }
+      .pc-table, .pc-table tbody, .pc-table tr, .pc-table td { display: block; width: 100%; }
+      .pc-table tr { border-bottom: 1px solid var(--border); padding: .4rem 0; }
+      .pc-table td { border: 0; padding: .2rem 0; }
+      .pc-table td[data-l]::before { content: attr(data-l) " : "; color: var(--muted); font-size: .78rem; }
+      .pc-groupe td { padding: .5rem .7rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="pc-entete">
+    <a href="/" class="pc-logo">Les Collines</a>
+    <a href="/" class="pc-retour">← Retour au site</a>
+  </header>
+
+  <main class="pc">
+    <h1>Politique de <span>cookies</span></h1>
+    <p class="pc-maj">Dernière mise à jour : 20 octobre 2026</p>
+
+    <h2>Qu'est-ce qu'un cookie ?</h2>
+    <p>Un cookie est un petit fichier enregistré par votre navigateur quand vous visitez un site. Il permet par exemple de rester connecté d'une page à l'autre ou de mémoriser un choix.</p>
+
+    <h2>Les cookies utilisés</h2>
+    <p><strong>Aucun cookie publicitaire ni outil de mesure d'audience</strong> n'est utilisé sur ce site.</p>
+    <table class="pc-table">
+      <thead><tr><th>Cookie</th><th>Déposé par</th><th>À quoi il sert</th><th>Durée</th></tr></thead>
+      <tbody>
+        <tr class="pc-groupe"><td colspan="4">Nécessaires — toujours actifs</td></tr>
+        <tr><td>lc_session<br>lc_session.sig</td><td data-l="Déposé par"><%= site.name %></td><td data-l="Usage">Garder un adhérent connecté à son espace. Créé seulement à la connexion ; son contenu est signé et ne peut pas être modifié.</td><td data-l="Durée">Supprimé après 10 minutes sans activité ou à la déconnexion</td></tr>
+        <tr><td>lc_consent</td><td data-l="Déposé par"><%= site.name %></td><td data-l="Usage">Mémoriser votre choix concernant les cookies.</td><td data-l="Durée">6 mois</td></tr>
+        <tr class="pc-groupe"><td colspan="4">Contenus externes — seulement avec votre accord</td></tr>
+        <tr><td>Google Maps</td><td data-l="Déposé par">Google</td><td data-l="Usage">Afficher la carte interactive de la salle (rubrique Contact).</td><td data-l="Durée">Fixée par Google</td></tr>
+        <tr><td>YouTube</td><td data-l="Déposé par">Google (YouTube)</td><td data-l="Usage">Lire les vidéos d'entraînement de l'espace adhérent (mode « confidentialité renforcée »).</td><td data-l="Durée">Fixée par Google</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:1rem">Sans votre accord, la carte et les vidéos ne sont pas chargées : elles sont remplacées par un lien pour les ouvrir directement chez Google. Pour les cookies de Google, consultez <a href="https://policies.google.com/technologies/cookies?hl=fr" target="_blank" rel="noopener">la politique de Google</a>.</p>
+
+    <h2>Gérer vos choix</h2>
+    <div class="pc-choix">
+      <span id="pc-etat">Votre choix actuel : …</span>
+      <button type="button" data-cookies-ouvrir>Gérer mes cookies</button>
+    </div>
+    <p style="margin-top:1rem">Vous pouvez aussi supprimer les cookies à tout moment depuis les réglages de votre navigateur. Votre choix vous sera alors demandé de nouveau.</p>
+
+    <h2>Application de gestion de la salle</h2>
+    <p>L'application interne utilisée par l'équipe de la salle enregistre dans le navigateur (stockage local) la connexion et les préférences d'affichage (thème, langue). Ces informations sont nécessaires à son fonctionnement et ne servent à aucun suivi.</p>
+
+    <h2>Contact</h2>
+    <p>Pour toute question sur les cookies ou sur vos données personnelles (loi n° 09-08 relative à la protection des personnes physiques à l'égard du traitement des données à caractère personnel), contactez-nous :
+      <a href="mailto:<%= site.email %>"><%= site.email %></a> — <%= site.phones[0] %>.</p>
+  </main>
+
+  <script>
+    (function () {
+      function afficher() {
+        var c = window.lcCookies && window.lcCookies.consentement(), el = document.getElementById('pc-etat');
+        el.textContent = 'Votre choix actuel : ' + (!c ? 'aucun choix enregistré' : c.externes ? 'contenus externes acceptés' : 'contenus externes refusés (cookies nécessaires uniquement)');
+      }
+      document.addEventListener('lc:consentement', afficher);
+      document.addEventListener('DOMContentLoaded', afficher);
+    })();
+  </script>
+<%- include('partials/footer') %>
