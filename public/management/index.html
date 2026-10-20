@@ -5184,7 +5184,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Déconnexion automatique après 10 minutes d'inactivité ─────────────────
-// Activité = souris, clavier, toucher, défilement. Avertissement 1 minute avant.
+// Activité = souris, clavier, toucher, défilement. Avertissement 1 minute avant. Le super admin reste connecté.
 // Dernière activité partagée entre les onglets (stockage local) ; mémoire seule si le stockage est bloqué.
 const INACTIVITE_MAX = 10 * 60 * 1000, INACTIVITE_AVERTIR = 60 * 1000;
 let _inact = { dernier: Date.now() };
@@ -5218,7 +5218,7 @@ async function deconnexionInactivite() {
   showLoginErr(t('inact.deconnecte'));
 }
 setInterval(() => {
-  if (!ME) return;
+  if (!ME || ME.role === 'super_admin') return;
   const ecoule = Date.now() - derniereActivite();
   if (ecoule >= INACTIVITE_MAX) deconnexionInactivite();
   else if (ecoule >= INACTIVITE_MAX - INACTIVITE_AVERTIR) avertissementInactivite(Math.ceil((INACTIVITE_MAX - ecoule) / 1000));
@@ -5231,12 +5231,15 @@ setInterval(() => {
     const { data: { session }, error } = await sb.auth.getSession();
     if (error) throw error;
     if (session) {
-      // Application rouverte après plus de 10 minutes sans activité : nouvelle connexion obligatoire
+      // Application rouverte après plus de 10 minutes sans activité : nouvelle connexion obligatoire (sauf super admin)
       const s = parseInt(stockage.get('derniere_activite') || '', 10);
       if (!isNaN(s) && Date.now() - s >= INACTIVITE_MAX) {
-        await sb.auth.signOut({ scope: 'local' }).catch(() => {});
-        showLoginErr(t('inact.deconnecte'));
-        return;
+        const { data: p } = await sb.from('profils').select('role').eq('id', session.user.id).maybeSingle();
+        if (p?.role !== 'super_admin') {
+          await sb.auth.signOut({ scope: 'local' }).catch(() => {});
+          showLoginErr(t('inact.deconnecte'));
+          return;
+        }
       }
       await initApp(session.user);
     }
