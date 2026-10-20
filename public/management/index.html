@@ -2397,8 +2397,44 @@ const stockage = {
 
 const SUPABASE_URL = 'https://darwktarjsaameqianyi.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_ltLpJObbU2HXbbZbwA4dgg_sGFg5BAc';
+// ── Diagnostic à distance : erreurs et problèmes réseau affichés à l'écran (capture à envoyer) ──
+let _errAffichee = 0;
+function afficherErreurGlobale(msg) {
+  msg = String(msg || '');
+  if (!msg || /ResizeObserver loop|^Script error\.?$/i.test(msg)) return;
+  if (Date.now() - _errAffichee < 4000) return;
+  _errAffichee = Date.now();
+  const tr = (k, d) => { try { const v = t(k); return v && v !== k ? v : d; } catch (_) { return d; } };
+  let el = document.getElementById('err-globale');
+  if (!el) {
+    if (!document.body) return;
+    el = document.createElement('div'); el.id = 'err-globale';
+    el.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:5000;width:min(560px,calc(100vw - 20px));background:#7f1d1d;color:#fff;border-radius:10px;padding:12px 40px 12px 14px;font:600 13px/1.45 system-ui,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,.35)';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '';
+  const fermer = document.createElement('button');
+  fermer.textContent = '×'; fermer.setAttribute('aria-label', 'Fermer');
+  fermer.style.cssText = 'position:absolute;top:6px;right:8px;background:none;border:0;color:#fff;font-size:22px;line-height:1;cursor:pointer';
+  fermer.onclick = () => { el.style.display = 'none'; };
+  const texte = document.createElement('div'); texte.textContent = '⚠ ' + msg.slice(0, 220);
+  const aide = document.createElement('div'); aide.style.cssText = 'font-weight:400;font-size:11px;opacity:.85;margin-top:4px';
+  aide.textContent = tr('err.capture', "Faites une capture d'écran et envoyez-la à l'administrateur.") + ' — ' + (navigator.userAgent.match(/(iPhone|iPad|Android|Windows|Mac OS X)[^;)]*/) || [''])[0] + ' · ' + new Date().toLocaleString('fr-FR');
+  el.append(fermer, texte, aide); el.style.display = '';
+}
+window.addEventListener('error', e => afficherErreurGlobale((e.message || '') + (e.lineno ? ' (ligne ' + e.lineno + ')' : '')));
+window.addEventListener('unhandledrejection', e => afficherErreurGlobale(e.reason?.message || e.reason));
+// Toutes les requêtes vers la base passent par ici : échec réseau ou lenteur extrême → message à l'écran
+const fetchSurveille = async (input, init) => {
+  const tr = (k, d) => { try { const v = t(k); return v && v !== k ? v : d; } catch (_) { return d; } };
+  const lent = setTimeout(() => afficherErreurGlobale(tr('err.lent', 'La base de données met très longtemps à répondre depuis ce réseau.')), 20000);
+  try { return await fetch(input, init); }
+  catch (e) { afficherErreurGlobale(tr('err.reseau', 'Connexion à la base de données impossible depuis ce réseau') + ' (' + (e?.message || e) + ')'); throw e; }
+  finally { clearTimeout(lent); }
+};
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+  global: { fetch: fetchSurveille }
 });
 
 // ── État global ─────────────────────────────────────────────
@@ -2693,6 +2729,9 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "err.capture": "Faites une capture d'écran et envoyez-la à l'administrateur.",
+    "err.lent": "La base de données met très longtemps à répondre depuis ce réseau.",
+    "err.reseau": "Connexion à la base de données impossible depuis ce réseau",
     "sess.fermee": "Le navigateur a été fermé : votre session est terminée. Reconnectez-vous.",
     "inact.avert": "Aucune activité : déconnexion automatique dans %s s",
     "inact.rester": "Rester connecté",
@@ -3791,6 +3830,9 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "err.capture": "التقط صورة للشاشة وأرسلها إلى المسؤول.",
+    "err.lent": "قاعدة البيانات تستغرق وقتاً طويلاً جداً للرد من هذه الشبكة.",
+    "err.reseau": "تعذر الاتصال بقاعدة البيانات من هذه الشبكة",
     "sess.fermee": "تم إغلاق المتصفح : انتهت جلستك. يرجى تسجيل الدخول من جديد.",
     "inact.avert": "لا يوجد نشاط : سيتم تسجيل الخروج تلقائياً بعد %s ثانية",
     "inact.rester": "البقاء متصلاً",
