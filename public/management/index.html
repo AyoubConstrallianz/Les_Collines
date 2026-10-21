@@ -527,6 +527,12 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .np-nouveau .np-detail{font-weight:700}
 .np-detail{font-size:13px}
 .np-date{font-size:11px;color:var(--text3)}
+/* Détails d'une famille */
+.fd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.fd-kpi{border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;background:var(--bg3)}
+.fd-kpi>span{display:block;font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.fd-kpi strong{font-size:18px}
+.fd-sec{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);margin:18px 0 6px}
 /* Inscription famille */
 .fi-membre{border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;background:var(--bg3)}
 .fi-membre-tete{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -2306,6 +2312,22 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
   </div>
 </div>
 
+<!-- ══ MODAL DÉTAILS FAMILLE ════════════════════════════════ -->
+<div class="mo" id="fd-modal">
+  <div class="mo-box" style="max-width:920px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:.75rem">
+      <div class="mo-title" style="margin-bottom:0" id="fd-titre"></div>
+      <button class="btn btn-sm" onclick="document.getElementById('fd-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+    </div>
+    <div id="fd-resume" class="fd-kpis"></div>
+    <div class="fd-sec" data-i18n="fm.membres">Membres de la famille</div>
+    <div style="overflow-x:auto"><table id="fd-membres"></table></div>
+    <div class="fd-sec" data-i18n="fd.historique">Historique des paiements</div>
+    <div style="overflow:auto;max-height:340px"><table id="fd-paiements"></table></div>
+    <div class="btns" id="fd-actions" style="margin-top:14px"></div>
+  </div>
+</div>
+
 <!-- ══ MODAL PAIEMENT FAMILLE ═══════════════════════════════ -->
 <div class="mo" id="fp-modal">
   <div class="mo-box" style="max-width:820px">
@@ -2723,6 +2745,17 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "fd.details": "Détails",
+    "fd.membres_actifs": "Membres actifs",
+    "fd.paye_annee": "Payé en %s",
+    "fd.total_tout": "Depuis le début",
+    "fd.tarif_mensuel": "Tarif mensuel",
+    "fd.dernier_paiement": "Dernier paiement",
+    "fd.historique": "Historique des paiements",
+    "fd.aucun_paiement": "Aucun paiement enregistré pour cette famille",
+    "fd.total": "Total",
+    "fd.numero": "N° reçu",
+    "fd.recu": "Reçu",
     "err.capture": "Faites une capture d'écran et envoyez-la à l'administrateur.",
     "err.lent": "La base de données met très longtemps à répondre depuis ce réseau.",
     "err.reseau": "Connexion à la base de données impossible depuis ce réseau",
@@ -3823,6 +3856,17 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "fd.details": "التفاصيل",
+    "fd.membres_actifs": "الأعضاء النشطون",
+    "fd.paye_annee": "المدفوع في %s",
+    "fd.total_tout": "منذ البداية",
+    "fd.tarif_mensuel": "التعريفة الشهرية",
+    "fd.dernier_paiement": "آخر دفعة",
+    "fd.historique": "سجل المدفوعات",
+    "fd.aucun_paiement": "لا توجد مدفوعات مسجلة لهذه العائلة",
+    "fd.total": "المجموع",
+    "fd.numero": "رقم الوصل",
+    "fd.recu": "الوصل",
     "err.capture": "التقط صورة للشاشة وأرسلها إلى المسؤول.",
     "err.lent": "قاعدة البيانات تستغرق وقتاً طويلاً جداً للرد من هذه الشبكة.",
     "err.reseau": "تعذر الاتصال بقاعدة البيانات من هذه الشبكة",
@@ -9515,6 +9559,7 @@ async function changerAbonnementMembre(id, actif, idx) {
   await chargerFamilles();
   loadClients(); loadImpayes();
   if (_pf.vue === 'famille') loadFamillesListe();
+  if (document.getElementById('fd-modal')?.classList.contains('open') && _fd.fid) ouvrirDetailsFamille(_fd.fid);
   if (CLIENTS_CACHE[idx]?.id === id) showClientFiche(idx);
 }
 
@@ -9575,10 +9620,86 @@ function renderFamillesListe() {
         <div style="font-size:11px;color:var(--text3);margin-top:3px">${x.tarifFam ? t('fm.tarif_famille_court') : t('fm.tarif_normal_court')}</div></td>
       <td style="font-weight:700;color:var(--green);white-space:nowrap">${fmt(x.mensuel)}</td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="ouvrirDetailsFamille('${x.f.id}')">${t('fd.details')}</button>
         ${canPay && x.actifs.length ? `<button class="btn btn-sm btn-p" onclick="ouvrirPaiementFamille('${x.f.id}')">${t('fm.payer_famille')}</button>` : ''}
         ${canW ? `<button class="btn btn-sm" onclick="ouvrirAjoutMembre('${x.f.id}')">${t('pf.ajout_membre')}</button>` : ''}
       </div></td></tr>`).join('')
     : `<tr class="empty-row"><td colspan="5">${_fam.familles.length ? t('pf.aucune_filtre') : t('pf.aucune')}</td></tr>`;
+}
+
+// ── Détails d'une famille : membres, tarifs, situation et historique des paiements ──
+let _fd = { fid: null };
+async function ouvrirDetailsFamille(fid) {
+  _fd.fid = fid;
+  await chargerFamilles();
+  const f = _fam.familles.find(x => x.id === fid); if (!f) return;
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
+  const membres = membresFamille(fid), actifs = membres.filter(membreActif), tarifFam = actifs.length >= 2;
+  const ids = membres.map(m => m.id);
+  let paies = [];
+  if (ids.length) {
+    const { data, error } = await sb.from('paiements').select('id,client_id,type,montant,date_paiement,mode,numero_recu,transaction_id,created_at')
+      .in('client_id', ids).order('date_paiement', { ascending: false }).order('created_at', { ascending: false }).limit(1000);
+    if (error) showToast(error.message, 'e');
+    paies = data || [];
+  }
+  const sit = situationAbonnements(paies.filter(x => TYPES_PERIODIQUES.includes(x.type)));
+  const sportsDe = m => m.sports || (m.sport ? [m.sport] : []);
+  const mensuelDe = m => montantAbonnement(sportsDe(m), 'Mensualité', tarifFam);
+  const an = today().slice(0, 4);
+  const somme = l => l.reduce((s, x) => s + (parseFloat(x.montant) || 0), 0);
+  const enRetard = actifs.filter(m => !sit[m.id]?.aJour).length;
+  const canW = PERMS.clients?.ecrire, canPay = PERMS.paiements?.ecrire;
+
+  document.getElementById('fd-titre').textContent = `${t('fam.badge')} — ${f.nom}`;
+  document.getElementById('fd-resume').innerHTML = [
+    [t('fd.membres_actifs'), `${actifs.length} / ${membres.length}`, ''],
+    [t('pf.mensualite'), fmt(actifs.reduce((s, m) => s + mensuelDe(m), 0)), `<div style="font-size:11px;color:var(--text3)">${tarifFam ? t('fm.tarif_famille_court') : t('fm.tarif_normal_court')}</div>`],
+    [t('pf.situation'), !actifs.length ? `<span class="badge b-d">${t('pf.aucun_actif')}</span>` : enRetard ? `<span class="badge b-w">${enRetard} ${t('pf.en_retard')}</span>` : `<span class="badge b-g">${t('pf.tous_a_jour')}</span>`, ''],
+    [t('fd.paye_annee').replace('%s', an), fmt(somme(paies.filter(x => String(x.date_paiement).startsWith(an)))), `<div style="font-size:11px;color:var(--text3)">${t('fd.total_tout')} : ${fmt(somme(paies))}</div>`]
+  ].map(([l, v, plus]) => `<div class="fd-kpi"><span>${l}</span><strong>${v}</strong>${plus}</div>`).join('');
+
+  const etat = m => {
+    if (!membreActif(m)) return '—';
+    const s = sit[m.id];
+    if (s?.aJour) return `<span class="badge b-g" style="font-size:10px">${t('pf.a_jour')} ${dateCourte(s.fin)}</span>`;
+    if (s?.finPassee) return `<span class="badge b-w" style="font-size:10px">${t('pf.retard_depuis')} ${dateCourte(s.finPassee)}</span>`;
+    return `<span class="badge b-w" style="font-size:10px">${t('msg.never_paid')}</span>`;
+  };
+  document.getElementById('fd-membres').innerHTML = `<thead><tr><th>${t('fm.membre')}</th><th>${t('clients.sports')}</th><th>${t('clients.statut')}</th><th>${t('fd.tarif_mensuel')}</th><th>${t('fm.paye_jusqu')}</th><th>${t('fd.dernier_paiement')}</th>${canW ? '<th></th>' : ''}</tr></thead><tbody>`
+    + (membres.length ? membres.map(m => {
+      const actif = membreActif(m), dernier = paies.find(x => x.client_id === m.id);
+      return `<tr style="${actif ? '' : 'opacity:.6'}">
+        <td><a href="#" onclick="document.getElementById('fd-modal').classList.remove('open');ouvrirFicheClient('${m.id}');return false" style="color:inherit;font-weight:700">${echapper(m.prenom + ' ' + m.nom)}</a>${m.telephone ? `<div style="font-size:11px;color:var(--text3)">${echapper(m.telephone)}</div>` : ''}</td>
+        <td style="font-size:12px">${echapper(sportsDe(m).join(', ')) || '—'}</td>
+        <td><span class="badge ${actif ? 'b-g' : 'b-d'}" style="font-size:10px">${actif ? t('fm.actif') : t('fm.arrete')}</span></td>
+        <td style="white-space:nowrap;font-weight:600">${actif ? fmt(mensuelDe(m)) : '—'}</td>
+        <td>${etat(m)}</td>
+        <td style="font-size:12px;white-space:nowrap">${dernier ? `${dateFr(dernier.date_paiement)}<div style="color:var(--text3)">${_peTypeTr()[dernier.type] || dernier.type} · ${fmt(parseFloat(dernier.montant) || 0)}</div>` : '—'}</td>
+        ${canW ? `<td>${actif ? `<button class="btn btn-sm btn-d" onclick="changerAbonnementMembre('${m.id}', false, -1)">${t('fm.arreter')}</button>` : `<button class="btn btn-sm" onclick="changerAbonnementMembre('${m.id}', true, -1)">${t('fm.reprendre')}</button>`}</td>` : ''}
+      </tr>`;
+    }).join('') : `<tr class="empty-row"><td colspan="7">—</td></tr>`) + '</tbody>';
+
+  const parTx = {};
+  paies.forEach(x => { const k = x.transaction_id || x.id; (parTx[k] ??= []).push(x.id); });
+  document.getElementById('fd-paiements').innerHTML = `<thead><tr><th>${t('bq.date')}</th><th>${t('fm.membre')}</th><th>${t('paie.type')}</th><th>${t('vs.montant')}</th><th>${t('vs.mode')}</th><th>${t('fd.numero')}</th><th></th></tr></thead><tbody>`
+    + (paies.length ? paies.map(x => {
+      const m = membres.find(y => y.id === x.client_id);
+      return `<tr><td style="white-space:nowrap">${dateFr(x.date_paiement)}</td>
+        <td>${m ? echapper(m.prenom + ' ' + m.nom) : '—'}</td>
+        <td style="font-size:12px">${_peTypeTr()[x.type] || echapper(x.type || '—')}</td>
+        <td style="white-space:nowrap;font-weight:600">${fmtDH2(parseFloat(x.montant) || 0)}</td>
+        <td style="font-size:12px">${echapper(x.mode || '—')}</td>
+        <td style="font-size:12px;color:var(--text2)">${echapper(x.numero_recu || '—')}</td>
+        <td><button class="btn btn-sm" onclick="document.getElementById('fd-modal').classList.remove('open');ouvrirRecu(${JSON.stringify(parTx[x.transaction_id || x.id]).replace(/"/g, '&quot;')})">${t('fd.recu')}</button></td></tr>`;
+    }).join('') : `<tr class="empty-row"><td colspan="7">${t('fd.aucun_paiement')}</td></tr>`)
+    + `</tbody>${paies.length ? `<tfoot><tr><td colspan="3" style="text-align:end;font-weight:800">${t('fd.total')}</td><td style="font-weight:800;white-space:nowrap">${fmtDH2(somme(paies))}</td><td colspan="3"></td></tr></tfoot>` : ''}`;
+
+  document.getElementById('fd-actions').innerHTML = `
+    ${canPay && actifs.length ? `<button class="btn btn-p" onclick="document.getElementById('fd-modal').classList.remove('open');ouvrirPaiementFamille('${fid}')">${t('fm.payer_famille')}</button>` : ''}
+    ${canW ? `<button class="btn" onclick="document.getElementById('fd-modal').classList.remove('open');ouvrirAjoutMembre('${fid}')">${t('pf.ajout_membre')}</button>` : ''}
+    <button class="btn" onclick="document.getElementById('fd-modal').classList.remove('open')">${t('common.fermer')}</button>`;
+  document.getElementById('fd-modal').classList.add('open');
 }
 
 // ════════════════════════════════════════════════════════════
