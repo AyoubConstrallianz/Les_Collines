@@ -527,6 +527,17 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .np-nouveau .np-detail{font-weight:700}
 .np-detail{font-size:13px}
 .np-date{font-size:11px;color:var(--text3)}
+/* Facture fournisseur (boutique) */
+.bf-etape{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--blue-text);margin:14px 0 8px}
+.bf-resume{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.bf-resume>div{border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;background:var(--bg3)}
+.bf-resume span{display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.bf-resume strong{font-size:16px}
+.bf-resume small{display:block;font-size:11px;color:var(--text2);margin-top:2px}
+.bf-resume .ok{border-color:var(--green)}
+.bf-resume .ecart{border-color:var(--amber)}
+#bf-lignes input{padding:6px 8px;font-size:13px}
+@media (max-width:640px){.bf-resume{grid-template-columns:1fr}}
 /* Détails d'une famille */
 .fd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
 .fd-kpi{border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;background:var(--bg3)}
@@ -1436,6 +1447,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <button id="bt-tab-ventes" class="on" onclick="boutiqueOnglet('ventes')" data-i18n="bq.ventes">Ventes</button>
           <button id="bt-tab-stock" onclick="boutiqueOnglet('stock')" data-i18n="bq.stock">Stock</button>
           <button id="bt-tab-mvts" onclick="boutiqueOnglet('mvts')" data-i18n="bq.mouvements">Mouvements</button>
+          <button id="bt-tab-factures" onclick="boutiqueOnglet('factures')" data-i18n="bf.onglet">Factures fournisseurs</button>
           <button id="bt-tab-bilan" onclick="boutiqueOnglet('bilan')" data-i18n="bb.onglet">Bilan &amp; associés</button>
         </div>
 
@@ -1516,11 +1528,27 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           </div>
         </div>
 
+        <!-- Onglet Factures fournisseurs -->
+        <div id="bt-factures" style="display:none">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.5rem">
+              <div class="ct" style="margin:0" data-i18n="bf.titre">Factures fournisseurs</div>
+              <div class="toolbar" style="margin:0;gap:8px">
+                <input id="bf-q" placeholder="Rechercher fournisseur, n°, article…" data-i18n-ph="bf.recherche_ph" oninput="renderFactures()" style="max-width:240px">
+                <button class="btn btn-p" id="bf-new" onclick="ouvrirFacture()" data-i18n="bf.nouvelle">+ Nouvelle facture</button>
+              </div>
+            </div>
+            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bf.note">Saisissez d'abord le montant total de la facture et sa date, puis les articles achetés avec leur prix d'achat et leur prix de vente. Le montant total est enregistré comme charge de la salle (catégorie « Achats boutique ») et les articles entrent en stock.</p>
+            <div id="bf-sql"></div>
+            <table><thead><tr><th data-i18n="bq.date">Date</th><th data-i18n="bf.fournisseur">Fournisseur</th><th data-i18n="bf.articles">Articles</th><th data-i18n="bf.montant">Montant facture</th><th data-i18n="bf.total_articles">Total des articles</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bf-tb"></tbody></table>
+          </div>
+        </div>
+
         <!-- Onglet Bilan & associés (propre à la boutique) -->
         <div id="bt-bilan" style="display:none">
           <div class="al al-i" style="margin-bottom:12px" data-i18n="bb.separe">Bilan propre à la boutique : il n'est mélangé ni à la caisse du club, ni au bénéfice des associés du club.</div>
           <div class="sg">
-            <div class="sc"><div class="sc-label" data-i18n="bb.capital">Capital investi (boutique)</div><div class="sc-val" id="bb-k-capital">—</div></div>
+            <div class="sc"><div class="sc-label" data-i18n="bb.factures_k">Factures fournisseurs (payées par la salle)</div><div class="sc-val" id="bb-k-factures">—</div></div>
             <div class="sc"><div class="sc-label" data-i18n="bb.ventes_total">Ventes depuis le début</div><div class="sc-val" id="bb-k-ventes">—</div></div>
             <div class="sc"><div class="sc-label" data-i18n="bb.benef_total">Bénéfice depuis le début</div><div class="sc-val" id="bb-k-benef">—</div></div>
             <div class="sc"><div class="sc-label" data-i18n="bq.valeur_stock">Valeur du stock</div><div class="sc-val" id="bb-k-stock">—</div></div>
@@ -1535,13 +1563,13 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <table id="bb-apports"></table>
           </div>
           <div class="card" id="bb-flux-card">
-            <div class="ct" data-i18n="bb.flux_titre">Le capital de la boutique : où est l'argent ?</div>
+            <div class="ct" data-i18n="bb.flux_titre">La caisse de la boutique : où est l'argent ?</div>
             <table id="bb-flux" style="max-width:620px"></table>
-            <p id="bb-detail" style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="bb.flux_note">Le capital investi par les associés sert à acheter le stock. L'argent des ventes revient dans la caisse de la boutique, d'où sont faits les versements aux associés.</p>
+            <p id="bb-detail" style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="bb.flux_note">L'argent des ventes entre dans la caisse de la boutique, d'où sont faits les versements aux associés. Les achats de stock sont payés par la caisse de la salle (factures fournisseurs, dans les charges de la salle).</p>
           </div>
           <div class="card" id="bb-assoc-card">
             <div class="ct" data-i18n="bb.revient_titre">Ce qui revient à chaque associé (boutique)</div>
-            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bb.revient_note">Capital investi dans la boutique (à rembourser) + part du bénéfice de la boutique depuis le début − ce qui a déjà été versé. Mêmes parts que le club.</p>
+            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bb.revient_note">Part du bénéfice de la boutique depuis le début − ce qui a déjà été versé. Mêmes parts que le club.</p>
             <div style="overflow-x:auto"><table id="bb-du"></table></div>
           </div>
           <div class="card">
@@ -1560,7 +1588,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             </div>
             <div id="bb-vs-sql"></div>
             <div class="sg" id="bb-vs-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
-            <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px" data-i18n="vs.note_boutique">Caisse de la boutique = capital apporté + ventes − achats de stock − versements aux associés. Mois de l'année choisie ci-dessus.</p>
+            <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px" data-i18n="vs.note_boutique">Caisse de la boutique = ventes + alimentations par la salle − versements aux associés. Les achats de stock sont payés par la salle (factures fournisseurs). Mois de l'année choisie ci-dessus.</p>
             <div style="overflow-x:auto"><table id="bb-vs-mois"></table></div>
             <div class="ct" style="margin:16px 0 8px;font-size:13px" data-i18n="vs.historique">Historique des versements</div>
             <table id="bb-vs-hist"></table>
@@ -1573,7 +1601,6 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
                 <button class="btn btn-sm" onclick="document.getElementById('bb-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
               </div>
               <input type="hidden" id="bb-id">
-              <div class="fg" style="margin-bottom:10px"><label data-i18n="bb.capital_dh">Capital investi dans la boutique (DH)</label><input id="bb-capital" type="number" min="0" step="0.01" placeholder="0"></div>
               <div class="fg" id="bb-verse-wrap" style="margin-bottom:10px"><label data-i18n="bb.verse_dh">Déjà versé (boutique) (DH)</label><input id="bb-verse" type="number" min="0" step="0.01" placeholder="0"></div>
               <div class="btns"><button class="btn btn-p" onclick="saveCapitalBoutique()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('bb-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
             </div>
@@ -1632,6 +1659,35 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="fg" style="margin-bottom:10px"><label data-i18n="bq.note">Note</label><input id="ap-note" placeholder="Ex : achat de gants" data-i18n-ph="ap.note_ph"></div>
             <div class="al al-i" style="margin-bottom:12px;font-size:12px" data-i18n="ap.info">Ce montant sera ajouté à la caisse de la boutique et enregistré comme charge de la salle.</div>
             <div class="btns"><button class="btn btn-p" onclick="saveApport()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('ap-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
+          </div>
+        </div>
+        <!-- Fenêtre facture fournisseur : 1. montant total et date, 2. articles achetés -->
+        <div class="mo" id="bf-modal">
+          <div class="mo-box" style="max-width:1000px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
+              <div class="mo-title" style="margin-bottom:0" id="bf-titre"></div>
+              <button class="btn btn-sm" onclick="document.getElementById('bf-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+            </div>
+            <div class="bf-etape" data-i18n="bf.etape1">1. La facture</div>
+            <div class="g3">
+              <div class="fg"><label data-i18n="bq.date">Date</label><input id="bf-date" type="date"></div>
+              <div class="fg"><label data-i18n="bf.fournisseur">Fournisseur</label><input id="bf-fournisseur" list="bf-fournisseurs" placeholder="Ex : Sport Pro" data-i18n-ph="bf.fournisseur_ph" autocomplete="off"><datalist id="bf-fournisseurs"></datalist></div>
+              <div class="fg"><label data-i18n="bf.numero">N° de facture</label><input id="bf-numero" autocomplete="off"></div>
+            </div>
+            <div class="fr">
+              <div class="fg"><label data-i18n="bf.montant_total">Montant total de la facture (DH)</label><input id="bf-montant" type="number" min="0" step="0.01" oninput="bfTotaux()" style="font-weight:700;font-size:16px"></div>
+              <div class="fg"><label data-i18n="bq.note">Note</label><input id="bf-note" autocomplete="off"></div>
+            </div>
+            <div class="bf-etape" data-i18n="bf.etape2">2. Les articles achetés</div>
+            <div style="overflow-x:auto"><table id="bf-lignes"></table></div>
+            <datalist id="bf-articles"></datalist>
+            <button type="button" class="btn btn-sm" id="bf-ajout" onclick="bfAjouterLigne()" style="margin-top:8px" data-i18n="bf.ajouter_article">+ Ajouter un article</button>
+            <div id="bf-resume" class="bf-resume"></div>
+            <div class="al al-i" id="bf-charge-info" style="font-size:12px;margin:10px 0"></div>
+            <div class="btns">
+              <button class="btn btn-p" id="bf-valider" onclick="saveFacture()" data-i18n="bf.enregistrer">Enregistrer la facture</button>
+              <button class="btn" onclick="document.getElementById('bf-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2745,6 +2801,45 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "bf.astuce_entree": "Achat chez un fournisseur ? Utilisez plutôt l'onglet « Factures fournisseurs » : le montant est compté dans les charges de la salle.",
+    "bf.onglet": "Factures fournisseurs",
+    "bf.titre": "Factures fournisseurs",
+    "bf.nouvelle": "+ Nouvelle facture",
+    "bf.recherche_ph": "Rechercher fournisseur, n°, article…",
+    "bf.note": "Saisissez d'abord le montant total de la facture et sa date, puis les articles achetés avec leur prix d'achat et leur prix de vente. Le montant total est enregistré comme charge de la salle (catégorie « Achats boutique ») et les articles entrent en stock.",
+    "bf.sql_34": "Les factures fournisseurs ne sont pas encore activées : exécutez le script 34_boutique_factures.sql dans Supabase (SQL Editor → New query → Run).",
+    "bf.fournisseur": "Fournisseur",
+    "bf.fournisseur_ph": "Ex : Sport Pro",
+    "bf.numero": "N° de facture",
+    "bf.numero_court": "N°",
+    "bf.montant_total": "Montant total de la facture (DH)",
+    "bf.montant": "Montant facture",
+    "bf.articles": "Articles",
+    "bf.total_articles": "Total des articles",
+    "bf.ecart": "Écart",
+    "bf.ecart_ok": "Le total des articles correspond à la facture.",
+    "bf.ecart_reste": "Reste à saisir : %s",
+    "bf.ecart_depasse": "Les articles dépassent la facture de %s",
+    "bf.ecart_confirm": "Le total des articles (%a) est différent du montant de la facture (%f). Enregistrer quand même ?",
+    "bf.charge_info": "Le montant total de la facture (%s) sera enregistré comme charge de la salle (catégorie « Achats boutique »).",
+    "bf.etape1": "1. La facture",
+    "bf.etape2": "2. Les articles achetés",
+    "bf.ajouter_article": "+ Ajouter un article",
+    "bf.article_ph": "Article du stock ou nouvel article",
+    "bf.enregistrer": "Enregistrer la facture",
+    "bf.titre_nouvelle": "Nouvelle facture fournisseur",
+    "bf.titre_modif": "Facture fournisseur",
+    "bf.voir": "Voir",
+    "bf.aucune": "Aucune facture fournisseur enregistrée",
+    "bf.montant_requis": "Saisissez le montant total de la facture.",
+    "bf.article_requis": "Ajoutez au moins un article avec son nom et sa quantité.",
+    "bf.enregistree": "Facture enregistrée : charge de la salle et stock mis à jour",
+    "bf.suppr_confirm": "Supprimer cette facture de %s ? La charge de la salle et les entrées de stock seront supprimées.",
+    "bf.supprimee": "Facture supprimée",
+    "bf.flux_info": "Factures fournisseurs : %s, payées par la caisse de la salle (dans les charges de la salle, pas dans la caisse de la boutique).",
+    "bb.factures_k": "Factures fournisseurs (payées par la salle)",
+    "charges.c_achats_boutique": "Achats boutique",
+    "charges.voir_boutique": "Se gère dans Boutique → Factures fournisseurs",
     "fd.details": "Détails",
     "fd.membres_actifs": "Membres actifs",
     "fd.paye_annee": "Payé en %s",
@@ -2870,14 +2965,14 @@ const I18N = {
     "ap.enregistre": "Boutique alimentée — charge ajoutée à la salle",
     "ap.suppr_confirm": "Supprimer cette alimentation de %s ?\nLa charge correspondante de la salle sera aussi supprimée.",
     "ap.sql_31": "Exécutez le script SQL 31 (alimentation par la caisse de la salle) dans Supabase.",
-    "bb.flux_titre": "Le capital de la boutique : où est l'argent ?",
-    "bb.flux_note": "Le capital investi par les associés sert à acheter le stock. L'argent des ventes revient dans la caisse de la boutique, d'où sont faits les versements aux associés.",
+    "bb.flux_titre": "La caisse de la boutique : où est l'argent ?",
+    "bb.flux_note": "L'argent des ventes entre dans la caisse de la boutique, d'où sont faits les versements aux associés. Les achats de stock sont payés par la caisse de la salle (factures fournisseurs, dans les charges de la salle).",
     "bb.flux_capital": "Capital investi par les associés",
-    "bb.flux_achats": "Achats de stock (payés avec le capital)",
+    "bb.flux_achats": "Achats de stock payés par la boutique (hors factures)",
     "bb.flux_ventes": "Ventes encaissées",
     "bb.flux_versements": "Versements aux associés",
     "bb.flux_caisse": "Caisse de la boutique (argent disponible)",
-    "bb.flux_manque": "Le capital ne suffit pas : il manque %s pour couvrir les achats et versements.",
+    "bb.flux_manque": "La caisse de la boutique est négative : il manque %s pour couvrir les versements aux associés.",
     "bb.flux_stock": "Stock en magasin (valeur d'achat)",
     "bb.flux_total": "Valeur totale de la boutique",
     "bb.flux_reste": "Pour comparaison : reste à verser aux associés (capital + bénéfice − versements)",
@@ -2888,7 +2983,7 @@ const I18N = {
     "vs.nouveau": "+ Nouveau versement",
     "vs.historique": "Historique des versements",
     "vs.note_club": "Caisse = capital apporté + encaissements − charges − salaires − versements aux associés. Mois de l'année choisie ci-dessus.",
-    "vs.note_boutique": "Caisse de la boutique = capital apporté + ventes − achats de stock − versements aux associés. Mois de l'année choisie ci-dessus.",
+    "vs.note_boutique": "Caisse de la boutique = ventes + alimentations par la salle − versements aux associés. Les achats de stock sont payés par la salle (factures fournisseurs). Mois de l'année choisie ci-dessus.",
     "vs.caisse_actuelle": "Caisse actuelle",
     "vs.verse_mois": "Versé ce mois",
     "vs.verse_total": "Versé depuis le début",
@@ -2896,7 +2991,7 @@ const I18N = {
     "vs.total_verse": "Total versé",
     "vs.caisse_fin": "Caisse en fin de mois",
     "vs.benef_mois": "Bénéfice du mois",
-    "vs.ventes_moins_achats": "Ventes − achats du mois",
+    "vs.ventes_moins_achats": "Ventes + alimentations du mois",
     "vs.nature": "Nature",
     "vs.montant": "Montant",
     "vs.montant_dh": "Montant versé (DH)",
@@ -2918,7 +3013,7 @@ const I18N = {
     "bb.ventes_total": "Ventes depuis le début",
     "bb.benef_total": "Bénéfice depuis le début",
     "bb.revient_titre": "Ce qui revient à chaque associé (boutique)",
-    "bb.revient_note": "Capital investi dans la boutique (à rembourser) + part du bénéfice de la boutique depuis le début − ce qui a déjà été versé. Mêmes parts que le club.",
+    "bb.revient_note": "Part du bénéfice de la boutique depuis le début − ce qui a déjà été versé. Mêmes parts que le club.",
     "bb.par_mois": "Bénéfice de la boutique par mois",
     "bb.benef_note": "Bénéfice = ventes − prix d'achat des articles vendus.",
     "bb.capital_dh": "Capital investi dans la boutique (DH)",
@@ -3856,6 +3951,45 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "bf.astuce_entree": "شراء من مورد ؟ استعمل بالأحرى تبويب « فواتير الموردين » : يُحتسب المبلغ ضمن مصاريف القاعة.",
+    "bf.onglet": "فواتير الموردين",
+    "bf.titre": "فواتير الموردين",
+    "bf.nouvelle": "+ فاتورة جديدة",
+    "bf.recherche_ph": "ابحث عن مورد، رقم، مادة…",
+    "bf.note": "أدخل أولاً المبلغ الإجمالي للفاتورة وتاريخها، ثم المواد المشتراة مع ثمن الشراء وثمن البيع. يُسجَّل المبلغ الإجمالي كمصروف للقاعة (فئة « مشتريات المتجر ») وتدخل المواد إلى المخزون.",
+    "bf.sql_34": "فواتير الموردين غير مفعّلة بعد : شغّل السكريبت 34_boutique_factures.sql في Supabase (SQL Editor → New query → Run).",
+    "bf.fournisseur": "المورد",
+    "bf.fournisseur_ph": "مثال : Sport Pro",
+    "bf.numero": "رقم الفاتورة",
+    "bf.numero_court": "رقم",
+    "bf.montant_total": "المبلغ الإجمالي للفاتورة (درهم)",
+    "bf.montant": "مبلغ الفاتورة",
+    "bf.articles": "المواد",
+    "bf.total_articles": "مجموع المواد",
+    "bf.ecart": "الفرق",
+    "bf.ecart_ok": "مجموع المواد يطابق الفاتورة.",
+    "bf.ecart_reste": "المتبقي للإدخال : %s",
+    "bf.ecart_depasse": "المواد تتجاوز الفاتورة بـ %s",
+    "bf.ecart_confirm": "مجموع المواد (%a) مختلف عن مبلغ الفاتورة (%f). هل تريد الحفظ رغم ذلك ؟",
+    "bf.charge_info": "سيُسجَّل المبلغ الإجمالي للفاتورة (%s) كمصروف للقاعة (فئة « مشتريات المتجر »).",
+    "bf.etape1": "1. الفاتورة",
+    "bf.etape2": "2. المواد المشتراة",
+    "bf.ajouter_article": "+ إضافة مادة",
+    "bf.article_ph": "مادة من المخزون أو مادة جديدة",
+    "bf.enregistrer": "حفظ الفاتورة",
+    "bf.titre_nouvelle": "فاتورة مورد جديدة",
+    "bf.titre_modif": "فاتورة المورد",
+    "bf.voir": "عرض",
+    "bf.aucune": "لا توجد فواتير موردين مسجلة",
+    "bf.montant_requis": "أدخل المبلغ الإجمالي للفاتورة.",
+    "bf.article_requis": "أضف مادة واحدة على الأقل مع اسمها وكميتها.",
+    "bf.enregistree": "تم حفظ الفاتورة : تم تحديث مصاريف القاعة والمخزون",
+    "bf.suppr_confirm": "حذف هذه الفاتورة بمبلغ %s ؟ سيتم حذف مصروف القاعة ومدخلات المخزون.",
+    "bf.supprimee": "تم حذف الفاتورة",
+    "bf.flux_info": "فواتير الموردين : %s، مدفوعة من صندوق القاعة (ضمن مصاريف القاعة، وليس من صندوق المتجر).",
+    "bb.factures_k": "فواتير الموردين (مدفوعة من القاعة)",
+    "charges.c_achats_boutique": "مشتريات المتجر",
+    "charges.voir_boutique": "تُدار من المتجر ← فواتير الموردين",
     "fd.details": "التفاصيل",
     "fd.membres_actifs": "الأعضاء النشطون",
     "fd.paye_annee": "المدفوع في %s",
@@ -3981,14 +4115,14 @@ const I18N = {
     "ap.enregistre": "تم تمويل المتجر — أُضيف مصروف للقاعة",
     "ap.suppr_confirm": "حذف هذا التمويل بمبلغ %s ؟\nسيُحذف أيضاً المصروف المقابل للقاعة.",
     "ap.sql_31": "نفّذ سكريبت SQL رقم 31 (التمويل من صندوق القاعة) في Supabase.",
-    "bb.flux_titre": "رأس مال المتجر : أين المال ؟",
-    "bb.flux_note": "يُستعمل رأس المال الذي استثمره الشركاء لشراء المخزون. أموال المبيعات تعود إلى صندوق المتجر، ومنه تُصرف الدفعات للشركاء.",
+    "bb.flux_titre": "صندوق المتجر : أين المال ؟",
+    "bb.flux_note": "أموال المبيعات تدخل صندوق المتجر، ومنه تُدفع حصص الشركاء. مشتريات المخزون تُدفع من صندوق القاعة (فواتير الموردين، ضمن مصاريف القاعة).",
     "bb.flux_capital": "رأس المال المستثمر من طرف الشركاء",
-    "bb.flux_achats": "مشتريات المخزون (مدفوعة من رأس المال)",
+    "bb.flux_achats": "مشتريات مخزون مدفوعة من المتجر (خارج الفواتير)",
     "bb.flux_ventes": "المبيعات المحصلة",
     "bb.flux_versements": "الدفعات للشركاء",
     "bb.flux_caisse": "صندوق المتجر (المال المتوفر)",
-    "bb.flux_manque": "رأس المال غير كافٍ : ينقص %s لتغطية المشتريات والدفعات.",
+    "bb.flux_manque": "صندوق المتجر سلبي : ينقص %s لتغطية الدفعات للشركاء.",
     "bb.flux_stock": "المخزون في المحل (بثمن الشراء)",
     "bb.flux_total": "القيمة الإجمالية للمتجر",
     "bb.flux_reste": "للمقارنة : الباقي للدفع للشركاء (رأس المال + الربح − الدفعات)",
@@ -3999,7 +4133,7 @@ const I18N = {
     "vs.nouveau": "+ دفعة جديدة",
     "vs.historique": "سجل الدفعات",
     "vs.note_club": "الصندوق = رأس المال المقدم + المداخيل − المصاريف − الأجور − الدفعات للشركاء. أشهر السنة المختارة أعلاه.",
-    "vs.note_boutique": "صندوق المتجر = رأس المال المقدم + المبيعات − مشتريات المخزون − الدفعات للشركاء. أشهر السنة المختارة أعلاه.",
+    "vs.note_boutique": "صندوق المتجر = المبيعات + التمويل من القاعة − الدفعات للشركاء. مشتريات المخزون تُدفع من القاعة (فواتير الموردين). أشهر السنة المختارة أعلاه.",
     "vs.caisse_actuelle": "الصندوق الحالي",
     "vs.verse_mois": "المدفوع هذا الشهر",
     "vs.verse_total": "المدفوع منذ البداية",
@@ -4007,7 +4141,7 @@ const I18N = {
     "vs.total_verse": "مجموع المدفوع",
     "vs.caisse_fin": "الصندوق في نهاية الشهر",
     "vs.benef_mois": "ربح الشهر",
-    "vs.ventes_moins_achats": "المبيعات − المشتريات",
+    "vs.ventes_moins_achats": "المبيعات + التمويل خلال الشهر",
     "vs.nature": "النوع",
     "vs.montant": "المبلغ",
     "vs.montant_dh": "المبلغ المدفوع (درهم)",
@@ -4029,7 +4163,7 @@ const I18N = {
     "bb.ventes_total": "المبيعات منذ البداية",
     "bb.benef_total": "الربح منذ البداية",
     "bb.revient_titre": "ما يعود لكل شريك (المتجر)",
-    "bb.revient_note": "رأس المال المستثمر في المتجر (للاسترجاع) + حصة ربح المتجر منذ البداية − ما تم دفعه مسبقاً. نفس حصص النادي.",
+    "bb.revient_note": "حصة ربح المتجر منذ البداية − ما تم دفعه مسبقاً. نفس حصص النادي.",
     "bb.par_mois": "ربح المتجر حسب الشهر",
     "bb.benef_note": "الربح = المبيعات − ثمن شراء المنتجات المباعة.",
     "bb.capital_dh": "رأس المال المستثمر في المتجر (درهم)",
@@ -8260,7 +8394,7 @@ async function loadCharges() {
   const chY = data.filter(c=>moisDe(c)?.startsWith(year+'')).reduce((a,c)=>a+parseFloat(c.montant||0),0);
   document.getElementById('ch-mois-v').textContent  = fmt(chM);
   document.getElementById('ch-annee-v').textContent = fmt(chY);
-  const catTr={'Alimentation boutique':t('charges.c_alim_boutique'),'Loyer':t('charges.c_loyer'),'Électricité':t('charges.c_elec'),'Eau':t('charges.c_eau'),'Internet':t('charges.c_internet'),'Équipement':t('charges.c_equip'),'Entretien':t('charges.c_entretien'),'Assurance':t('charges.c_assurance'),'Autre':t('charges.c_autre'),'Salaires':t('charges.c_salaires')};
+  const catTr={'Achats boutique':t('charges.c_achats_boutique'),'Alimentation boutique':t('charges.c_alim_boutique'),'Loyer':t('charges.c_loyer'),'Électricité':t('charges.c_elec'),'Eau':t('charges.c_eau'),'Internet':t('charges.c_internet'),'Équipement':t('charges.c_equip'),'Entretien':t('charges.c_entretien'),'Assurance':t('charges.c_assurance'),'Autre':t('charges.c_autre'),'Salaires':t('charges.c_salaires')};
   const recTr={'Hebdomadaire':t('charges.r_hebdo'),'Ponctuelle':t('charges.r_ponctuelle'),'Mensuelle':t('charges.r_mensuelle'),'Annuelle':t('charges.r_annuelle')};
   const cats = {};
   (data||[]).forEach(c=>{ const k=catTr[c.categorie]||c.categorie; cats[k]=(cats[k]||0)+parseFloat(c.montant||0); });
@@ -8271,7 +8405,7 @@ async function loadCharges() {
   document.getElementById('charges-tb').innerHTML = (data||[]).length
     ? (data||[]).map(c=>c.salaire
       ? `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-i">${catTr.Salaires}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence}</td><td><button class="btn btn-sm" onclick="nav('coaches',document.querySelector('.nav[data-page=coaches]'))" title="${t('charges.sal_gerer')}">${t('charges.sal_voir')}</button></td></tr>`
-      : `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-w">${catTr[c.categorie]||c.categorie}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence||"—"}</td><td>${canDel?`<button class="btn btn-sm btn-d" onclick="delCharge('${c.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`).join('')
+      : `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-w">${catTr[c.categorie]||c.categorie}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence||"—"}</td><td>${c.categorie==='Achats boutique'?`<button class="btn btn-sm" title="${t('charges.voir_boutique')}" onclick="nav('boutique',document.querySelector('.nav[data-page=boutique]'));boutiqueOnglet('factures')">${t('charges.sal_voir')}</button>`:canDel?`<button class="btn btn-sm btn-d" onclick="delCharge('${c.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`).join('')
     : `<tr class="empty-row"><td colspan="6">${t('msg.no_charge')}</td></tr>`;
 
   const form = document.querySelector('#page-charges .g2 .card:first-child');
@@ -8503,11 +8637,12 @@ const etatStock = p => p.stock <= 0 ? ['b-d', t('bq.rupture')] : p.stock <= (p.s
 
 function boutiqueOnglet(o) {
   _bt.onglet = o;
-  [['ventes', 'bt-ventes'], ['stock', 'bt-stock'], ['mvts', 'bt-mvts'], ['bilan', 'bt-bilan']].forEach(([k, id]) => {
+  [['ventes', 'bt-ventes'], ['stock', 'bt-stock'], ['mvts', 'bt-mvts'], ['factures', 'bt-factures'], ['bilan', 'bt-bilan']].forEach(([k, id]) => {
     document.getElementById(id).style.display = k === o ? '' : 'none';
     document.getElementById('bt-tab-' + k).classList.toggle('on', k === o);
   });
   if (o === 'bilan') loadBilanBoutique();
+  if (o === 'factures') loadFactures();
 }
 
 async function loadBoutique() {
@@ -8561,6 +8696,7 @@ function renderBoutique() {
   const kr = document.getElementById('bt-k-bas'); kr.textContent = bas; kr.style.color = bas ? 'var(--red)' : 'var(--green)';
   renderVentes(); renderProduits(); renderMouvements(); bvArticleConnu(true);
   if (_bt.onglet === 'bilan') loadBilanBoutique();
+  if (_bt.onglet === 'factures' && _bf.liste) renderFactures();
 }
 
 // ── Ventes ───────────────────────────────────────────────────
@@ -8770,6 +8906,7 @@ async function ouvrirMouvement(pid, mode) {
     if (isNaN(n)) { ap.textContent = ''; return; }
     const apres = mode === 'Achat' ? p.stock + n : n;
     ap.textContent = `${t('bq.stock_apres')} : ${apres}${mode === 'Ajustement' ? ` (${apres - p.stock >= 0 ? '+' : ''}${apres - p.stock})` : ''}`;
+    if (mode === 'Achat') ap.innerHTML += `<div class="al al-i" style="margin:8px 0 0;font-size:11px">${t('bf.astuce_entree')}</div>`;
     if (mode === 'Achat' && typeof _bb.caisse === 'number') {
       const cout = n * (parseFloat(document.getElementById('bm-prix').value) || 0), reste = _bb.caisse - cout;
       ap.innerHTML += `<br>${t('bq.total')} : <strong>${fmtDH2(cout)}</strong> · ${t('bb.caisse_dispo')} : <strong>${fmtDH2(_bb.caisse)}</strong> → ${t('bb.apres_achat')} : <strong style="color:${reste < 0 ? 'var(--red)' : 'var(--green)'}">${fmtDH2(reste)}</strong>`
@@ -8813,7 +8950,7 @@ function renderMouvements() {
       <td><span class="badge ${cls[m.type] || 'b-i'}">${t('bq.type_' + m.type)}</span></td>
       <td style="font-weight:700;color:${m.quantite > 0 ? 'var(--green)' : 'var(--red)'}" dir="ltr">${m.quantite > 0 ? '+' : ''}${m.quantite}</td>
       <td>${fmtDH2(m.prix_unitaire)}</td><td style="font-size:12px;color:var(--text2)">${echapper(m.note || '')}</td>
-      <td>${canD && !m.vente_id ? `<button class="btn btn-sm btn-d" onclick="delMouvement('${m.id}')">${t('msg.suppr')}</button>` : ''}</td></tr>`).join('')
+      <td>${canD && !m.vente_id && !m.facture_id ? `<button class="btn btn-sm btn-d" onclick="delMouvement('${m.id}')">${t('msg.suppr')}</button>` : ''}</td></tr>`).join('')
     : `<tr class="empty-row"><td colspan="7">${t('bq.aucun_mouvement')}</td></tr>`;
 }
 
@@ -8875,6 +9012,164 @@ async function delApport(id) {
   loadBilanBoutique();
 }
 
+// ── Factures fournisseurs : montant total (charge de la salle) puis articles achetés (entrées de stock) ──
+let _bf = { liste: null, mvts: [], lignes: [], id: '', lecture: false };
+const peutFacturer = () => !!(PERMS.boutique?.ecrire && PERMS.charges?.ecrire);
+const lignesFacture = id => (_bf.mvts || []).filter(m => m.facture_id === id);
+const totalLignes = l => Math.round(l.reduce((s, m) => s + (parseInt(m.quantite, 10) || 0) * (parseFloat(m.prix_unitaire ?? m.prix_achat) || 0), 0) * 100) / 100;
+const ligneVide = () => ({ article: '', categorie: '', quantite: 1, prix_achat: '', prix_vente: '' });
+
+async function loadFactures() {
+  const [rf, rm] = await Promise.all([
+    sb.from('boutique_factures').select('*').order('date_facture', { ascending: false }).order('created_at', { ascending: false }),
+    fetchAllRows(() => sb.from('stock_mouvements').select('id,facture_id,produit_id,quantite,prix_unitaire,prix_vente').not('facture_id', 'is', null).order('id'))
+  ]);
+  _bf.liste = rf.error || rm.error ? null : (rf.data || []);   // null = script 34 non exécuté
+  _bf.mvts = rm.data || [];
+  renderFactures();
+}
+
+function renderFactures() {
+  const ok = Array.isArray(_bf.liste);
+  document.getElementById('bf-sql').innerHTML = ok ? '' : `<div class="al al-e">${t('bf.sql_34')}</div>`;
+  document.getElementById('bf-new').style.display = ok && peutFacturer() ? '' : 'none';
+  const q = cleArticle(document.getElementById('bf-q')?.value);
+  const canD = PERMS.boutique?.supprimer && PERMS.charges?.supprimer;
+  const liste = (_bf.liste || []).filter(f => !q || cleArticle(`${f.fournisseur || ''} ${f.numero || ''} ${f.note || ''} ${lignesFacture(f.id).map(m => produitDe(m.produit_id)?.nom || '').join(' ')}`).includes(q));
+  const tot = liste.reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
+  document.getElementById('bf-tb').innerHTML = !ok ? '' : liste.length ? liste.map(f => {
+    const l = lignesFacture(f.id), ta = totalLignes(l), ecart = Math.round(((parseFloat(f.montant) || 0) - ta) * 100) / 100;
+    const noms = l.map(m => `${echapper(produitDe(m.produit_id)?.nom || '—')} <span style="color:var(--text3)">×${m.quantite}</span>`).join(', ');
+    return `<tr><td style="white-space:nowrap">${dateCourte(f.date_facture)}</td>
+      <td><strong>${echapper(f.fournisseur || '—')}</strong>${f.numero ? `<div style="font-size:11px;color:var(--text3)">${t('bf.numero_court')} ${echapper(f.numero)}</div>` : ''}</td>
+      <td style="font-size:12px;max-width:340px">${noms || '—'}</td>
+      <td style="font-weight:700;white-space:nowrap">${fmtDH2(f.montant)}</td>
+      <td style="white-space:nowrap">${fmtDH2(ta)}${ecart ? `<div style="font-size:11px;color:var(--amber-text)">${t('bf.ecart')} : ${fmtDH2(ecart)}</div>` : ''}</td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="ouvrirFacture('${f.id}')">${t(peutFacturer() ? 'common.modifier' : 'bf.voir')}</button>
+        ${canD ? `<button class="btn btn-sm btn-d" onclick="delFacture('${f.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
+  }).join('') + `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td colspan="3" style="font-weight:800">${t('bq.total')}</td><td style="font-weight:800;white-space:nowrap">${fmtDH2(tot)}</td><td colspan="2"></td></tr>`
+    : `<tr class="empty-row"><td colspan="6">${t((_bf.liste || []).length ? 'bq.aucun_filtre' : 'bf.aucune')}</td></tr>`;
+}
+
+function ouvrirFacture(id) {
+  const f = id ? (_bf.liste || []).find(x => x.id === id) : null;
+  _bf.id = f?.id || '';
+  _bf.lecture = !peutFacturer();
+  document.getElementById('bf-titre').textContent = t(f ? 'bf.titre_modif' : 'bf.titre_nouvelle');
+  document.getElementById('bf-date').value = f?.date_facture || today();
+  document.getElementById('bf-fournisseur').value = f?.fournisseur || '';
+  document.getElementById('bf-numero').value = f?.numero || '';
+  document.getElementById('bf-montant').value = f ? f.montant : '';
+  document.getElementById('bf-note').value = f?.note || '';
+  document.getElementById('bf-fournisseurs').innerHTML = [...new Set((_bf.liste || []).map(x => x.fournisseur).filter(Boolean))].map(n => `<option value="${echapper(n)}">`).join('');
+  document.getElementById('bf-articles').innerHTML = _bt.produits.map(p => `<option value="${echapper(p.nom)}">`).join('');
+  _bf.lignes = f ? lignesFacture(f.id).map(m => {
+    const pr = produitDe(m.produit_id);
+    return { article: pr?.nom || '', categorie: pr?.categorie || '', quantite: m.quantite, prix_achat: parseFloat(m.prix_unitaire) || 0,
+      prix_vente: m.prix_vente != null ? parseFloat(m.prix_vente) : (parseFloat(pr?.prix_vente) || 0) };
+  }) : [];
+  if (!_bf.lignes.length) _bf.lignes.push(ligneVide());
+  ['bf-date', 'bf-fournisseur', 'bf-numero', 'bf-montant', 'bf-note'].forEach(k => { document.getElementById(k).disabled = _bf.lecture; });
+  document.getElementById('bf-ajout').style.display = _bf.lecture ? 'none' : '';
+  document.getElementById('bf-valider').style.display = _bf.lecture ? 'none' : '';
+  renderLignesFacture();
+  document.getElementById('bf-modal').classList.add('open');
+  if (!_bf.lecture && !f) setTimeout(() => document.getElementById('bf-montant').focus(), 50);
+}
+
+function renderLignesFacture() {
+  const dis = _bf.lecture ? 'disabled' : '';
+  document.getElementById('bf-lignes').innerHTML = `<thead><tr><th>${t('bq.article')}</th><th>${t('bq.categorie')}</th><th>${t('bq.qte')}</th><th>${t('bq.prix_achat')}</th><th>${t('bq.prix_vente')}</th><th>${t('bq.total')}</th><th></th></tr></thead><tbody>`
+    + _bf.lignes.map((l, i) => `<tr>
+      <td><input value="${echapper(l.article)}" list="bf-articles" placeholder="${echapper(t('bf.article_ph'))}" oninput="bfLigne(${i},'article',this.value)" onchange="bfArticleChoisi(${i})" ${dis} style="min-width:170px" autocomplete="off"></td>
+      <td><input value="${echapper(l.categorie)}" list="bp-cats" oninput="bfLigne(${i},'categorie',this.value)" ${dis} style="min-width:100px;max-width:140px" autocomplete="off"></td>
+      <td><input type="number" min="1" step="1" value="${echapper(l.quantite)}" oninput="bfLigne(${i},'quantite',this.value)" ${dis} style="width:70px"></td>
+      <td><input type="number" min="0" step="0.01" value="${echapper(l.prix_achat)}" oninput="bfLigne(${i},'prix_achat',this.value)" ${dis} style="width:95px"></td>
+      <td><input type="number" min="0" step="0.01" value="${echapper(l.prix_vente)}" oninput="bfLigne(${i},'prix_vente',this.value)" ${dis} style="width:95px"></td>
+      <td id="bf-lt-${i}" style="white-space:nowrap;font-weight:600"></td>
+      <td>${_bf.lecture ? '' : `<button type="button" class="btn btn-sm" onclick="bfRetirerLigne(${i})" title="${echapper(t('fm.retirer'))}">&times;</button>`}</td></tr>`).join('') + '</tbody>';
+  bfTotaux();
+}
+function bfLigne(i, k, v) { if (_bf.lignes[i]) { _bf.lignes[i][k] = v; bfTotaux(); } }
+// Article du stock choisi : catégorie et prix proposés (modifiables)
+function bfArticleChoisi(i) {
+  const l = _bf.lignes[i]; if (!l) return;
+  const pr = _bt.produits.find(x => cleArticle(x.nom) === cleArticle(l.article)); if (!pr) return;
+  l.article = pr.nom;
+  if (!l.categorie) l.categorie = pr.categorie || '';
+  if (l.prix_achat === '' || l.prix_achat == null) l.prix_achat = parseFloat(pr.prix_achat) || '';
+  if (l.prix_vente === '' || l.prix_vente == null) l.prix_vente = parseFloat(pr.prix_vente) || '';
+  renderLignesFacture();
+}
+function bfAjouterLigne() {
+  _bf.lignes.push(ligneVide()); renderLignesFacture();
+  const champs = document.querySelectorAll('#bf-lignes tbody tr:last-child input'); if (champs[0]) champs[0].focus();
+}
+function bfRetirerLigne(i) { _bf.lignes.splice(i, 1); if (!_bf.lignes.length) _bf.lignes.push(ligneVide()); renderLignesFacture(); }
+
+function bfTotaux() {
+  const montant = parseFloat(document.getElementById('bf-montant').value) || 0;
+  let total = 0;
+  _bf.lignes.forEach((l, i) => {
+    const v = (parseInt(l.quantite, 10) || 0) * (parseFloat(l.prix_achat) || 0); total += v;
+    const el = document.getElementById('bf-lt-' + i); if (el) el.textContent = fmtDH2(v);
+  });
+  total = Math.round(total * 100) / 100;
+  const ecart = Math.round((montant - total) * 100) / 100;
+  const etat = !montant ? '' : !ecart ? t('bf.ecart_ok') : ecart > 0 ? t('bf.ecart_reste').replace('%s', fmtDH2(ecart)) : t('bf.ecart_depasse').replace('%s', fmtDH2(-ecart));
+  document.getElementById('bf-resume').innerHTML = `<div><span>${t('bf.montant')}</span><strong>${fmtDH2(montant)}</strong></div>
+    <div><span>${t('bf.total_articles')}</span><strong>${fmtDH2(total)}</strong></div>
+    <div class="${!montant ? '' : !ecart ? 'ok' : 'ecart'}"><span>${t('bf.ecart')}</span><strong>${fmtDH2(ecart)}</strong><small>${etat}</small></div>`;
+  document.getElementById('bf-charge-info').textContent = t('bf.charge_info').replace('%s', fmtDH2(montant));
+}
+
+async function saveFacture() {
+  if (_bf.lecture) return;
+  const montant = parseFloat(document.getElementById('bf-montant').value);
+  if (!montant || montant <= 0) { showToast(t('bf.montant_requis'), 'e'); document.getElementById('bf-montant').focus(); return; }
+  const lignes = _bf.lignes.filter(l => String(l.article || '').trim()).map(l => {
+    const pr = _bt.produits.find(x => cleArticle(x.nom) === cleArticle(l.article));
+    return { produit_id: pr?.id || null, article: String(l.article).trim().replace(/\s+/g, ' '), categorie: String(l.categorie || '').trim() || null,
+      quantite: parseInt(l.quantite, 10) || 0, prix_achat: parseFloat(l.prix_achat) || 0, prix_vente: parseFloat(l.prix_vente) || 0 };
+  });
+  if (!lignes.length) { showToast(t('bf.article_requis'), 'e'); return; }
+  const mauvaise = lignes.find(l => l.quantite <= 0);
+  if (mauvaise) { showToast(`${t('bq.qte_invalide')} — ${mauvaise.article}`, 'e'); return; }
+  const total = Math.round(lignes.reduce((s, l) => s + l.quantite * l.prix_achat, 0) * 100) / 100;
+  if (Math.abs(total - montant) > 0.009 && !confirm(t('bf.ecart_confirm').replace('%a', fmtDH2(total)).replace('%f', fmtDH2(montant)))) return;
+  const facture = { id: _bf.id || null, date_facture: document.getElementById('bf-date').value || today(),
+    fournisseur: document.getElementById('bf-fournisseur').value.trim() || null, numero: document.getElementById('bf-numero').value.trim() || null,
+    montant, note: document.getElementById('bf-note').value.trim() || null };
+  const btn = document.getElementById('bf-valider'); btn.disabled = true;
+  const { error } = await sb.rpc('enregistrer_facture_boutique', { p_facture: facture, p_lignes: lignes });
+  btn.disabled = false;
+  if (error) { showToast(/schema cache|Could not find the function|does not exist/i.test(error.message) ? t('bf.sql_34') : error.message, 'e'); return; }
+  await logAudit(_bf.id ? 'UPDATE' : 'CREATE', 'boutique', `Facture fournisseur ${[facture.fournisseur, facture.numero].filter(Boolean).join(' ')} : ${fmtDH2(montant)} (${lignes.length} article(s))`);
+  showToast(t('bf.enregistree'), 's');
+  document.getElementById('bf-modal').classList.remove('open');
+  await loadBoutique();   // stock et prix mis à jour
+  loadFactures();
+}
+
+async function delFacture(id) {
+  const f = (_bf.liste || []).find(x => x.id === id); if (!f) return;
+  if (!confirm(t('bf.suppr_confirm').replace('%s', fmtDH2(f.montant)))) return;
+  const { error } = await sb.from('boutique_factures').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE', 'boutique', `Facture fournisseur ${[f.fournisseur, f.numero].filter(Boolean).join(' ')} ${fmtDH2(f.montant)}`);
+  showToast(t('bf.supprimee'), 's');
+  await loadBoutique();
+  loadFactures();
+}
+
+// Achats de stock : ceux d'une facture fournisseur sont payés par la caisse de la salle (charges), pas par la boutique
+async function chargerAchatsBoutique() {
+  const r = await fetchAllRows(() => sb.from('stock_mouvements').select('type,quantite,prix_unitaire,date_mouvement,facture_id').eq('type', 'Achat').order('id'));
+  if (!r.error) return r;
+  return fetchAllRows(() => sb.from('stock_mouvements').select('type,quantite,prix_unitaire,date_mouvement').eq('type', 'Achat').order('id'));   // script 34 non exécuté
+}
+
 // ── Bilan & associés de la boutique (indépendant du club) ────
 let _bb = { ventes: [], achats: 0, associes: [], charge: false };
 
@@ -8883,15 +9178,17 @@ async function loadBilanBoutique() {
   const [rv, ra, rs] = await Promise.all([
     fetchAllRows(() => sb.from('ventes').select('date_vente,quantite,prix_achat,prix_vente').order('id')),
     voitAssocies ? sb.from('associes').select('*').order('created_at') : { data: [] },
-    fetchAllRows(() => sb.from('stock_mouvements').select('type,quantite,prix_unitaire,date_mouvement').eq('type', 'Achat').order('id')),
+    chargerAchatsBoutique(),
     chargerVersements('boutique')
   ]);
+  const rfa = await sb.from('boutique_factures').select('montant,date_facture');
+  _bb.factures = rfa.error ? null : (rfa.data || []);   // null = script 34 non exécuté
   const rap = await sb.from('boutique_apports').select('*').order('date_apport', { ascending: false }).order('created_at', { ascending: false });
   _bb.apports = rap.error ? null : (rap.data || []);   // null = script 31 non exécuté
-  _bb.achatsListe = rs.data || [];
+  _bb.achatsListe = (rs.data || []).filter(m => !m.facture_id);   // achats payés par la caisse de la boutique
   _bb.ventes = rv.data || [];
   _bb.associes = (ra.data || []).filter(estActif);
-  _bb.achats = (rs.data || []).reduce((s, m) => s + (m.quantite || 0) * (parseFloat(m.prix_unitaire) || 0), 0);
+  _bb.achats = _bb.achatsListe.reduce((s, m) => s + (m.quantite || 0) * (parseFloat(m.prix_unitaire) || 0), 0);
   _bb.manqueSql = !ra.error && (ra.data || []).length && !('capital_boutique' in ra.data[0]);
   _bb.charge = true;
   // Années disponibles (de la première vente à aujourd'hui)
@@ -8921,9 +9218,9 @@ function renderBilanBoutique() {
   const ventesTot = moisTries.reduce((s, m) => s + parMois[m].ventes, 0);
   const benefTot = moisTries.reduce((s, m) => s + parMois[m].ventes - parMois[m].cout, 0);
   const associes = _bb.associes, totalParts = associes.reduce((s, a) => s + partsDe(a), 0);
-  const capitalTot = associes.reduce((s, a) => s + (parseFloat(a.capital_boutique) || 0), 0);
+  const facturesTot = (_bb.factures || []).reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
   const valeurStock = (_bt.produits || []).filter(p => p.actif !== false).reduce((s, p) => s + Math.max(p.stock, 0) * (parseFloat(p.prix_achat) || 0), 0);
-  document.getElementById('bb-k-capital').textContent = fmtDH2(capitalTot);
+  document.getElementById('bb-k-factures').textContent = Array.isArray(_bb.factures) ? fmtDH2(facturesTot) : '—';
   document.getElementById('bb-k-ventes').textContent = fmtDH2(ventesTot);
   const kb = document.getElementById('bb-k-benef'); kb.textContent = fmtDH2(benefTot); kb.style.cssText = cl(benefTot);
   document.getElementById('bb-k-stock').textContent = fmtDH2(valeurStock);
@@ -8934,21 +9231,20 @@ function renderBilanBoutique() {
   moisTries.forEach(m => repartir(parMois[m].ventes - parMois[m].cout, associes).forEach((v, j) => { cumul[j] += v; }));
   const canW = PERMS.associes?.ecrire;
   const lignes = associes.map((a, j) => {
-    const capital = parseFloat(a.capital_boutique) || 0, verse = verseA('boutique', a);
+    const verse = verseA('boutique', a);
     const part = Math.round(cumul[j] * 100) / 100;
-    _vs.reste.boutique[a.id] = capital + part - verse;
-    return { a, capital, part, total: capital + part, verse, reste: capital + part - verse };
+    _vs.reste.boutique[a.id] = part - verse;
+    return { a, part, verse, reste: part - verse };
   });
   const somme = k => lignes.reduce((s, l) => s + l[k], 0);
   document.getElementById('bb-du').innerHTML = (_bb.manqueSql ? `<caption style="caption-side:top;text-align:start"><div class="al al-e" style="margin-bottom:8px">${t('bb.sql_29')}</div></caption>` : '')
-    + (associes.length ? `<thead><tr><th>${t('as.associe')}</th><th>${t('bb.capital_court')}</th><th>${t('bb.part_benef')}</th><th>${t('as.total_revient')}</th><th>${t('as.deja_verse')}</th><th>${t('as.reste')}</th><th></th></tr></thead><tbody>
-      ${lignes.map(l => `<tr><td><strong>${nomAssocie(l.a)}</strong> (${frac(l.a)})</td><td>${fmtDH2(l.capital)}</td>
-        <td style="font-weight:600;${cl(l.part)}">${fmtDH2(l.part)}</td><td style="font-weight:700">${fmtDH2(l.total)}</td>
+    + (associes.length ? `<thead><tr><th>${t('as.associe')}</th><th>${t('bb.part_benef')}</th><th>${t('as.deja_verse')}</th><th>${t('as.reste')}</th><th></th></tr></thead><tbody>
+      ${lignes.map(l => `<tr><td><strong>${nomAssocie(l.a)}</strong> (${frac(l.a)})</td>
+        <td style="font-weight:600;${cl(l.part)}">${fmtDH2(l.part)}</td>
         <td>${fmtDH2(l.verse)}</td><td style="font-weight:800;${cl(l.reste)}">${fmtDH2(l.reste)}</td>
-        <td>${canW && !_bb.manqueSql ? `<button class="btn btn-sm" onclick="ouvrirCapitalBoutique('${l.a.id}')">${t('common.modifier')}</button>` : ''}</td></tr>`).join('')}
+        <td>${canW && !_bb.manqueSql && !versementsActifs('boutique') ? `<button class="btn btn-sm" onclick="ouvrirCapitalBoutique('${l.a.id}')">${t('common.modifier')}</button>` : ''}</td></tr>`).join('')}
       <tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('as.total_an')}</td>
-        <td style="font-weight:700">${fmtDH2(somme('capital'))}</td><td style="font-weight:700;${cl(somme('part'))}">${fmtDH2(somme('part'))}</td>
-        <td style="font-weight:800">${fmtDH2(somme('total'))}</td><td style="font-weight:700">${fmtDH2(somme('verse'))}</td>
+        <td style="font-weight:700;${cl(somme('part'))}">${fmtDH2(somme('part'))}</td><td style="font-weight:700">${fmtDH2(somme('verse'))}</td>
         <td style="font-weight:800;${cl(somme('reste'))}">${fmtDH2(somme('reste'))}</td><td></td></tr></tbody>`
       : `<tbody><tr class="empty-row"><td>${t('bb.aucun_associe')}</td></tr></tbody>`);
 
@@ -8956,22 +9252,21 @@ function renderBilanBoutique() {
   const versTot = versementsActifs('boutique') ? _vs.boutique.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0)
     : associes.reduce((s, a) => s + (parseFloat(a.deja_verse_boutique) || 0), 0);
   const apportsTot = (_bb.apports || []).reduce((s, x) => s + (parseFloat(x.montant) || 0), 0);
-  const caisseB = Math.round((capitalTot + apportsTot - _bb.achats + ventesTot - versTot) * 100) / 100;
-  _bb.caisse = PERMS.associes?.lire ? caisseB : null;
+  const caisseB = Math.round((apportsTot + ventesTot - versTot) * 100) / 100;
+  _bb.caisse = null;   // les achats de stock ne sortent plus de la caisse de la boutique (factures payées par la salle)
   const lf = (signe, lib, v, gras, style = '') => `<tr${gras ? ' style="border-top:2px solid var(--border2);background:var(--bg3)"' : ''}>
       <td style="${gras ? 'font-weight:800' : ''}">${signe ? `<span style="display:inline-block;width:16px;color:var(--text3)">${signe}</span>` : ''}${lib}</td>
       <td style="text-align:end;font-variant-numeric:tabular-nums;${gras ? 'font-weight:800;' : 'font-weight:600;'}${style}">${fmtDH2(v)}</td></tr>`;
   document.getElementById('bb-flux-card').style.display = PERMS.associes?.lire ? '' : 'none';
   document.getElementById('bb-flux').innerHTML = '<tbody>'
-    + lf('+', t('bb.flux_capital'), capitalTot)
-    + (apportsTot ? lf('+', t('ap.flux'), apportsTot) : '')
-    + lf('−', t('bb.flux_achats'), -_bb.achats, false, 'color:var(--red-text)')
     + lf('+', t('bb.flux_ventes'), ventesTot, false, 'color:var(--green-text)')
+    + (apportsTot ? lf('+', t('ap.flux'), apportsTot) : '')
     + lf('−', t('bb.flux_versements'), -versTot, false, 'color:var(--red-text)')
     + lf('=', t('bb.flux_caisse'), caisseB, true, cl(caisseB))
     + (caisseB < 0 ? `<tr><td colspan="2"><div class="al al-e" style="margin:6px 0">${t('bb.flux_manque').replace('%s', fmtDH2(-caisseB))}</div></td></tr>` : '')
     + lf('+', t('bb.flux_stock'), valeurStock)
     + lf('=', t('bb.flux_total'), caisseB + valeurStock, true)
+    + (facturesTot ? `<tr><td colspan="2" style="font-size:11px;color:var(--text3);padding-top:10px">${t('bf.flux_info').replace('%s', fmtDH2(facturesTot))}</td></tr>` : '')
     + '</tbody>';
 
   // Bénéfice par mois de l'année choisie
@@ -8993,8 +9288,7 @@ function renderBilanBoutique() {
   Object.entries(parMois).forEach(([m, l]) => { soldesCaisse[m] = (soldesCaisse[m] || 0) + l.ventes; });
   (_bb.apports || []).forEach(x => { const m = String(x.date_apport).slice(0, 7); soldesCaisse[m] = (soldesCaisse[m] || 0) + (parseFloat(x.montant) || 0); });
   renderApports();
-  (_bb.achatsListe || []).forEach(x => { const m = String(x.date_mouvement).slice(0, 7); soldesCaisse[m] = (soldesCaisse[m] || 0) - (x.quantite || 0) * (parseFloat(x.prix_unitaire) || 0); });
-  renderVersementsCaisse('boutique', associes, soldesCaisse, capitalTot, an, t('vs.ventes_moins_achats'));
+  renderVersementsCaisse('boutique', associes, soldesCaisse, 0, an, t('vs.ventes_moins_achats'));
   document.getElementById('bb-mois').innerHTML = tete + '<tbody>' + (corps || `<tr class="empty-row"><td colspan="${4 + associes.length}">${t('bq.aucune_mois')}</td></tr>`)
     + (corps ? `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('as.total_an')} ${an}</td>
       <td style="font-weight:700;color:var(--green-text)">${fmtDH2(tot.ventes)}</td><td style="font-weight:700;color:var(--red-text)">${fmtDH2(tot.cout)}</td>
@@ -9005,7 +9299,6 @@ function ouvrirCapitalBoutique(id) {
   const a = _bb.associes.find(x => x.id === id); if (!a) return;
   document.getElementById('bb-id').value = id;
   document.getElementById('bb-titre').textContent = `${nomAssocie(a)} — ${t('boutique.title')}`;
-  document.getElementById('bb-capital').value = parseFloat(a.capital_boutique) || '';
   document.getElementById('bb-verse').value = parseFloat(a.deja_verse_boutique) || '';
   document.getElementById('bb-verse-wrap').style.display = versementsActifs('boutique') ? 'none' : '';
   document.getElementById('bb-modal').classList.add('open');
@@ -9013,13 +9306,12 @@ function ouvrirCapitalBoutique(id) {
 
 async function saveCapitalBoutique() {
   const id = document.getElementById('bb-id').value;
-  const obj = { capital_boutique: parseFloat(document.getElementById('bb-capital').value) || 0, deja_verse_boutique: parseFloat(document.getElementById('bb-verse').value) || 0 };
-  if (obj.capital_boutique < 0 || obj.deja_verse_boutique < 0) { showToast(t('as.montant_invalide'), 'e'); return; }
-  if (versementsActifs('boutique')) delete obj.deja_verse_boutique;   // « déjà versé » = somme des versements
+  const obj = { deja_verse_boutique: parseFloat(document.getElementById('bb-verse').value) || 0 };
+  if (obj.deja_verse_boutique < 0) { showToast(t('as.montant_invalide'), 'e'); return; }
   const { error } = await sb.from('associes').update(obj).eq('id', id);
   if (error) { showToast(/column|schema cache/i.test(error.message) ? t('bb.sql_29') : error.message, 'e'); return; }
   const a = _bb.associes.find(x => x.id === id);
-  await logAudit('UPDATE', 'boutique', `Capital boutique ${a ? nomAssocie(a) : id} : ${fmtDH2(obj.capital_boutique)}, versé ${fmtDH2(obj.deja_verse_boutique)}`);
+  await logAudit('UPDATE', 'boutique', `Déjà versé (boutique) ${a ? nomAssocie(a) : id} : ${fmtDH2(obj.deja_verse_boutique)}`);
   showToast(t('msg.saved'), 's');
   document.getElementById('bb-modal').classList.remove('open');
   loadBilanBoutique();
