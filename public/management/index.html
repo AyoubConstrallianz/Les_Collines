@@ -2515,11 +2515,19 @@ async function doLogin() {
   // Enregistre la date de dernière connexion
   await sb.from('profils').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
   await initApp(data.user);
-  // Connexion enregistrée dans le journal : le super admin est notifié
-  if (ME && ME.role !== 'super_admin') {
-    const appareil = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'téléphone' : 'ordinateur';
-    logAudit('LOGIN', 'connexion', `${ME.prenom} ${ME.nom} — ${ROLE_LABELS[ME.role] || ME.role} — ${appareil}`);
-  }
+  notifierConnexion(false);
+}
+
+// Connexion enregistrée dans le journal : les super admins sont notifiés (chacun voit les connexions des autres).
+// Ouverture avec une session gardée (sans retaper le mot de passe) : enregistrée aussi,
+// au plus une fois toutes les 30 minutes sur le même appareil.
+function notifierConnexion(sessionGardee) {
+  if (!ME) return;
+  const cle = 'connexion_notifiee_' + ME.id;
+  if (sessionGardee && Date.now() - (parseInt(stockage.get(cle) || '0', 10) || 0) < 30 * 60 * 1000) return;
+  stockage.set(cle, String(Date.now()));
+  const appareil = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'téléphone' : 'ordinateur';
+  logAudit('LOGIN', 'connexion', `${ME.prenom} ${ME.nom} — ${ROLE_LABELS[ME.role] || ME.role} — ${appareil}${sessionGardee ? ' — session gardée' : ''}`);
 }
 
 function showLoginErr(msg) {
@@ -5284,6 +5292,7 @@ setInterval(() => {
         }
       }
       await initApp(session.user);
+      notifierConnexion(true);
     }
   } catch (_) {
     await sb.auth.signOut({ scope: 'local' }).catch(() => {});
@@ -9735,11 +9744,11 @@ async function majCompteurValidations() {
   if (ME?.role !== 'super_admin') return;
   const [rv, rl] = await Promise.all([
     sb.from('modifications').select('id', { count: 'exact', head: true }).eq('statut', 'En attente'),
-    sb.from('audit_log').select('id,created_at,detail').eq('action', 'LOGIN')
-      .gte('created_at', new Date(Date.now() - 7 * 864e5).toISOString()).order('created_at', { ascending: false }).limit(40)
+    sb.from('audit_log').select('id,created_at,detail,user_id').eq('action', 'LOGIN')
+      .gte('created_at', new Date(Date.now() - 7 * 864e5).toISOString()).order('created_at', { ascending: false }).limit(100)
   ]);
   const nValid = rv.error ? 0 : (rv.count || 0);
-  _notif.logins = rl.data || [];
+  _notif.logins = (rl.data || []).filter(l => l.user_id !== ME.id);   // ses propres connexions ne sont pas notifiées
   const vu = vuConnexions(), nonVus = _notif.logins.filter(l => l.created_at > vu);
   // Nouvelle connexion depuis la dernière vérification : message à l'écran
   if (_notif.dernier) nonVus.filter(l => l.created_at > _notif.dernier).slice(0, 3).forEach(l => showToast(`🔔 ${t('nt.connexion')} : ${l.detail}`, 's'));
@@ -12043,7 +12052,8 @@ function showAl(id, msg, type) {
 
 async function logAudit(action, module, detail) {
   try {
-    await sb.from('audit_log').insert({ user_id:ME?.id, action, module, detail });
+    const { error } = await sb.from('audit_log').insert({ user_id:ME?.id, action, module, detail });
+    if (error) console.warn('Journal non enregistré :', error.message);
   } catch(_) {}
 }
 
