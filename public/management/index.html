@@ -1501,9 +1501,11 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
                   <option value="rupture" data-i18n="bq.f_rupture">En rupture</option>
                   <option value="archives" data-i18n="bq.f_archives">Archivés</option>
                 </select>
-                <button class="btn btn-p" id="bp-new" onclick="ouvrirProduit()" data-i18n="bq.nouvel_article">+ Nouvel article</button>
+                <button class="btn btn-p" id="bp-facture" onclick="boutiqueOnglet('factures');ouvrirFacture()" data-i18n="bq.entree_facture">+ Entrée par facture</button>
+                <button class="btn" id="bp-new" onclick="ouvrirProduit()" data-i18n="bq.nouvel_article">+ Nouvel article</button>
               </div>
             </div>
+            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bq.note_stock">Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » sert à corriger le stock à la baisse (casse, perte, erreur de comptage).</p>
             <table><thead><tr><th data-i18n="bq.article">Article</th><th data-i18n="bq.categorie">Catégorie</th><th data-i18n="bq.prix_achat">Prix d'achat</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.stock">Stock</th><th data-i18n="bq.valeur">Valeur</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bp-tb"></tbody></table>
           </div>
         </div>
@@ -1619,8 +1621,9 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
               <div class="fg"><label data-i18n="bq.categorie">Catégorie</label><input id="bp-cat" list="bp-cats" placeholder="Gants, T-shirt…" data-i18n-ph="bq.categorie_ph"><datalist id="bp-cats"></datalist></div></div>
             <div class="fr"><div class="fg"><label data-i18n="bq.prix_achat_dh">Prix d'achat (DH)</label><input id="bp-pa" type="number" min="0" step="0.01" placeholder="0"></div>
               <div class="fg"><label data-i18n="bq.prix_vente_dh">Prix de vente (DH)</label><input id="bp-pv" type="number" min="0" step="0.01" placeholder="0"></div></div>
-            <div class="fr"><div class="fg" id="bp-stock-init-wrap"><label data-i18n="bq.stock_initial">Stock de départ</label><input id="bp-stock" type="number" min="0" step="1" placeholder="0"></div>
+            <div class="fr"><div class="fg" id="bp-stock-init-wrap" style="display:none"><input id="bp-stock" type="hidden" value="0"></div>
               <div class="fg"><label data-i18n="bq.seuil">Alerte quand le stock atteint</label><input id="bp-seuil" type="number" min="0" step="1" value="2"></div></div>
+            <div class="al al-i" id="bp-stock-info" style="font-size:12px;margin-bottom:10px" data-i18n="bq.stock_par_facture">Le stock d'un nouvel article arrive par une facture fournisseur (onglet « Factures fournisseurs »).</div>
             <div class="fg" id="bp-actif-wrap" style="margin-bottom:10px"><label data-i18n="bq.statut">Statut</label><select id="bp-actif"><option value="true" data-i18n="bq.en_vente">En vente</option><option value="false" data-i18n="bq.archive">Archivé (plus proposé à la vente)</option></select></div>
             <div class="btns"><button class="btn btn-p" onclick="saveProduit()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('bp-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
           </div>
@@ -2801,6 +2804,11 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "bq.entree_facture": "+ Entrée par facture",
+    "bq.note_stock": "Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » sert à corriger le stock à la baisse (casse, perte, erreur de comptage).",
+    "bq.stock_par_facture": "Le stock d'un nouvel article arrive par une facture fournisseur (onglet « Factures fournisseurs »).",
+    "bq.inventaire_hausse": "Le stock compté ne peut pas dépasser le stock actuel (%s). Pour ajouter du stock, enregistrez une facture fournisseur.",
+    "bq.entree_facture_seule": "Les entrées de stock se font uniquement par une facture fournisseur.",
     "bf.astuce_entree": "Achat chez un fournisseur ? Utilisez plutôt l'onglet « Factures fournisseurs » : le montant est compté dans les charges de la salle.",
     "bf.onglet": "Factures fournisseurs",
     "bf.titre": "Factures fournisseurs",
@@ -3951,6 +3959,11 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "bq.entree_facture": "+ إدخال عبر فاتورة",
+    "bq.note_stock": "إدخال المخزون يتم فقط عبر فاتورة مورد. « الجرد » يُستعمل لتصحيح المخزون نحو الأسفل (كسر، ضياع، خطأ في العد).",
+    "bq.stock_par_facture": "مخزون مادة جديدة يدخل عبر فاتورة مورد (تبويب « فواتير الموردين »).",
+    "bq.inventaire_hausse": "لا يمكن أن يتجاوز المخزون المعدود المخزون الحالي (%s). لإضافة مخزون، سجّل فاتورة مورد.",
+    "bq.entree_facture_seule": "إدخال المخزون يتم فقط عبر فاتورة مورد.",
     "bf.astuce_entree": "شراء من مورد ؟ استعمل بالأحرى تبويب « فواتير الموردين » : يُحتسب المبلغ ضمن مصاريف القاعة.",
     "bf.onglet": "فواتير الموردين",
     "bf.titre": "فواتير الموردين",
@@ -8672,6 +8685,7 @@ async function loadBoutique() {
   const canW = PERMS.boutique?.ecrire;
   document.getElementById('bv-form-card').style.display = canW ? '' : 'none';
   document.getElementById('bp-new').style.display = canW ? '' : 'none';
+  document.getElementById('bp-facture').style.display = peutFacturer() ? '' : 'none';
   if (!document.getElementById('bv-date').value) document.getElementById('bv-date').value = today();
   document.getElementById('bv-clients').innerHTML = _bt.clients.map(c => `<option value="${echapper(c.prenom + ' ' + c.nom)}">`).join('');
   document.getElementById('bv-articles').innerHTML = _bt.produits.filter(p => p.actif !== false)
@@ -8830,8 +8844,7 @@ function renderProduits() {
       <td>${fmtDH2(p.prix_achat)}</td><td>${fmtDH2(p.prix_vente)}</td>
       <td><span class="badge ${cl}" title="${lib}">${p.stock}</span> <span style="font-size:10px;color:var(--text3)">${lib}</span></td>
       <td>${fmtDH2(Math.max(p.stock, 0) * (parseFloat(p.prix_achat) || 0))}</td>
-      <td><div style="display:flex;gap:4px;flex-wrap:wrap">${canW ? `<button class="btn btn-sm btn-p" onclick="ouvrirMouvement('${p.id}','Achat')">${t('bq.entree')}</button>
-        <button class="btn btn-sm" onclick="ouvrirMouvement('${p.id}','Ajustement')">${t('bq.inventaire')}</button>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">${canW ? `<button class="btn btn-sm" onclick="ouvrirMouvement('${p.id}','Ajustement')">${t('bq.inventaire')}</button>
         <button class="btn btn-sm" onclick="ouvrirProduit('${p.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delProduit('${p.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
   }).join('') : `<tr class="empty-row"><td colspan="7">${t(_bt.produits.length ? 'bq.aucun_filtre' : 'bq.aucun_article')}</td></tr>`;
 }
@@ -8846,7 +8859,7 @@ function ouvrirProduit(id) {
   document.getElementById('bp-pv').value = p ? p.prix_vente : '';
   document.getElementById('bp-seuil').value = p ? (p.seuil_alerte ?? 2) : 2;
   document.getElementById('bp-stock').value = '';
-  document.getElementById('bp-stock-init-wrap').style.display = p ? 'none' : '';   // ensuite : Entrée / Inventaire
+  document.getElementById('bp-stock-info').style.display = p ? 'none' : '';   // nouvel article : stock 0, il arrive par une facture
   document.getElementById('bp-actif-wrap').style.display = p ? '' : 'none';
   document.getElementById('bp-actif').value = String(p ? p.actif !== false : true);
   document.getElementById('bp-modal').classList.add('open');
@@ -8864,12 +8877,6 @@ async function saveProduit() {
   const { data: saved, error } = id ? await sb.from('produits').update(obj).eq('id', id).select().single()
     : await sb.from('produits').insert(obj).select().single();
   if (error) { showToast(/relation|schema cache|column/i.test(error.message) ? t('bq.sql_27') : error.message, 'e'); return; }
-  // Stock de départ : enregistré comme un mouvement (l'historique reste complet)
-  const depart = parseInt(document.getElementById('bp-stock').value, 10) || 0;
-  if (!id && depart > 0) {
-    const { error: e2 } = await sb.from('stock_mouvements').insert({ produit_id: saved.id, type: 'Ajustement', quantite: depart, prix_unitaire: obj.prix_achat, note: t('bq.stock_initial') });
-    if (e2) showToast(e2.message, 'e');
-  }
   await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `Article ${nom}`);
   showToast(t('msg.saved'), 's');
   document.getElementById('bp-modal').classList.remove('open');
@@ -8888,14 +8895,15 @@ async function delProduit(id) {
 // ── Entrée de stock (achat) et inventaire (ajustement) ──────
 async function ouvrirMouvement(pid, mode) {
   const p = produitDe(pid); if (!p) return;
-  // Les achats se font avec le capital de la boutique : caisse disponible (associés visibles uniquement)
-  if (mode === 'Achat' && PERMS.associes?.lire && !_bb.charge) await loadBilanBoutique();
+  // Les entrées de stock se font uniquement par une facture fournisseur
+  if (mode === 'Achat') { boutiqueOnglet('factures'); ouvrirFacture(); return; }
   document.getElementById('bm-pid').value = pid;
   document.getElementById('bm-mode').value = mode;
   document.getElementById('bm-titre').textContent = t(mode === 'Achat' ? 'bq.entree_titre' : 'bq.inventaire_titre');
   document.getElementById('bm-article').textContent = `${p.nom} — ${t('bq.stock_actuel')} : ${p.stock}`;
   document.getElementById('bm-qte-lib').textContent = t(mode === 'Achat' ? 'bq.qte_recue' : 'bq.qte_comptee');
   document.getElementById('bm-qte').value = mode === 'Achat' ? '' : p.stock;
+  document.getElementById('bm-qte').max = mode === 'Ajustement' ? Math.max(p.stock, 0) : '';
   document.getElementById('bm-date').value = today();
   document.getElementById('bm-prix').value = p.prix_achat ?? '';
   document.getElementById('bm-prix-wrap').style.display = mode === 'Achat' ? '' : 'none';
@@ -8906,6 +8914,7 @@ async function ouvrirMouvement(pid, mode) {
     if (isNaN(n)) { ap.textContent = ''; return; }
     const apres = mode === 'Achat' ? p.stock + n : n;
     ap.textContent = `${t('bq.stock_apres')} : ${apres}${mode === 'Ajustement' ? ` (${apres - p.stock >= 0 ? '+' : ''}${apres - p.stock})` : ''}`;
+    if (mode === 'Ajustement' && n > p.stock) ap.innerHTML = `<div class="al al-e" style="margin:0;font-size:12px">${t('bq.inventaire_hausse').replace('%s', p.stock)}</div>`;
     if (mode === 'Achat') ap.innerHTML += `<div class="al al-i" style="margin:8px 0 0;font-size:11px">${t('bf.astuce_entree')}</div>`;
     if (mode === 'Achat' && typeof _bb.caisse === 'number') {
       const cout = n * (parseFloat(document.getElementById('bm-prix').value) || 0), reste = _bb.caisse - cout;
@@ -8921,6 +8930,8 @@ async function saveMouvement() {
   const pid = document.getElementById('bm-pid').value, mode = document.getElementById('bm-mode').value, p = produitDe(pid);
   const n = parseInt(document.getElementById('bm-qte').value, 10);
   if (isNaN(n) || n < 0 || (mode === 'Achat' && n === 0)) { showToast(t('bq.qte_invalide'), 'e'); return; }
+  if (mode !== 'Ajustement') { showToast(t('bq.entree_facture_seule'), 'e'); return; }
+  if (n > p.stock) { showToast(t('bq.inventaire_hausse').replace('%s', p.stock), 'e'); return; }
   const quantite = mode === 'Achat' ? n : n - p.stock;
   if (!quantite) { showToast(t('bq.rien_a_ajuster'), 's'); document.getElementById('bm-modal').classList.remove('open'); return; }
   const prix = parseFloat(document.getElementById('bm-prix').value) || 0;

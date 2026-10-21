@@ -6,6 +6,7 @@
 --   • Les articles achetés (quantité, prix d'achat, prix de vente) entrent en stock : mouvements « Achat »
 --     liés à la facture (supprimés avec elle ; suppression refusée si les articles ont déjà été vendus)
 --   • enregistrer_facture_boutique(facture, articles) : la facture et ses articles en une seule fois (tout ou rien)
+--   • Les entrées de stock se font UNIQUEMENT par une facture (les sorties restent libres : ventes, inventaire à la baisse)
 -- Prérequis : script 27 (boutique). À exécuter une fois : SQL Editor → New query → Run
 -- ════════════════════════════════════════════════════════════════
 
@@ -152,6 +153,25 @@ BEGIN
 END;
 $$;
 GRANT EXECUTE ON FUNCTION public.enregistrer_facture_boutique(JSONB, JSONB) TO authenticated;
+
+-- ── Entrées de stock : UNIQUEMENT par une facture fournisseur ─────────────
+-- Toute entrée (quantité positive) doit être liée à une facture. Les sorties restent libres :
+-- ventes, inventaire à la baisse (casse, perte). Les mouvements déjà enregistrés ne sont pas touchés.
+CREATE OR REPLACE FUNCTION public.entree_stock_par_facture()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.quantite > 0 AND NEW.facture_id IS NULL THEN
+    RAISE EXCEPTION 'Les entrées de stock se font uniquement par une facture fournisseur (Boutique → Factures fournisseurs).';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_entree_par_facture ON public.stock_mouvements;
+CREATE TRIGGER trg_entree_par_facture BEFORE INSERT ON public.stock_mouvements
+  FOR EACH ROW EXECUTE FUNCTION public.entree_stock_par_facture();
 
 -- ── Sécurité (RLS) : voir = boutique ; saisir / supprimer = boutique ET charges ──
 ALTER TABLE public.boutique_factures ENABLE ROW LEVEL SECURITY;
