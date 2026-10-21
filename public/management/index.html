@@ -5799,7 +5799,8 @@ function updateTarifPreview() {
   const v = id => parseFloat(document.getElementById(id).value) || 0;
   document.getElementById('c-tarif-total').textContent = nouveau
     ? `${t('paie.total_a_encaisser')} : ${fmt(v('c-mensuel-custom') + v('c-inscr-custom') + v('c-assur-custom'))}` : '';
-  document.getElementById('c-tarif-preview').style.display = 'block';
+  // Modification d'une fiche : pas de cadre tarif (le montant ne sert qu'à l'inscription d'un nouveau client)
+  document.getElementById('c-tarif-preview').style.display = nouveau ? 'block' : 'none';
 }
 
 let _clientsForSelect = [];
