@@ -1499,14 +1499,15 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
                   <option value="" data-i18n="bq.f_tous">Tous les articles</option>
                   <option value="bas" data-i18n="bq.f_bas">À réapprovisionner</option>
                   <option value="rupture" data-i18n="bq.f_rupture">En rupture</option>
+                  <option value="ecart" data-i18n="bq.f_ecart">Écart d'inventaire</option>
                   <option value="archives" data-i18n="bq.f_archives">Archivés</option>
                 </select>
                 <button class="btn btn-p" id="bp-facture" onclick="boutiqueOnglet('factures');ouvrirFacture()" data-i18n="bq.entree_facture">+ Entrée par facture</button>
                 <button class="btn" id="bp-new" onclick="ouvrirProduit()" data-i18n="bq.nouvel_article">+ Nouvel article</button>
               </div>
             </div>
-            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bq.note_stock">Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » sert à corriger le stock à la baisse (casse, perte, erreur de comptage).</p>
-            <table><thead><tr><th data-i18n="bq.article">Article</th><th data-i18n="bq.categorie">Catégorie</th><th data-i18n="bq.prix_achat">Prix d'achat</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.stock">Stock</th><th data-i18n="bq.valeur">Valeur</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bp-tb"></tbody></table>
+            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bq.note_stock">Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » enregistre le stock compté dans la case « Stock inventaire », sans modifier le stock calculé.</p>
+            <table><thead><tr><th data-i18n="bq.article">Article</th><th data-i18n="bq.categorie">Catégorie</th><th data-i18n="bq.prix_achat">Prix d'achat</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.stock">Stock</th><th data-i18n="bq.stock_inventaire">Stock inventaire</th><th data-i18n="bq.valeur">Valeur</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bp-tb"></tbody></table>
           </div>
         </div>
 
@@ -2804,8 +2805,16 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "bq.stock_inventaire": "Stock inventaire",
+    "bq.f_ecart": "Écart d'inventaire",
+    "bq.ecart_inv": "Écart",
+    "bq.stock_compte": "Stock compté (inventaire)",
+    "bq.stock_calcule": "Stock calculé (factures − ventes)",
+    "bq.inv_info": "Le comptage est enregistré dans la case « Stock inventaire ». Le stock calculé ne change pas.",
+    "bq.inventaire_ok": "Inventaire enregistré",
+    "bq.sql_35": "La case « Stock inventaire » n'est pas encore activée : exécutez le script 35_stock_inventaire.sql dans Supabase (SQL Editor → New query → Run).",
     "bq.entree_facture": "+ Entrée par facture",
-    "bq.note_stock": "Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » sert à corriger le stock à la baisse (casse, perte, erreur de comptage).",
+    "bq.note_stock": "Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » enregistre le stock compté dans la case « Stock inventaire », sans modifier le stock calculé.",
     "bq.stock_par_facture": "Le stock d'un nouvel article arrive par une facture fournisseur (onglet « Factures fournisseurs »).",
     "bq.inventaire_hausse": "Le stock compté ne peut pas dépasser le stock actuel (%s). Pour ajouter du stock, enregistrez une facture fournisseur.",
     "bq.entree_facture_seule": "Les entrées de stock se font uniquement par une facture fournisseur.",
@@ -3111,7 +3120,7 @@ const I18N = {
     "bq.sql_27": "Exécutez d'abord le script SQL 27 (Boutique avec stock) dans Supabase.",
     "bq.suppr_article_confirm": "Supprimer l'article « %s » ?\nSon historique de stock sera supprimé ; les ventes passées restent enregistrées.\nAstuce : le statut « Archivé » le retire de la vente sans rien effacer.",
     "bq.entree_titre": "Entrée de stock (achat)",
-    "bq.inventaire_titre": "Inventaire : ajuster le stock",
+    "bq.inventaire_titre": "Inventaire : stock compté",
     "bq.stock_actuel": "stock actuel",
     "bq.stock_apres": "Stock après",
     "bq.rien_a_ajuster": "Le stock est déjà juste",
@@ -3959,8 +3968,16 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "bq.stock_inventaire": "مخزون الجرد",
+    "bq.f_ecart": "فرق في الجرد",
+    "bq.ecart_inv": "الفرق",
+    "bq.stock_compte": "المخزون المعدود (الجرد)",
+    "bq.stock_calcule": "المخزون المحسوب (الفواتير − المبيعات)",
+    "bq.inv_info": "يُسجَّل العدّ في خانة « مخزون الجرد ». المخزون المحسوب لا يتغير.",
+    "bq.inventaire_ok": "تم تسجيل الجرد",
+    "bq.sql_35": "خانة « مخزون الجرد » غير مفعّلة بعد : شغّل السكريبت 35_stock_inventaire.sql في Supabase (SQL Editor → New query → Run).",
     "bq.entree_facture": "+ إدخال عبر فاتورة",
-    "bq.note_stock": "إدخال المخزون يتم فقط عبر فاتورة مورد. « الجرد » يُستعمل لتصحيح المخزون نحو الأسفل (كسر، ضياع، خطأ في العد).",
+    "bq.note_stock": "إدخال المخزون يتم فقط عبر فاتورة مورد. « الجرد » يسجّل المخزون المعدود في خانة « مخزون الجرد » دون تغيير المخزون المحسوب.",
     "bq.stock_par_facture": "مخزون مادة جديدة يدخل عبر فاتورة مورد (تبويب « فواتير الموردين »).",
     "bq.inventaire_hausse": "لا يمكن أن يتجاوز المخزون المعدود المخزون الحالي (%s). لإضافة مخزون، سجّل فاتورة مورد.",
     "bq.entree_facture_seule": "إدخال المخزون يتم فقط عبر فاتورة مورد.",
@@ -4266,7 +4283,7 @@ const I18N = {
     "bq.sql_27": "نفّذ أولاً سكريبت SQL رقم 27 (المتجر مع المخزون) في Supabase.",
     "bq.suppr_article_confirm": "حذف المنتج « %s » ؟\nسيُحذف سجل مخزونه، وتبقى المبيعات السابقة مسجلة.\nنصيحة : الحالة « مؤرشف » تزيله من البيع دون حذف أي شيء.",
     "bq.entree_titre": "إدخال إلى المخزون (شراء)",
-    "bq.inventaire_titre": "الجرد : تسوية المخزون",
+    "bq.inventaire_titre": "الجرد : المخزون المعدود",
     "bq.stock_actuel": "المخزون الحالي",
     "bq.stock_apres": "المخزون بعد",
     "bq.rien_a_ajuster": "المخزون صحيح",
@@ -8837,16 +8854,27 @@ function renderProduits() {
   const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
   const liste = _bt.produits.filter(p => (f === 'archives' ? p.actif === false : p.actif !== false)
     && (!q || cleArticle(`${p.nom} ${p.categorie || ''}`).includes(q))
-    && (f !== 'bas' || p.stock <= (p.seuil_alerte ?? 2)) && (f !== 'rupture' || p.stock <= 0));
+    && (f !== 'bas' || p.stock <= (p.seuil_alerte ?? 2)) && (f !== 'rupture' || p.stock <= 0)
+    && (f !== 'ecart' || (p.stock_inventaire != null && p.stock_inventaire !== p.stock)));
   document.getElementById('bp-tb').innerHTML = liste.length ? liste.map(p => {
     const [cl, lib] = etatStock(p);
     return `<tr><td><strong>${echapper(p.nom)}</strong></td><td>${echapper(p.categorie || '—')}</td>
       <td>${fmtDH2(p.prix_achat)}</td><td>${fmtDH2(p.prix_vente)}</td>
       <td><span class="badge ${cl}" title="${lib}">${p.stock}</span> <span style="font-size:10px;color:var(--text3)">${lib}</span></td>
+      <td>${celluleInventaire(p)}</td>
       <td>${fmtDH2(Math.max(p.stock, 0) * (parseFloat(p.prix_achat) || 0))}</td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">${canW ? `<button class="btn btn-sm" onclick="ouvrirMouvement('${p.id}','Ajustement')">${t('bq.inventaire')}</button>
         <button class="btn btn-sm" onclick="ouvrirProduit('${p.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delProduit('${p.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
-  }).join('') : `<tr class="empty-row"><td colspan="7">${t(_bt.produits.length ? 'bq.aucun_filtre' : 'bq.aucun_article')}</td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="8">${t(_bt.produits.length ? 'bq.aucun_filtre' : 'bq.aucun_article')}</td></tr>`;
+}
+
+// Case « Stock inventaire » : quantité comptée (bouton Inventaire) et écart avec le stock calculé
+function celluleInventaire(p) {
+  if (p.stock_inventaire == null) return '<span style="color:var(--text3)">—</span>';
+  const e = p.stock_inventaire - p.stock;
+  const badge = !e ? `<span class="badge b-g" style="font-size:9px" title="${t('bq.ecart_inv')}">=</span>`
+    : `<span class="badge ${e < 0 ? 'b-d' : 'b-w'}" style="font-size:9px" dir="ltr" title="${t('bq.ecart_inv')}">${e > 0 ? '+' : ''}${e}</span>`;
+  return `<strong>${p.stock_inventaire}</strong> ${badge}${p.date_inventaire ? `<div style="font-size:10px;color:var(--text3)">${dateCourte(p.date_inventaire)}</div>` : ''}`;
 }
 
 function ouvrirProduit(id) {
@@ -8901,9 +8929,9 @@ async function ouvrirMouvement(pid, mode) {
   document.getElementById('bm-mode').value = mode;
   document.getElementById('bm-titre').textContent = t(mode === 'Achat' ? 'bq.entree_titre' : 'bq.inventaire_titre');
   document.getElementById('bm-article').textContent = `${p.nom} — ${t('bq.stock_actuel')} : ${p.stock}`;
-  document.getElementById('bm-qte-lib').textContent = t(mode === 'Achat' ? 'bq.qte_recue' : 'bq.qte_comptee');
-  document.getElementById('bm-qte').value = mode === 'Achat' ? '' : p.stock;
-  document.getElementById('bm-qte').max = mode === 'Ajustement' ? Math.max(p.stock, 0) : '';
+  document.getElementById('bm-qte-lib').textContent = t(mode === 'Achat' ? 'bq.qte_recue' : 'bq.stock_compte');
+  document.getElementById('bm-qte').value = mode === 'Achat' ? '' : (p.stock_inventaire ?? p.stock);
+  document.getElementById('bm-note').closest('.fg').style.display = mode === 'Ajustement' ? 'none' : '';
   document.getElementById('bm-date').value = today();
   document.getElementById('bm-prix').value = p.prix_achat ?? '';
   document.getElementById('bm-prix-wrap').style.display = mode === 'Achat' ? '' : 'none';
@@ -8914,7 +8942,12 @@ async function ouvrirMouvement(pid, mode) {
     if (isNaN(n)) { ap.textContent = ''; return; }
     const apres = mode === 'Achat' ? p.stock + n : n;
     ap.textContent = `${t('bq.stock_apres')} : ${apres}${mode === 'Ajustement' ? ` (${apres - p.stock >= 0 ? '+' : ''}${apres - p.stock})` : ''}`;
-    if (mode === 'Ajustement' && n > p.stock) ap.innerHTML = `<div class="al al-e" style="margin:0;font-size:12px">${t('bq.inventaire_hausse').replace('%s', p.stock)}</div>`;
+    if (mode === 'Ajustement') {
+      const e = n - p.stock;
+      ap.innerHTML = `${t('bq.stock_calcule')} : <strong>${p.stock}</strong> · ${t('bq.ecart_inv')} : <strong dir="ltr" style="color:${e < 0 ? 'var(--red)' : e > 0 ? 'var(--amber-text)' : 'var(--green)'}">${e > 0 ? '+' : ''}${e}</strong>`
+        + `<div style="margin-top:6px;font-size:11px;color:var(--text3)">${t('bq.inv_info')}</div>`;
+      return;
+    }
     if (mode === 'Achat') ap.innerHTML += `<div class="al al-i" style="margin:8px 0 0;font-size:11px">${t('bf.astuce_entree')}</div>`;
     if (mode === 'Achat' && typeof _bb.caisse === 'number') {
       const cout = n * (parseFloat(document.getElementById('bm-prix').value) || 0), reste = _bb.caisse - cout;
@@ -8931,7 +8964,14 @@ async function saveMouvement() {
   const n = parseInt(document.getElementById('bm-qte').value, 10);
   if (isNaN(n) || n < 0 || (mode === 'Achat' && n === 0)) { showToast(t('bq.qte_invalide'), 'e'); return; }
   if (mode !== 'Ajustement') { showToast(t('bq.entree_facture_seule'), 'e'); return; }
-  if (n > p.stock) { showToast(t('bq.inventaire_hausse').replace('%s', p.stock), 'e'); return; }
+  // Inventaire : le stock compté va dans la case « Stock inventaire » ; le stock calculé ne change pas
+  const { error: eInv } = await sb.from('produits').update({ stock_inventaire: n, date_inventaire: document.getElementById('bm-date').value || today() }).eq('id', pid);
+  if (eInv) { showToast(/column|schema cache/i.test(eInv.message) ? t('bq.sql_35') : eInv.message, 'e'); return; }
+  await logAudit('UPDATE', 'boutique', `Inventaire ${p.nom} : ${n} compté(s), stock calculé ${p.stock}`);
+  showToast(t('bq.inventaire_ok'), 's');
+  document.getElementById('bm-modal').classList.remove('open');
+  loadBoutique();
+  return;
   const quantite = mode === 'Achat' ? n : n - p.stock;
   if (!quantite) { showToast(t('bq.rien_a_ajuster'), 's'); document.getElementById('bm-modal').classList.remove('open'); return; }
   const prix = parseFloat(document.getElementById('bm-prix').value) || 0;
