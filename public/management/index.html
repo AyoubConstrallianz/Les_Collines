@@ -2597,6 +2597,7 @@ async function doLogin() {
   // Enregistre la date de dernière connexion
   await sb.from('profils').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
   await initApp(data.user);
+  reinitBoutonLogin();
   notifierConnexion(false);
 }
 
@@ -2619,8 +2620,15 @@ function showLoginErr(msg) {
   document.getElementById('btn-login').disabled = false;
 }
 
+// Bouton « Se connecter » remis à l'état normal (sinon il reste grisé sur « Connexion… » après une déconnexion)
+function reinitBoutonLogin() {
+  const btn = document.getElementById('btn-login');
+  if (btn) { btn.disabled = false; btn.innerHTML = t('login.btn'); }
+}
+
 async function doLogout() {
   ME = null; PERMS = {};
+  reinitBoutonLogin();
   clearInterval(window._vaTimer);
   const cloche = document.getElementById('tb-cloche'); if (cloche) cloche.style.display = 'none';
   const pan = document.getElementById('notif-panel'); if (pan) pan.style.display = 'none';
@@ -2666,24 +2674,40 @@ async function initApp(authUser) {
     btn.classList.toggle('hidden', !PERMS[page]?.lire);
   });
 
-  // Masque les groupes entiers si tous leurs sous-onglets sont cachés
+  // Masque les groupes entiers si tous leurs sous-onglets sont cachés, les réaffiche sinon
+  // (nouvelle connexion dans le même onglet avec un autre compte)
   ['membres','activites','rh','finances','admin'].forEach(grp => {
     const sub = document.getElementById('sub-'+grp);
     if (!sub) return;
     const visible = [...sub.querySelectorAll('.nav[data-page]')].some(b=>!b.classList.contains('hidden'));
     const hdr = sub.previousElementSibling;
-    if (!visible) { sub.style.display='none'; if(hdr) hdr.style.display='none'; }
+    sub.style.display = visible ? '' : 'none'; if (hdr) hdr.style.display = visible ? '' : 'none';
   });
 
   // Active la première page visible (dashboard en priorité, sinon premier sous-onglet visible)
+  afficherSansAcces(false);
   const dashBtn = document.querySelector('.nav-single[data-page="dashboard"]');
   if (PERMS['dashboard']?.lire && dashBtn) {
     nav('dashboard', dashBtn);
   } else {
     const first = document.querySelector('.nav[data-page]:not(.hidden)');
     if (first) { nav(first.dataset.page, first); }
-    else { document.querySelector('.content').innerHTML = '<div class="no-access"><svg width="32" height="32" fill="none" stroke="var(--text3)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>' + t('login.noaccess') + '</span></div>'; }
+    else { afficherSansAcces(true); }
   }
+}
+
+// Aucun module autorisé : message à la place des pages, sans les détruire
+// (une autre connexion dans le même onglet doit retrouver toutes les pages)
+function afficherSansAcces(oui) {
+  let el = document.getElementById('no-access-msg');
+  if (oui && !el) {
+    el = document.createElement('div'); el.id = 'no-access-msg'; el.className = 'no-access';
+    document.querySelector('.content').prepend(el);
+  }
+  if (!el) return;
+  el.innerHTML = oui ? '<svg width="32" height="32" fill="none" stroke="var(--text3)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>' + t('login.noaccess') + '</span>' : '';
+  el.style.display = oui ? '' : 'none';
+  if (oui) document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
 }
 
 // ════════════════════════════════════════════════════════════
@@ -5511,6 +5535,7 @@ setInterval(() => {
 sb.auth.onAuthStateChange(event => {
   if (event !== 'SIGNED_OUT' || !ME) return;
   ME = null; PERMS = {};
+  reinitBoutonLogin();
   document.querySelectorAll('.mo.open').forEach(m => m.classList.remove('open'));
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
@@ -5549,7 +5574,10 @@ function nav(page, btn) {
   document.querySelectorAll('.nav-group-header').forEach(h => h.classList.remove('has-active'));
 
   // Active la page
-  document.getElementById('page-'+page).classList.add('active');
+  const pageEl = document.getElementById('page-'+page);
+  if (!pageEl) return;
+  afficherSansAcces(false);
+  pageEl.classList.add('active');
   if (btn) btn.classList.add('active');
 
   // Ouvre le groupe parent et le met en surbrillance
