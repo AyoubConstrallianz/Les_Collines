@@ -1754,6 +1754,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         <p class="ptitle" data-i18n="valid.title">Validations</p>
         <p class="psubtitle" data-i18n="valid.subtitle">Ajouts, modifications et suppressions faits par les gérants : à valider ou à refuser</p>
         <div id="al-validations"></div>
+        <div id="va-clients"></div>
         <div class="toolbar">
           <select id="va-statut" onchange="loadValidations()">
             <option value="En attente" data-i18n="va.f_attente">À valider</option>
@@ -2843,6 +2844,11 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "clients.tout_valider": "Tout valider",
+    "clients.tout_valider_confirm": "Valider les %n client(s) en attente ? Ils passeront en statut « Actif ».",
+    "clients.valides_n": "%n clients validés",
+    "clients.valider_refuse": "La base de données n'a pas accepté la validation : vérifiez que votre compte a le droit « Clients → écrire ».",
+    "va.clients_attente": "Nouveaux clients à valider (saisis par un employé)",
     "bq.stock_inventaire": "Stock inventaire",
     "bq.f_ecart": "Écart d'inventaire",
     "bq.ecart_inv": "Écart",
@@ -4006,6 +4012,11 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "clients.tout_valider": "تأكيد الكل",
+    "clients.tout_valider_confirm": "تأكيد %n زبون(ات) في الانتظار ؟ سيصبح وضعهم « نشط ».",
+    "clients.valides_n": "تم تأكيد %n زبناء",
+    "clients.valider_refuse": "لم تقبل قاعدة البيانات التأكيد : تحقق من أن حسابك يملك صلاحية « الزبناء ← كتابة ».",
+    "va.clients_attente": "زبناء جدد للتأكيد (أدخلهم موظف)",
     "bq.stock_inventaire": "مخزون الجرد",
     "bq.f_ecart": "فرق في الجرد",
     "bq.ecart_inv": "الفرق",
@@ -5734,7 +5745,7 @@ async function loadDashboard() {
           <td><strong>${c.prenom} ${c.nom}</strong></td>
           <td>${spts.map(s=>`<span class="badge b-i" style="font-size:10px;margin-right:2px">${s}</span>`).join('')||'—'}</td>
           <td style="font-size:12px;color:var(--text2)">${c.date_inscription||'—'}</td>
-          <td><span class="badge ${statutFinal==='Actif'?'b-g':statutFinal==='Inactif'?'b-w':'b-d'}">${statutLabel(statutFinal)}</span></td>
+          <td><span class="badge ${statutFinal==='Actif'?'b-g':statutFinal==='Inactif'?'b-w':'b-d'}">${statutLabel(statutFinal)}</span>${statutFinal==='En attente'&&peutValiderClients()?` <button class="btn btn-sm btn-p" style="margin-inline-start:6px" onclick="validerClient('${c.id}')">${t('clients.valider')}</button>`:''}</td>
         </tr>`;
       }).join('')
     : `<tr class="empty-row"><td colspan="4">${LANG==='ar'?'لا يوجد زبناء':'Aucun client'}</td></tr>`;
@@ -6250,13 +6261,31 @@ function _sortIcon(col) {
 
 const peutValiderClients = () => ME?.role === 'super_admin' || ME?.role === 'gerant';
 
-async function validerClient(id) {
-  const { error } = await sb.from('clients').update({ statut: 'Actif', updated_at: new Date().toISOString() }).eq('id', id);
+async function validerClient(id) { return validerClients([id]); }
+
+// Valide des clients « En attente » (saisis par un employé) : statut → Actif
+async function validerClients(ids) {
+  ids = (ids || []).filter(Boolean);
+  if (!ids.length) return;
+  const { data, error } = await sb.from('clients').update({ statut: 'Actif', updated_at: new Date().toISOString() })
+    .in('id', ids).select('id,prenom,nom,statut');
   if (error) { showToast(error.message, 'e'); return; }
-  const c = (CLIENTS_CACHE || []).find(x => x.id === id);
-  await logAudit('UPDATE', 'clients', `Validation ${c ? c.prenom + ' ' + c.nom : id}`);
-  showToast(t('clients.valide_ok'), 's');
-  loadClients(); loadImpayes();
+  const ok = (data || []).filter(c => c.statut !== 'En attente');
+  // Aucune ligne modifiée sans erreur : la base a refusé (droits)
+  if (!ok.length) { showToast(t('clients.valider_refuse'), 'e'); return; }
+  await logAudit('UPDATE', 'clients', `Validation ${ok.map(c => c.prenom + ' ' + c.nom).join(', ')}`);
+  showToast(ok.length > 1 ? t('clients.valides_n').replace('%n', ok.length) : t('clients.valide_ok'), 's');
+  const actif = id => document.getElementById('page-' + id)?.classList.contains('active');
+  if (actif('clients')) loadClients();
+  if (actif('dashboard')) loadDashboard();
+  if (actif('validations')) loadValidations();
+  loadImpayes();
+}
+async function validerTousClientsAttente() {
+  const { data } = await sb.from('clients').select('id').eq('statut', 'En attente');
+  const ids = (data || []).map(c => c.id);
+  if (!ids.length || !confirm(t('clients.tout_valider_confirm').replace('%n', ids.length))) return;
+  validerClients(ids);
 }
 
 async function loadClients() {
@@ -6303,7 +6332,7 @@ async function loadClients() {
   const nAttente = (data || []).filter(c => c.statut === 'En attente').length;
   const alAtt = document.getElementById('al-clients');
   if (alAtt) alAtt.innerHTML = nAttente && peutValiderClients()
-    ? `<div class="al al-i" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span><strong>${nAttente}</strong> ${t('clients.n_attente')}</span><button class="btn btn-sm" onclick="document.getElementById('sc-stat').value='En attente';loadClients()">${t('clients.voir')}</button></div>` : '';
+    ? `<div class="al al-i" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span><strong>${nAttente}</strong> ${t('clients.n_attente')}</span><span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="document.getElementById('sc-stat').value='En attente';loadClients()">${t('clients.voir')}</button><button class="btn btn-sm btn-p" onclick="validerTousClientsAttente()">${t('clients.tout_valider')}</button></span></div>` : '';
 
   const canWrite = PERMS.clients?.ecrire;
   const canDel   = PERMS.clients?.supprimer;
@@ -10300,6 +10329,17 @@ async function loadValidations() {
   document.getElementById('al-validations').innerHTML = error
     ? `<div class="al al-e">${/modifications|relation|does not exist|schema cache/i.test(error.message) ? t('va.sql_25') : error.message}</div>` : '';
   _va.mods = data || [];
+  // Nouveaux clients saisis par un employé, en attente de validation
+  const rca = peutValiderClients() ? await sb.from('clients').select('id,prenom,nom,sports,sport,telephone,date_inscription').eq('statut', 'En attente').order('created_at', { ascending: false }) : { data: [] };
+  const ca = rca.data || [];
+  document.getElementById('va-clients').innerHTML = ca.length ? `<div class="card" style="border-inline-start:3px solid var(--amber)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.6rem">
+        <div class="ct" style="margin:0">${t('va.clients_attente')} (${ca.length})</div>
+        <button class="btn btn-sm btn-p" onclick="validerTousClientsAttente()">${t('clients.tout_valider')}</button></div>
+      ${ca.map(c => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border);flex-wrap:wrap">
+        <span><strong>${echapper(c.prenom + ' ' + c.nom)}</strong> <span style="font-size:12px;color:var(--text3)">· ${echapper((c.sports || (c.sport ? [c.sport] : [])).join(', ') || '—')} · ${echapper(c.telephone || '')} · ${c.date_inscription || ''}</span></span>
+        <span style="display:flex;gap:6px"><button class="btn btn-sm" onclick="ouvrirFicheClient('${c.id}')">${t('bf.voir')}</button><button class="btn btn-sm btn-p" onclick="validerClient('${c.id}')">${t('clients.valider')}</button></span></div>`).join('')}
+    </div>` : '';
   // Noms des clients et salariés cités (paiements, salaires…)
   const ids = (k) => [...new Set(_va.mods.flatMap(m => [m.avant?.[k], m.apres?.[k]]).filter(Boolean))];
   const [rc, re, rp] = await Promise.all([
