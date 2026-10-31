@@ -2844,6 +2844,9 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "remu.prorata": "prorata",
+    "remu.jours": "jours",
+    "remu.depuis_le": "depuis le",
     "clients.tout_valider": "Tout valider",
     "clients.tout_valider_confirm": "Valider les %n client(s) en attente ? Ils passeront en statut « Actif ».",
     "clients.valides_n": "%n clients validés",
@@ -4012,6 +4015,9 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "remu.prorata": "بالتناسب",
+    "remu.jours": "يوم",
+    "remu.depuis_le": "منذ",
     "clients.tout_valider": "تأكيد الكل",
     "clients.tout_valider_confirm": "تأكيد %n زبون(ات) في الانتظار ؟ سيصبح وضعهم « نشط ».",
     "clients.valides_n": "تم تأكيد %n زبناء",
@@ -11441,8 +11447,7 @@ async function majMasseSalariale(emps) {
     const r = e.remuneration || 'Mensuel';
     if (r === 'Pourcentage') { const v = pct[e.id]?.total || 0; total += v; dontPct += v; }
     else if (r === 'Semaine') total += (parseFloat(e.montant_semaine) || 0) * lundis;
-    else if (r === 'Groupe') total += (e.nb_groupes || 0) * (parseFloat(e.montant_groupe) || 0);
-    else total += parseFloat(e.salaire) || 0;
+    else total += montantFixeMois({ ...e, remuneration: r }, mois).total;   // Mensuel / Groupe, au prorata si embauche ce mois
   });
   el.textContent = fmt(total);
   if (det) det.textContent = dontPct ? `${t('coaches.masse_dont_pct')} ${fmt(dontPct)} ${t('coaches.masse_pct_ca')}` : t('coaches.masse_calcule');
@@ -11476,6 +11481,10 @@ async function loadCoachNonPayes() {
   const montantsPct = await montantsPourcentageMois(nonPayes.filter(e => e.remuneration === 'Pourcentage'), moisCur);
   const montantAPayer = e => {
     const m = montantsPct[e.id];
+    if (!m && (e.remuneration || 'Mensuel') !== 'Semaine') {
+      const f = montantFixeMois({ ...e, remuneration: e.remuneration || 'Mensuel' }, moisCur);
+      if (f.prorata) return `${fmtDH2(f.total)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${fmt(f.plein)} · ${libelleProrata(f.prorata)})</span>`;
+    }
     if (!m) return libelleRemu(e);
     if (!m.nbSports) return `<span style="color:var(--amber-text);font-size:11px;font-weight:400">${m.pct} % ${t('remu.du_ca')} — ${t('remu.sans_discipline')}</span>`;
     return `${fmtDH2(m.total)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${m.pct} % × ${t('remu.ca_mois')} ${fmt(m.ca)})</span>`;
@@ -11606,6 +11615,23 @@ function onPosteChange() {
 // ── Rémunération des coachs : mensuel / par groupe / pourcentage du CA ──
 let _salCalc = null; // dernier calcul affiché dans le formulaire de paiement
 
+// Embauche en cours de mois : salaire fixe au prorata des jours, du jour d'embauche à la fin du mois
+// ex. embauché le 21 octobre (31 jours) → 11 jours → salaire × 11/31
+function prorataEmbauche(e, mois) {
+  const d = String(e?.date_embauche || '');
+  if (!d || !mois || d.slice(0, 7) !== mois) return null;
+  const [y, m] = mois.split('-').map(Number), jours_mois = new Date(y, m, 0).getDate(), jour = parseInt(d.slice(8, 10), 10);
+  if (!jour || jour <= 1) return null;
+  return { debut: d.slice(0, 10), jours: jours_mois - jour + 1, jours_mois };
+}
+// Montant fixe du mois (Mensuel ou Groupe), au prorata si embauche en cours de mois
+function montantFixeMois(e, mois) {
+  const plein = e.remuneration === 'Groupe' ? (e.nb_groupes || 0) * (parseFloat(e.montant_groupe) || 0) : (parseFloat(e.salaire) || 0);
+  const pr = prorataEmbauche(e, mois);
+  return { plein, prorata: pr, total: pr ? Math.round(plein * pr.jours / pr.jours_mois * 100) / 100 : plein };
+}
+const libelleProrata = pr => `${t('remu.prorata')} ${pr.jours}/${pr.jours_mois} ${t('remu.jours')} (${t('remu.depuis_le')} ${dateFr(pr.debut)})`;
+
 function libelleRemu(e) {
   if (e.remuneration === 'Groupe') return `${fmt(e.salaire)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${e.nb_groupes || 0} × ${fmt(e.montant_groupe)})</span>`;
   if (e.remuneration === 'Pourcentage') return `${e.pourcentage || 0} % <span style="font-size:10px;color:var(--text3);font-weight:400">${t('remu.du_ca')}</span>`;
@@ -11716,8 +11742,9 @@ async function calculerSalaire(garderSemaine = false) {
   if (hebdo) {
     // détail déjà calculé (semaine choisie)
   } else if (remu === 'Groupe') {
-    const total = (e.nb_groupes || 0) * (parseFloat(e.montant_groupe) || 0);
-    detail = { remuneration: 'Groupe', nb_groupes: e.nb_groupes || 0, montant_groupe: parseFloat(e.montant_groupe) || 0, total };
+    const f = montantFixeMois(e, mois);
+    detail = { remuneration: 'Groupe', nb_groupes: e.nb_groupes || 0, montant_groupe: parseFloat(e.montant_groupe) || 0, total: f.total };
+    if (f.prorata) Object.assign(detail, { plein: f.plein, prorata: f.prorata });
   } else if (remu === 'Pourcentage') {
     zone.innerHTML = `<div style="font-size:12px;color:var(--text3)">${t('remu.calcul')}</div>`; zone.style.display = '';
     const sports = await sportsDuCoach(`${e.prenom} ${e.nom}`);
@@ -11729,7 +11756,9 @@ async function calculerSalaire(garderSemaine = false) {
     detail = { remuneration: 'Pourcentage', pourcentage: pct, lignes, ca_total: Math.round(caTotal * 100) / 100,
                adherents_total: adhTotal, total: Math.round(caTotal * pct) / 100 };
   } else {
-    detail = { remuneration: 'Mensuel', total: parseFloat(e.salaire) || 0 };
+    const f = montantFixeMois({ ...e, remuneration: 'Mensuel' }, mois);
+    detail = { remuneration: 'Mensuel', total: f.total };
+    if (f.prorata) Object.assign(detail, { plein: f.plein, prorata: f.prorata });
   }
   // Le formulaire a pu changer pendant le calcul
   if (document.getElementById('co-sal-emp').value !== empId || document.getElementById('co-sal-mois').value !== mois) return;
@@ -11760,7 +11789,7 @@ function detailSalaireHtml(d) {
       <div class="sal-resultat-mnt">${fmtDH2(d.total)}</div>
     </div>`;
   if (d.remuneration === 'Groupe')
-    return resultat(`${t('remu.groupe_court')} : ${d.nb_groupes} × ${fmtDH2(d.montant_groupe)}`);
+    return resultat(`${t('remu.groupe_court')} : ${d.nb_groupes} × ${fmtDH2(d.montant_groupe)}${d.prorata ? ` = ${fmtDH2(d.plein)} · ${libelleProrata(d.prorata)}` : ''}`);
   if (d.remuneration === 'Semaine')
     return resultat(d.semaine_debut ? `${t('hebdo.semaine')} ${libelleSemaine(d.semaine_debut)}` : `${d.nb_semaines} ${t('remu.semaines')} × ${fmtDH2(d.montant_semaine)}`);
   if (d.remuneration === 'Pourcentage') {
@@ -11770,7 +11799,7 @@ function detailSalaireHtml(d) {
       <tr style="font-weight:700"><td>${t('stats.recap_total')}</td><td style="text-align:end">${d.adherents_total}</td><td style="text-align:end">${fmtDH2(d.ca_total)}</td></tr></tbody></table>`)
       + resultat(`${fmtDH2(d.ca_total)} × ${d.pourcentage} %`);
   }
-  return resultat(t('remu.mensuel_court'));
+  return resultat(d.prorata ? `${t('remu.mensuel_court')} ${fmtDH2(d.plein)} · ${libelleProrata(d.prorata)}` : t('remu.mensuel_court'));
 }
 
 // ── Reçu PDF du paiement de salaire (détail du calcul) ──
@@ -11827,10 +11856,12 @@ async function ouvrirRecuSalaire(id) {
            [String(d.nb_semaines).replace('.', ','), 120, 'right'], [montantPdf(d.montant_semaine), 160, 'right'], [montantPdf(d.total), W - M - 4, 'right']]);
   } else if (d.remuneration === 'Groupe') {
     entete([['Désignation', M + 4], ['Groupes', 120, 'right'], ['Montant unitaire', 160, 'right'], ['Total', W - M - 4, 'right']]);
-    ligne([[`Groupes encadrés — ${moisLib}`, M + 4], [d.nb_groupes, 120, 'right'], [montantPdf(d.montant_groupe), 160, 'right'], [montantPdf(d.total), W - M - 4, 'right']]);
+    ligne([[`Groupes encadrés — ${moisLib}`, M + 4], [d.nb_groupes, 120, 'right'], [montantPdf(d.montant_groupe), 160, 'right'], [montantPdf(d.prorata ? d.plein : d.total), W - M - 4, 'right']]);
+    if (d.prorata) ligne([[`Prorata : ${d.prorata.jours}/${d.prorata.jours_mois} jours (embauche le ${dateFr(d.prorata.debut)})`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
   } else {
     entete([['Désignation', M + 4], ['Montant', W - M - 4, 'right']]);
-    ligne([[`Salaire mensuel — ${moisLib}`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
+    ligne([[`Salaire mensuel — ${moisLib}`, M + 4], [montantPdf(d.prorata ? d.plein : d.total), W - M - 4, 'right']]);
+    if (d.prorata) ligne([[`Prorata : ${d.prorata.jours}/${d.prorata.jours_mois} jours (embauche le ${dateFr(d.prorata.debut)})`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
   }
 
   // Montant versé
