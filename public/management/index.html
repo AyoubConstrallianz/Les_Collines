@@ -1975,7 +1975,9 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <button class="btn" onclick="closeRecu()" data-i18n="common.fermer">Fermer</button>
             <button class="btn" onclick="telechargerRecu()" data-i18n="recu.telecharger">Télécharger PDF</button>
             <button class="btn" onclick="imprimerRecu()" data-i18n="recu.imprimer">Imprimer</button>
+            <button class="btn" id="btn-recu-email-add" onclick="ajouterEmailRecu()" style="display:none" data-i18n="recu.ajouter_email">Ajouter un email</button>
             <button class="btn btn-p" id="btn-recu-mail" onclick="envoyerRecuMail()" data-i18n="recu.envoyer">Envoyer par mail</button>
+            <button class="btn" id="btn-recu-wa" onclick="envoyerRecuWhatsApp()" style="background:#25D366;color:#fff;border-color:#25D366" data-i18n="recu.whatsapp">Envoyer par WhatsApp</button>
           </div>
         </div>
       </div>
@@ -2845,6 +2847,14 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "recu.whatsapp": "Envoyer par WhatsApp",
+    "recu.wa_no_tel": "Pas de numéro de téléphone sur la fiche du client",
+    "recu.wa_message": "Bonjour %p, voici votre reçu %n de %m — Association Les Collines. Merci !",
+    "recu.wa_joindre": "Le reçu PDF est téléchargé : dans la conversation WhatsApp, joignez-le avec le trombone 📎.",
+    "recu.ajouter_email": "Ajouter un email",
+    "recu.email_prompt": "Adresse e-mail du client (elle sera enregistrée sur sa fiche) :",
+    "recu.email_invalide": "Adresse e-mail invalide",
+    "recu.email_ok": "Email enregistré sur la fiche du client",
     "as.repartition_caisse": "Répartition de la caisse réelle",
     "vs.part_caisse": "Sa part de la caisse",
     "charges.mode": "Mode de paiement",
@@ -4029,6 +4039,14 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "recu.whatsapp": "إرسال عبر واتساب",
+    "recu.wa_no_tel": "لا يوجد رقم هاتف في بطاقة الزبون",
+    "recu.wa_message": "مرحباً %p، إليك وصل الأداء %n بمبلغ %m — جمعية التلال. شكراً !",
+    "recu.wa_joindre": "تم تنزيل الوصل PDF : أرفقه في محادثة واتساب بزر المشبك 📎.",
+    "recu.ajouter_email": "إضافة بريد إلكتروني",
+    "recu.email_prompt": "البريد الإلكتروني للزبون (سيُحفظ في بطاقته) :",
+    "recu.email_invalide": "بريد إلكتروني غير صالح",
+    "recu.email_ok": "تم حفظ البريد في بطاقة الزبون",
     "as.repartition_caisse": "توزيع الصندوق الفعلي",
     "vs.part_caisse": "حصته من الصندوق",
     "charges.mode": "طريقة الأداء",
@@ -8144,7 +8162,63 @@ async function ouvrirRecu(paiementIds) {
   btnMail.textContent = t('recu.envoyer');
   document.getElementById('recu-mail-info').textContent = client.email
     ? t('recu.mail_a').replace('%s', client.email) : t('recu.no_email');
+  document.getElementById('btn-recu-email-add').style.display = client.email || !PERMS.clients?.ecrire ? 'none' : '';
+  const tel = numeroWhatsApp(client);
+  const btnWa = document.getElementById('btn-recu-wa');
+  btnWa.disabled = !tel; btnWa.title = tel ? '+' + tel : t('recu.wa_no_tel');
   document.getElementById('recu-modal').classList.add('open');
+}
+
+// Numéro au format international pour WhatsApp : 06 61 09 27 66 → 212661092766
+function numeroWhatsApp(c) {
+  for (const brut of [c?.telephone, c?.telephone2]) {
+    let n = String(brut || '').replace(/[^\d+]/g, '');
+    if (!n) continue;
+    if (n.startsWith('+')) n = n.slice(1);
+    else if (n.startsWith('00')) n = n.slice(2);
+    else if (/^0[5-7]\d{8}$/.test(n)) n = '212' + n.slice(1);      // numéro marocain
+    if (/^\d{9,15}$/.test(n)) return n;
+  }
+  return '';
+}
+
+// Reçu par WhatsApp : sur téléphone, partage du PDF (choisir WhatsApp puis le client) ;
+// sinon, le PDF est téléchargé et la conversation WhatsApp du client s'ouvre avec un message prêt.
+async function envoyerRecuWhatsApp() {
+  if (!_recu) return;
+  const tel = numeroWhatsApp(_recu.client);
+  if (!tel) { showToast(t('recu.wa_no_tel'), 'e'); return; }
+  const total = _recu.paiements.reduce((s, x) => s + (parseFloat(x.montant) || 0), 0);
+  const message = t('recu.wa_message').replace('%p', _recu.client.prenom || '').replace('%n', _recu.numero || '').replace('%m', fmtDH2(total));
+  const fichier = new File([_recu.doc.output('blob')], nomFichierRecu(), { type: 'application/pdf' });
+  const mobile = /Android|iPhone|iPad|Mobi/i.test(navigator.userAgent);
+  if (mobile && navigator.canShare?.({ files: [fichier] })) {
+    try {
+      await navigator.share({ files: [fichier], text: message, title: t('recu.title') });
+      await logAudit('WHATSAPP', 'paiements', `Reçu ${_recu.numero} partagé`);
+      return;
+    } catch (e) { if (e?.name === 'AbortError') return; }   // partage annulé
+  }
+  _recu.doc.save(nomFichierRecu());
+  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+  showToast(t('recu.wa_joindre'), 's');
+  await logAudit('WHATSAPP', 'paiements', `Reçu ${_recu.numero} → +${tel}`);
+}
+
+// Pas d'email sur la fiche : le saisir ici (enregistré sur la fiche du client), puis envoyer
+async function ajouterEmailRecu() {
+  if (!_recu?.client?.id) return;
+  const email = (prompt(t('recu.email_prompt')) || '').trim();
+  if (!email) return;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast(t('recu.email_invalide'), 'e'); return; }
+  const { error } = await sb.from('clients').update({ email, updated_at: new Date().toISOString() }).eq('id', _recu.client.id);
+  if (error) { showToast(error.message, 'e'); return; }
+  _recu.client.email = email;
+  await logAudit('UPDATE', 'clients', `Email ajouté depuis un reçu : ${_recu.client.prenom} ${_recu.client.nom}`);
+  document.getElementById('recu-mail-info').textContent = t('recu.mail_a').replace('%s', email);
+  document.getElementById('btn-recu-mail').disabled = false;
+  document.getElementById('btn-recu-email-add').style.display = 'none';
+  showToast(t('recu.email_ok'), 's');
 }
 
 function closeRecu() {
