@@ -2481,10 +2481,11 @@ const SUPABASE_URL = 'https://darwktarjsaameqianyi.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_ltLpJObbU2HXbbZbwA4dgg_sGFg5BAc';
 // ── Diagnostic à distance : erreurs et problèmes réseau affichés à l'écran (capture à envoyer) ──
 let _errAffichee = 0;
-function afficherErreurGlobale(msg) {
+function afficherErreurGlobale(msg, reseau) {
   msg = String(msg || '');
   if (!msg || /ResizeObserver loop|^Script error\.?$/i.test(msg)) return;
-  if (Date.now() - _errAffichee < 4000) return;
+  const dejaVu = document.getElementById('err-globale');
+  if (dejaVu && dejaVu.style.display !== 'none' && Date.now() - _errAffichee < 4000) return;   // pas de clignotement
   _errAffichee = Date.now();
   const tr = (k, d) => { try { const v = t(k); return v && v !== k ? v : d; } catch (_) { return d; } };
   let el = document.getElementById('err-globale');
@@ -2503,15 +2504,28 @@ function afficherErreurGlobale(msg) {
   const aide = document.createElement('div'); aide.style.cssText = 'font-weight:400;font-size:11px;opacity:.85;margin-top:4px';
   aide.textContent = tr('err.capture', "Faites une capture d'écran et envoyez-la à l'administrateur.") + ' — ' + (navigator.userAgent.match(/(iPhone|iPad|Android|Windows|Mac OS X)[^;)]*/) || [''])[0] + ' · ' + new Date().toLocaleString('fr-FR');
   el.append(fermer, texte, aide); el.style.display = '';
+  el.dataset.reseau = reseau ? '1' : '';   // message réseau : retiré tout seul quand la connexion revient
 }
 window.addEventListener('error', e => afficherErreurGlobale((e.message || '') + (e.lineno ? ' (ligne ' + e.lineno + ')' : '')));
 window.addEventListener('unhandledrejection', e => afficherErreurGlobale(e.reason?.message || e.reason));
 // Toutes les requêtes vers la base passent par ici : échec réseau ou lenteur extrême → message à l'écran
+// Micro-coupure (réveil du PC, Wi-Fi qui se reconnecte) : une lecture qui échoue est retentée une fois
+// après 1,5 s ; le bandeau n'apparaît que si la connexion reste coupée, et disparaît quand elle revient.
+// Les écritures (paiements…) ne sont jamais renvoyées automatiquement, pour éviter un doublon.
 const fetchSurveille = async (input, init) => {
   const tr = (k, d) => { try { const v = t(k); return v && v !== k ? v : d; } catch (_) { return d; } };
-  const lent = setTimeout(() => afficherErreurGlobale(tr('err.lent', 'La base de données met très longtemps à répondre depuis ce réseau.')), 20000);
-  try { return await fetch(input, init); }
-  catch (e) { afficherErreurGlobale(tr('err.reseau', 'Connexion à la base de données impossible depuis ce réseau') + ' (' + (e?.message || e) + ')'); throw e; }
+  const lent = setTimeout(() => afficherErreurGlobale(tr('err.lent', 'La base de données met très longtemps à répondre depuis ce réseau.'), true), 20000);
+  const lecture = !init?.method || /^(GET|HEAD)$/i.test(init.method);
+  const reussi = r => { const el = document.getElementById('err-globale'); if (el && el.dataset.reseau === '1') el.style.display = 'none'; return r; };
+  try { return reussi(await fetch(input, init)); }
+  catch (e) {
+    if (lecture && !init?.signal?.aborted) {
+      await new Promise(ok => setTimeout(ok, 1500));
+      try { return reussi(await fetch(input, init)); } catch (e2) { e = e2; }
+    }
+    afficherErreurGlobale(tr('err.reseau', 'Connexion à la base de données impossible depuis ce réseau') + ' (' + (e?.message || e) + ')', true);
+    throw e;
+  }
   finally { clearTimeout(lent); }
 };
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
