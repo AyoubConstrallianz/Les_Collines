@@ -1317,7 +1317,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <button class="btn btn-sm" onclick="resetFiltresPaiements()" data-i18n="filtre.reset">Réinitialiser</button>
             <span id="sp-resultat" style="font-size:12px;color:var(--text2);margin-inline-start:auto"></span>
           </div>
-          <table><thead><tr><th data-i18n="common.date">Date</th><th data-i18n="paie.client">Client</th><th data-i18n="planning.sport">Sport</th><th data-i18n="paie.montant">Montant</th><th data-i18n="paie.type">Type</th><th data-i18n="paie.mois_couverts">Mois couverts</th><th data-i18n="paie.mode">Mode</th><th data-i18n="paie.note">Note</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="paiements-tb"></tbody></table>
+          <table><thead><tr><th data-i18n="common.date">Date</th><th data-i18n="paie.client">Client</th><th data-i18n="planning.sport">Sport</th><th data-i18n="paie.montant">Montant</th><th data-i18n="paie.type">Type</th><th data-i18n="paie.mois_couverts">Mois couverts</th><th data-i18n="paie.mode">Mode</th><th data-i18n="paie.note">Note</th><th data-i18n="paie.ajoute_par">Ajouté par</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="paiements-tb"></tbody></table>
         </div>
       </div>
 
@@ -2844,6 +2844,8 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "paie.ajoute_par": "Ajouté par",
+    "paie.utilisateur": "Autre utilisateur",
     "remu.prorata": "prorata",
     "remu.jours": "jours",
     "remu.depuis_le": "depuis le",
@@ -4015,6 +4017,8 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "paie.ajoute_par": "أضافه",
+    "paie.utilisateur": "مستخدم آخر",
     "remu.prorata": "بالتناسب",
     "remu.jours": "يوم",
     "remu.depuis_le": "منذ",
@@ -7706,6 +7710,20 @@ async function loadPaiements() {
 
   const canDel = PERMS.paiements?.supprimer, canEdit = PERMS.paiements?.ecrire;
   const groupes = grouperTransactions(list);
+  // Qui a saisi chaque paiement, et quand
+  const auteurs = [...new Set(list.map(x => x.created_by).filter(Boolean))];
+  const { data: profs } = auteurs.length ? await sb.from('profils').select('id,prenom,nom').in('id', auteurs) : { data: [] };
+  const nomAuteur = {}; (profs || []).forEach(x => { nomAuteur[x.id] = `${x.prenom || ''} ${x.nom || ''}`.trim(); });
+  const saisie = x => {
+    const qui = x.created_by ? (nomAuteur[x.created_by] || (x.created_by === ME?.id ? `${ME.prenom} ${ME.nom}` : t('paie.utilisateur'))) : '—';
+    const d = x.created_at ? new Date(x.created_at) : null;
+    let quand = '';   // date et heure au Maroc, quel que soit le fuseau de l'appareil
+    if (d && !isNaN(d)) try {
+      const q = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Casablanca', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).map(x => [x.type, x.value]));
+      quand = `${q.day}/${q.month}/${q.year} ${q.hour}:${q.minute}`;
+    } catch (_) { quand = `${dateFr(isoLocal(d))} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+    return `<div style="font-size:12px;font-weight:600">${echapper(qui)}</div>${quand ? `<div style="font-size:11px;color:var(--text3);white-space:nowrap">${quand}</div>` : ''}`;
+  };
   document.getElementById('paiements-tb').innerHTML = groupes.length
     ? groupes.map(g => {
         const p = g[0];
@@ -7735,9 +7753,10 @@ async function loadPaiements() {
         <td style="color:var(--blue);font-size:12px">${mcCell}</td>
         <td>${modeTr[p.mode]||p.mode}</td>
         <td style="color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis">${notes}</td>
+        <td>${saisie(p)}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecu(${idsAttr(g)})">${t('recu.btn')}</button> ${canEdit?`<button class="btn btn-sm" onclick="modifierTransaction(${idsAttr(g)})">${t('common.modifier')}</button>`:''} ${canDel?`<button class="btn btn-sm btn-d" onclick="delTransaction(${idsAttr(g)})">${t('msg.suppr')}</button>`:''}</td></tr>`;
       }).join('')
-    : `<tr class="empty-row"><td colspan="9">${t('msg.no_payment')}</td></tr>`;
+    : `<tr class="empty-row"><td colspan="10">${t('msg.no_payment')}</td></tr>`;
 
   const btnNewPaie = document.getElementById('btn-new-paie');
   if (btnNewPaie) btnNewPaie.style.display = PERMS.paiements?.ecrire ? '' : 'none';
