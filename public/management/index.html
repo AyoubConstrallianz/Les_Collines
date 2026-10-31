@@ -1366,6 +1366,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="fr"><div class="fg"><label data-i18n="charges.libelle">Libellé</label><input id="ch-lib" placeholder="Ex: Facture d'électricité"></div><div class="fg"><label data-i18n="charges.montant">Montant (DH)</label><input id="ch-mont" type="number" placeholder="0"></div></div>
             <div class="fr"><div class="fg"><label data-i18n="charges.categorie">Catégorie</label><select id="ch-cat" onchange="toggleAutre('ch-cat','ch-cat-autre')"><option value="Électricité" data-i18n="charges.c_elec">Électricité</option><option value="Eau" data-i18n="charges.c_eau">Eau</option><option value="Internet" data-i18n="charges.c_internet">Internet</option><option value="Équipement" data-i18n="charges.c_equip">Équipement</option><option value="Entretien" data-i18n="charges.c_entretien">Entretien</option><option value="Assurance" data-i18n="charges.c_assurance">Assurance</option><option value="Autre" data-i18n="charges.c_autre">Autre</option></select><input id="ch-cat-autre" placeholder="Précisez..." style="display:none;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);width:100%"></div><div class="fg"><label data-i18n="charges.date">Date</label><input id="ch-date" type="date"></div></div>
             <div class="fg" style="margin-bottom:10px"><label data-i18n="charges.recurrence">Récurrence</label><select id="ch-rec"><option value="Ponctuelle" data-i18n="charges.r_ponctuelle">Ponctuelle</option><option value="Mensuelle" data-i18n="charges.r_mensuelle">Mensuelle</option><option value="Annuelle" data-i18n="charges.r_annuelle">Annuelle</option></select></div>
+            <div class="fg" style="margin-bottom:10px"><label data-i18n="charges.mode">Mode de paiement</label><select id="ch-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
             <button class="btn btn-p" onclick="saveCharge()" data-i18n="common.enregistrer">Enregistrer</button>
           </div>
           <div class="card">
@@ -1726,7 +1727,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           </div>
           <div id="as-vs-sql"></div>
           <div class="sg" id="as-vs-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
-          <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px" data-i18n="vs.note_club">Caisse = capital apporté + encaissements − charges − salaires − versements aux associés. Mois de l'année choisie ci-dessus.</p>
+          <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px" data-i18n="vs.note_club">Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces, jusqu'à aujourd'hui. Les virements et chèques vont à la banque. Mois de l'année choisie ci-dessus.</p>
           <div style="overflow-x:auto"><table id="as-vs-mois"></table></div>
           <div class="ct" style="margin:16px 0 8px;font-size:13px" data-i18n="vs.historique">Historique des versements</div>
           <table id="as-vs-hist"></table>
@@ -2844,6 +2845,15 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "charges.mode": "Mode de paiement",
+    "charges.sql_36": "Charge enregistrée, mais sans le mode de paiement : exécutez le script 36_charges_mode.sql dans Supabase.",
+    "vs.caisse_reelle": "Caisse réelle (espèces, à ce jour)",
+    "vs.especes_mois": "Espèces du mois (entrées − sorties)",
+    "vs.det_especes": "Espèces encaissées",
+    "vs.det_charges": "charges",
+    "vs.det_salaires": "salaires",
+    "vs.det_verses": "versements",
+    "vs.det_capital": "capital",
     "paie.ajoute_par": "Ajouté par",
     "paie.utilisateur": "Autre utilisateur",
     "remu.prorata": "prorata",
@@ -3048,7 +3058,7 @@ const I18N = {
     "vs.titre": "Versements aux associés et caisse",
     "vs.nouveau": "+ Nouveau versement",
     "vs.historique": "Historique des versements",
-    "vs.note_club": "Caisse = capital apporté + encaissements − charges − salaires − versements aux associés. Mois de l'année choisie ci-dessus.",
+    "vs.note_club": "Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces, jusqu'à aujourd'hui. Les virements et chèques vont à la banque. Mois de l'année choisie ci-dessus.",
     "vs.note_boutique": "Caisse de la boutique = ventes + alimentations par la salle − versements aux associés. Les achats de stock sont payés par la salle (factures fournisseurs). Mois de l'année choisie ci-dessus.",
     "vs.caisse_actuelle": "Caisse actuelle",
     "vs.verse_mois": "Versé ce mois",
@@ -4017,6 +4027,15 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "charges.mode": "طريقة الأداء",
+    "charges.sql_36": "تم تسجيل المصروف بدون طريقة الأداء : شغّل السكريبت 36_charges_mode.sql في Supabase.",
+    "vs.caisse_reelle": "الصندوق الفعلي (نقداً، إلى اليوم)",
+    "vs.especes_mois": "نقد الشهر (مداخيل − مصاريف)",
+    "vs.det_especes": "النقد المحصّل",
+    "vs.det_charges": "المصاريف",
+    "vs.det_salaires": "الرواتب",
+    "vs.det_verses": "الدفعات",
+    "vs.det_capital": "رأس المال",
     "paie.ajoute_par": "أضافه",
     "paie.utilisateur": "مستخدم آخر",
     "remu.prorata": "بالتناسب",
@@ -4221,7 +4240,7 @@ const I18N = {
     "vs.titre": "الدفعات للشركاء والصندوق",
     "vs.nouveau": "+ دفعة جديدة",
     "vs.historique": "سجل الدفعات",
-    "vs.note_club": "الصندوق = رأس المال المقدم + المداخيل − المصاريف − الأجور − الدفعات للشركاء. أشهر السنة المختارة أعلاه.",
+    "vs.note_club": "الصندوق الفعلي = النقد المحصّل − المصاريف والرواتب والدفعات للشركاء المدفوعة نقداً، إلى اليوم. التحويلات والشيكات تذهب إلى البنك. أشهر السنة المختارة أعلاه.",
     "vs.note_boutique": "صندوق المتجر = المبيعات + التمويل من القاعة − الدفعات للشركاء. مشتريات المخزون تُدفع من القاعة (فواتير الموردين). أشهر السنة المختارة أعلاه.",
     "vs.caisse_actuelle": "الصندوق الحالي",
     "vs.verse_mois": "المدفوع هذا الشهر",
@@ -8531,7 +8550,7 @@ async function loadCharges() {
   document.getElementById('charges-tb').innerHTML = (data||[]).length
     ? (data||[]).map(c=>c.salaire
       ? `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-i">${catTr.Salaires}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence}</td><td><button class="btn btn-sm" onclick="nav('coaches',document.querySelector('.nav[data-page=coaches]'))" title="${t('charges.sal_gerer')}">${t('charges.sal_voir')}</button></td></tr>`
-      : `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-w">${catTr[c.categorie]||c.categorie}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence||"—"}</td><td>${c.categorie==='Achats boutique'?`<button class="btn btn-sm" title="${t('charges.voir_boutique')}" onclick="nav('boutique',document.querySelector('.nav[data-page=boutique]'));boutiqueOnglet('factures')">${t('charges.sal_voir')}</button>`:canDel?`<button class="btn btn-sm btn-d" onclick="delCharge('${c.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`).join('')
+      : `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-w">${catTr[c.categorie]||c.categorie}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence||"—"}${c.mode && c.mode!=='Espèces' ? `<div style="font-size:11px;color:var(--text3)">${echapper(c.mode)}</div>` : ''}</td><td>${c.categorie==='Achats boutique'?`<button class="btn btn-sm" title="${t('charges.voir_boutique')}" onclick="nav('boutique',document.querySelector('.nav[data-page=boutique]'));boutiqueOnglet('factures')">${t('charges.sal_voir')}</button>`:canDel?`<button class="btn btn-sm btn-d" onclick="delCharge('${c.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`).join('')
     : `<tr class="empty-row"><td colspan="6">${t('msg.no_charge')}</td></tr>`;
 
   const form = document.querySelector('#page-charges .g2 .card:first-child');
@@ -8542,7 +8561,12 @@ async function saveCharge() {
   const catVal = document.getElementById('ch-cat').value==='Autre' ? (document.getElementById('ch-cat-autre').value.trim()||'Autre') : document.getElementById('ch-cat').value;
   const obj = { libelle:document.getElementById('ch-lib').value.trim(), montant:parseFloat(document.getElementById('ch-mont').value), categorie:catVal, date_charge:document.getElementById('ch-date').value||today(), recurrence:document.getElementById('ch-rec').value, created_by:ME.id };
   if (!obj.libelle||!obj.montant) { showToast(t('charges.required'),'e'); return; }
-  const { error } = await sb.from('charges').insert(obj);
+  obj.mode = document.getElementById('ch-mode')?.value || 'Espèces';
+  let { error } = await sb.from('charges').insert(obj);
+  if (error && /mode/.test(error.message)) {   // script 36 non exécuté : enregistrée sans le mode
+    delete obj.mode; ({ error } = await sb.from('charges').insert(obj));
+    if (!error) showToast(t('charges.sql_36'), 'e');
+  }
   if (error) { showToast(error.message,'e'); return; }
   await logAudit('CREATE','charges',`${obj.libelle} ${fmt(obj.montant)}`);
   showToast(t('msg.saved'),'s');
@@ -9592,8 +9616,8 @@ function renderDuAssocies(actifs, totalParts, cl, frac) {
   // Caisse du club : solde de chaque mois depuis le début (encaissements − charges − salaires)
   const soldes = {};
   Object.values(_assoc.bilans).forEach(bl => (bl?.lignes || []).forEach(l => { if (l.entrees || l.sorties) soldes[l.mois] = l.solde; }));
-  renderVersementsCaisse('club', actifs, soldes, actifs.reduce((s, a) => s + (parseFloat(a.capital) || 0), 0),
-    document.getElementById('as-annee').value || String(new Date().getFullYear()), t('vs.benef_mois'));
+  afficherCaisseClub(actifs, actifs.reduce((s, a) => s + (parseFloat(a.capital) || 0), 0),
+    document.getElementById('as-annee').value || String(new Date().getFullYear()));
   const somme = k => lignes.reduce((s, l) => s + l[k], 0);
   const depuis = `${t('as.depuis')} ${_assoc.debut || ''}`;
   const tableDu = document.getElementById('as-du');
@@ -10161,8 +10185,8 @@ const verseA = (activite, a) => versementsActifs(activite)
   : (parseFloat(activite === 'club' ? a.deja_verse : a.deja_verse_boutique) || 0);
 
 // soldes : { 'AAAA-MM': encaissements − dépenses du mois } → caisse en fin de chaque mois
-function serieCaisse(activite, soldes, capital) {
-  const moisCourant = thisMonth(), vers = _vs[activite] || [];
+function serieCaisse(activite, soldes, capital, filtre) {
+  const moisCourant = thisMonth(), vers = (_vs[activite] || []).filter(filtre || (() => true));
   const parMois = {};
   vers.forEach(v => { const m = String(v.date_versement).slice(0, 7), o = parMois[m] ??= {}; o[v.associe_id] = (o[v.associe_id] || 0) + (parseFloat(v.montant) || 0); });
   const mois = [...new Set([...Object.keys(soldes), ...Object.keys(parMois)])].filter(m => m <= moisCourant).sort();
@@ -10176,21 +10200,47 @@ function serieCaisse(activite, soldes, capital) {
 }
 
 // Carte « Versements et caisse » (club : préfixe as-vs, boutique : bb-vs)
-function renderVersementsCaisse(activite, associes, soldes, capital, an, libSolde) {
+// Caisse réelle du club : uniquement les espèces, jusqu'à aujourd'hui (virements et chèques → banque)
+// = espèces encaissées − charges, salaires et versements aux associés payés en espèces (+ capital apporté)
+async function afficherCaisseClub(actifs, capital, an) {
+  const jour = today(), moisCourant = thisMonth();
+  const [rp, rc0, rs] = await Promise.all([
+    fetchAllRows(() => sb.from('paiements').select('montant,date_paiement').eq('mode', 'Espèces').lte('date_paiement', jour).order('id')),
+    fetchAllRows(() => sb.from('charges').select('montant,date_charge,mode').lte('date_charge', jour).order('id')),
+    fetchAllRows(() => sb.from('salaires_paie').select('montant,mois,mode').lte('mois', moisCourant).order('id'))
+  ]);
+  // Script 36 non exécuté (pas de mode sur les charges) : toutes les charges comptées en espèces
+  const rc = rc0.error ? await fetchAllRows(() => sb.from('charges').select('montant,date_charge').lte('date_charge', jour).order('id')) : rc0;
+  const especes = m => !m || !/^(virement|ch[eè]que)$/i.test(String(m).trim());
+  const soldes = {}, detail = { entrees: 0, charges: 0, salaires: 0 };
+  const ajoute = (m, v) => { if (m) soldes[m] = (soldes[m] || 0) + v; };
+  (rp.data || []).forEach(x => { const v = parseFloat(x.montant) || 0; detail.entrees += v; ajoute(String(x.date_paiement).slice(0, 7), v); });
+  (rc.data || []).filter(x => especes(x.mode)).forEach(x => { const v = parseFloat(x.montant) || 0; detail.charges += v; ajoute(String(x.date_charge).slice(0, 7), -v); });
+  (rs.data || []).filter(x => especes(x.mode)).forEach(x => { const v = parseFloat(x.montant) || 0; detail.salaires += v; ajoute(x.mois, -v); });
+  const filtre = v => especes(v.mode) && String(v.date_versement) <= jour;
+  renderVersementsCaisse('club', actifs, soldes, capital, an, t('vs.especes_mois'), { filtre, libCaisse: t('vs.caisse_reelle'), detail });
+}
+
+function renderVersementsCaisse(activite, associes, soldes, capital, an, libSolde, opts = {}) {
   const pre = activite === 'club' ? 'as-vs' : 'bb-vs';
   const carte = document.getElementById(pre + '-card'); if (!carte) return;
   carte.style.display = PERMS.associes?.lire ? '' : 'none';
   document.getElementById(pre + '-new').style.display = PERMS.associes?.ecrire && versementsActifs(activite) ? '' : 'none';
   const cl = v => v < 0 ? 'color:var(--red)' : v > 0 ? 'color:var(--green)' : 'color:var(--text3)';
-  const { serie, caisse } = serieCaisse(activite, soldes, capital);
+  const { serie, caisse } = serieCaisse(activite, soldes, capital, opts.filtre);
   _vs.caisse[activite] = caisse; _vs.associes[activite] = associes;
   const moisCourant = thisMonth(), vers = _vs[activite] || [];
-  const verseMois = (serie[moisCourant] || {}).totalVerse || 0;
+  const verseMois = vers.filter(v => String(v.date_versement).startsWith(moisCourant)).reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);   // tous modes
   const verseTotal = vers.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
   document.getElementById(pre + '-kpis').innerHTML = `
-    <div class="sc"><div class="sc-label">${t('vs.caisse_actuelle')}</div><div class="sc-val" style="${cl(caisse)}">${fmtDH2(caisse)}</div></div>
+    <div class="sc"><div class="sc-label">${opts.libCaisse || t('vs.caisse_actuelle')}</div><div class="sc-val" style="${cl(caisse)}">${fmtDH2(caisse)}</div></div>
     <div class="sc"><div class="sc-label">${t('vs.verse_mois')}</div><div class="sc-val">${fmtDH2(verseMois)}</div></div>
-    <div class="sc"><div class="sc-label">${t('vs.verse_total')}</div><div class="sc-val">${fmtDH2(verseTotal)}</div></div>`;
+    <div class="sc"><div class="sc-label">${t('vs.verse_total')}</div><div class="sc-val">${fmtDH2(verseTotal)}</div></div>`
+    + (opts.detail ? (() => { const d = opts.detail, vEsp = (vers || []).filter(opts.filtre || (() => true)).reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
+        return `<div style="grid-column:1/-1;font-size:12px;color:var(--text2);padding:2px 2px 0">${t('vs.det_especes')} <strong style="color:var(--green-text)">${fmtDH2(d.entrees)}</strong>
+          − ${t('vs.det_charges')} <strong>${fmtDH2(d.charges)}</strong> − ${t('vs.det_salaires')} <strong>${fmtDH2(d.salaires)}</strong>
+          − ${t('vs.det_verses')} <strong>${fmtDH2(vEsp)}</strong>${capital ? ` + ${t('vs.det_capital')} <strong>${fmtDH2(capital)}</strong>` : ''}
+          = <strong style="${cl(caisse)}">${fmtDH2(caisse)}</strong></div>`; })() : '');
   const alerte = document.getElementById(pre + '-sql');
   if (alerte) alerte.innerHTML = versementsActifs(activite) ? '' : `<div class="al al-e">${t('vs.sql_30')}</div>`;
 
