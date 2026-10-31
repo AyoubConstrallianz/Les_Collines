@@ -1727,7 +1727,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           </div>
           <div id="as-vs-sql"></div>
           <div class="sg" id="as-vs-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
-          <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px" data-i18n="vs.note_club">Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces, jusqu'à aujourd'hui. Les virements et chèques vont à la banque. Mois de l'année choisie ci-dessus.</p>
+          <p style="font-size:11px;color:var(--text3);margin:-6px 0 10px" data-i18n="vs.note_club">Caisse réelle = toutes les espèces encaissées (y compris les paiements d'avance datés des mois à venir) − charges, salaires et versements aux associés payés en espèces. Les virements et chèques vont à la banque.</p>
           <div style="overflow-x:auto"><table id="as-vs-mois"></table></div>
           <div class="ct" style="margin:16px 0 8px;font-size:13px" data-i18n="vs.historique">Historique des versements</div>
           <table id="as-vs-hist"></table>
@@ -2847,7 +2847,7 @@ const I18N = {
     'clients.suspendu':  'Suspendu',
     "charges.mode": "Mode de paiement",
     "charges.sql_36": "Charge enregistrée, mais sans le mode de paiement : exécutez le script 36_charges_mode.sql dans Supabase.",
-    "vs.caisse_reelle": "Caisse réelle (espèces, à ce jour)",
+    "vs.caisse_reelle": "Caisse réelle (espèces)",
     "vs.especes_mois": "Espèces du mois (entrées − sorties)",
     "vs.det_especes": "Espèces encaissées",
     "vs.det_charges": "charges",
@@ -3058,7 +3058,7 @@ const I18N = {
     "vs.titre": "Versements aux associés et caisse",
     "vs.nouveau": "+ Nouveau versement",
     "vs.historique": "Historique des versements",
-    "vs.note_club": "Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces, jusqu'à aujourd'hui. Les virements et chèques vont à la banque. Mois de l'année choisie ci-dessus.",
+    "vs.note_club": "Caisse réelle = toutes les espèces encaissées (y compris les paiements d'avance datés des mois à venir) − charges, salaires et versements aux associés payés en espèces. Les virements et chèques vont à la banque.",
     "vs.note_boutique": "Caisse de la boutique = ventes + alimentations par la salle − versements aux associés. Les achats de stock sont payés par la salle (factures fournisseurs). Mois de l'année choisie ci-dessus.",
     "vs.caisse_actuelle": "Caisse actuelle",
     "vs.verse_mois": "Versé ce mois",
@@ -4029,7 +4029,7 @@ const I18N = {
     'clients.suspendu': 'موقوف',
     "charges.mode": "طريقة الأداء",
     "charges.sql_36": "تم تسجيل المصروف بدون طريقة الأداء : شغّل السكريبت 36_charges_mode.sql في Supabase.",
-    "vs.caisse_reelle": "الصندوق الفعلي (نقداً، إلى اليوم)",
+    "vs.caisse_reelle": "الصندوق الفعلي (نقداً)",
     "vs.especes_mois": "نقد الشهر (مداخيل − مصاريف)",
     "vs.det_especes": "النقد المحصّل",
     "vs.det_charges": "المصاريف",
@@ -4240,7 +4240,7 @@ const I18N = {
     "vs.titre": "الدفعات للشركاء والصندوق",
     "vs.nouveau": "+ دفعة جديدة",
     "vs.historique": "سجل الدفعات",
-    "vs.note_club": "الصندوق الفعلي = النقد المحصّل − المصاريف والرواتب والدفعات للشركاء المدفوعة نقداً، إلى اليوم. التحويلات والشيكات تذهب إلى البنك. أشهر السنة المختارة أعلاه.",
+    "vs.note_club": "الصندوق الفعلي = كل النقد المحصّل (بما فيه الأداءات المسبقة المؤرخة في الأشهر القادمة) − المصاريف والرواتب والدفعات للشركاء المدفوعة نقداً. التحويلات والشيكات تذهب إلى البنك.",
     "vs.note_boutique": "صندوق المتجر = المبيعات + التمويل من القاعة − الدفعات للشركاء. مشتريات المخزون تُدفع من القاعة (فواتير الموردين). أشهر السنة المختارة أعلاه.",
     "vs.caisse_actuelle": "الصندوق الحالي",
     "vs.verse_mois": "المدفوع هذا الشهر",
@@ -10185,11 +10185,11 @@ const verseA = (activite, a) => versementsActifs(activite)
   : (parseFloat(activite === 'club' ? a.deja_verse : a.deja_verse_boutique) || 0);
 
 // soldes : { 'AAAA-MM': encaissements − dépenses du mois } → caisse en fin de chaque mois
-function serieCaisse(activite, soldes, capital, filtre) {
+function serieCaisse(activite, soldes, capital, filtre, toutesDates) {
   const moisCourant = thisMonth(), vers = (_vs[activite] || []).filter(filtre || (() => true));
   const parMois = {};
   vers.forEach(v => { const m = String(v.date_versement).slice(0, 7), o = parMois[m] ??= {}; o[v.associe_id] = (o[v.associe_id] || 0) + (parseFloat(v.montant) || 0); });
-  const mois = [...new Set([...Object.keys(soldes), ...Object.keys(parMois)])].filter(m => m <= moisCourant).sort();
+  const mois = [...new Set([...Object.keys(soldes), ...Object.keys(parMois)])].filter(m => toutesDates || m <= moisCourant).sort();
   let caisse = capital; const serie = {};
   mois.forEach(m => {
     const verses = parMois[m] || {}, totalVerse = Object.values(verses).reduce((s, v) => s + v, 0);
@@ -10200,25 +10200,25 @@ function serieCaisse(activite, soldes, capital, filtre) {
 }
 
 // Carte « Versements et caisse » (club : préfixe as-vs, boutique : bb-vs)
-// Caisse réelle du club : uniquement les espèces, jusqu'à aujourd'hui (virements et chèques → banque)
+// Caisse réelle du club : TOUTES les espèces enregistrées, y compris les paiements d'avance datés des mois à venir
 // = espèces encaissées − charges, salaires et versements aux associés payés en espèces (+ capital apporté)
+// Les virements et chèques vont à la banque.
 async function afficherCaisseClub(actifs, capital, an) {
-  const jour = today(), moisCourant = thisMonth();
   const [rp, rc0, rs] = await Promise.all([
-    fetchAllRows(() => sb.from('paiements').select('montant,date_paiement').eq('mode', 'Espèces').lte('date_paiement', jour).order('id')),
-    fetchAllRows(() => sb.from('charges').select('montant,date_charge,mode').lte('date_charge', jour).order('id')),
-    fetchAllRows(() => sb.from('salaires_paie').select('montant,mois,mode').lte('mois', moisCourant).order('id'))
+    fetchAllRows(() => sb.from('paiements').select('montant,date_paiement').eq('mode', 'Espèces').order('id')),
+    fetchAllRows(() => sb.from('charges').select('montant,date_charge,mode').order('id')),
+    fetchAllRows(() => sb.from('salaires_paie').select('montant,mois,mode').order('id'))
   ]);
   // Script 36 non exécuté (pas de mode sur les charges) : toutes les charges comptées en espèces
-  const rc = rc0.error ? await fetchAllRows(() => sb.from('charges').select('montant,date_charge').lte('date_charge', jour).order('id')) : rc0;
+  const rc = rc0.error ? await fetchAllRows(() => sb.from('charges').select('montant,date_charge').order('id')) : rc0;
   const especes = m => !m || !/^(virement|ch[eè]que)$/i.test(String(m).trim());
   const soldes = {}, detail = { entrees: 0, charges: 0, salaires: 0 };
   const ajoute = (m, v) => { if (m) soldes[m] = (soldes[m] || 0) + v; };
   (rp.data || []).forEach(x => { const v = parseFloat(x.montant) || 0; detail.entrees += v; ajoute(String(x.date_paiement).slice(0, 7), v); });
   (rc.data || []).filter(x => especes(x.mode)).forEach(x => { const v = parseFloat(x.montant) || 0; detail.charges += v; ajoute(String(x.date_charge).slice(0, 7), -v); });
   (rs.data || []).filter(x => especes(x.mode)).forEach(x => { const v = parseFloat(x.montant) || 0; detail.salaires += v; ajoute(x.mois, -v); });
-  const filtre = v => especes(v.mode) && String(v.date_versement) <= jour;
-  renderVersementsCaisse('club', actifs, soldes, capital, an, t('vs.especes_mois'), { filtre, libCaisse: t('vs.caisse_reelle'), detail });
+  const filtre = v => especes(v.mode);
+  renderVersementsCaisse('club', actifs, soldes, capital, an, t('vs.especes_mois'), { filtre, toutesDates: true, libCaisse: t('vs.caisse_reelle'), detail });
 }
 
 function renderVersementsCaisse(activite, associes, soldes, capital, an, libSolde, opts = {}) {
@@ -10227,7 +10227,7 @@ function renderVersementsCaisse(activite, associes, soldes, capital, an, libSold
   carte.style.display = PERMS.associes?.lire ? '' : 'none';
   document.getElementById(pre + '-new').style.display = PERMS.associes?.ecrire && versementsActifs(activite) ? '' : 'none';
   const cl = v => v < 0 ? 'color:var(--red)' : v > 0 ? 'color:var(--green)' : 'color:var(--text3)';
-  const { serie, caisse } = serieCaisse(activite, soldes, capital, opts.filtre);
+  const { serie, caisse } = serieCaisse(activite, soldes, capital, opts.filtre, opts.toutesDates);
   _vs.caisse[activite] = caisse; _vs.associes[activite] = associes;
   const moisCourant = thisMonth(), vers = _vs[activite] || [];
   const verseMois = vers.filter(v => String(v.date_versement).startsWith(moisCourant)).reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);   // tous modes

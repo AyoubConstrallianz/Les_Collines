@@ -26,9 +26,16 @@ app.use('/api', apiRouter);
 // ── Middleware ──
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// Vercel donne la même date de modification à tous les fichiers à chaque mise en ligne :
+// sans ces réglages, le navigateur recevait « non modifié » et gardait l'ancienne version.
+// Pages HTML : toujours rechargées ; autres fichiers : revalidés par empreinte (ETag), sans date.
+const optionsStatic = {
+  lastModified: false,
+  setHeaders: (res, fichier) => { if (fichier.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); }
+};
+app.use(express.static(path.join(__dirname, 'public'), optionsStatic));
 // Alias de l'application de gestion (même page que /management/)
-app.use('/gestion', express.static(path.join(__dirname, 'public', 'management')));
+app.use('/gestion', express.static(path.join(__dirname, 'public', 'management'), optionsStatic));
 
 // ── Session : cookie signé (le contenu est vérifié, impossible à modifier côté navigateur).
 // Pas de stockage en mémoire serveur : la connexion tient même quand Vercel change d'instance.
