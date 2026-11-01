@@ -1975,6 +1975,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <button class="btn" onclick="closeRecu()" data-i18n="common.fermer">Fermer</button>
             <button class="btn" onclick="telechargerRecu()" data-i18n="recu.telecharger">Télécharger PDF</button>
             <button class="btn" onclick="imprimerRecu()" data-i18n="recu.imprimer">Imprimer</button>
+            <span style="display:inline-flex;gap:4px;align-items:center"><button class="btn" onclick="imprimerTicket()" data-i18n="recu.ticket">🧾 Ticket</button><select id="recu-ticket-largeur" title="Largeur du rouleau" style="width:auto;padding:6px 8px"><option value="80">80 mm</option><option value="58">58 mm</option></select></span>
             <button class="btn" id="btn-recu-email-add" onclick="ajouterEmailRecu()" style="display:none" data-i18n="recu.ajouter_email">Ajouter un email</button>
             <button class="btn btn-p" id="btn-recu-mail" onclick="envoyerRecuMail()" data-i18n="recu.envoyer">Envoyer par mail</button>
             <button class="btn" id="btn-recu-wa" onclick="envoyerRecuWhatsApp()" style="background:#25D366;color:#fff;border-color:#25D366" data-i18n="recu.whatsapp">Envoyer par WhatsApp</button>
@@ -2847,6 +2848,7 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "recu.ticket": "🧾 Ticket",
     "recu.whatsapp": "Envoyer par WhatsApp",
     "recu.wa_no_tel": "Pas de numéro de téléphone sur la fiche du client",
     "recu.wa_message": "Bonjour %p, voici votre reçu %n de %m — Association Les Collines. Merci !",
@@ -4039,6 +4041,7 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "recu.ticket": "🧾 تذكرة",
     "recu.whatsapp": "إرسال عبر واتساب",
     "recu.wa_no_tel": "لا يوجد رقم هاتف في بطاقة الزبون",
     "recu.wa_message": "مرحباً %p، إليك وصل الأداء %n بمبلغ %m — جمعية التلال. شكراً !",
@@ -8133,7 +8136,7 @@ async function ouvrirRecu(paiementIds) {
   if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
   const ids = Array.isArray(paiementIds) ? paiementIds : [paiementIds];
   const { data: rows, error } = await sb.from('paiements')
-    .select('*,clients(id,prenom,nom,cin,telephone,telephone2,email,sports,sport)').in('id', ids);
+    .select('*,clients(id,prenom,nom,cin,telephone,telephone2,email,sports,sport,numero_adherent)').in('id', ids);
   // Ordre d'affichage = ordre demandé ; jamais deux clients sur un même reçu
   const paies = ids.map(id => (rows || []).find(r => r.id === id)).filter(Boolean)
     .filter((p, _, arr) => p.client_id === arr[0].client_id);
@@ -8152,7 +8155,8 @@ async function ouvrirRecu(paiementIds) {
 
   if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
   const blobUrl = URL.createObjectURL(doc.output('blob'));
-  _recu = { doc, blobUrl, paiements: paies, numero: numeroRecu(paies), client };
+  _recu = { doc, blobUrl, paiements: paies, numero: numeroRecu(paies), client, encaissePar };
+  try { const l = localStorage.getItem('ticket_largeur'); if (l) document.getElementById('recu-ticket-largeur').value = l; } catch (_) {}
 
   document.getElementById('recu-title').textContent = `${t('recu.title')} ${p0.numero_recu ? _recu.numero : ''}`.trim();
   document.getElementById('recu-preview').src = blobUrl;
@@ -8236,6 +8240,76 @@ function nomFichierRecu() {
 
 function telechargerRecu() {
   if (_recu) _recu.doc.save(nomFichierRecu());
+}
+
+function imprimerTicket() {
+  if (!_recu) return;
+  const largeur = document.getElementById('recu-ticket-largeur')?.value === '58' ? 58 : 80;
+  try { localStorage.setItem('ticket_largeur', String(largeur)); } catch (_) {}
+  const r = _recu, c = r.client || {}, paies = r.paiements, p0 = paies[0];
+  const total = paies.reduce((s, x) => s + (parseFloat(x.montant) || 0), 0);
+  const e = s => echapper(s ?? '');
+  const DESIG = { 'Mensualité': 'Mensualité', 'Trimestriel': 'Abonnement trimestriel', 'Semestriel': 'Abonnement semestriel', 'Annuel': 'Abonnement annuel',
+    'Inscription': "Frais d'inscription", 'Assurance': 'Assurance (1 an)', 'Équipement': 'Équipement' };
+  const fD = d => { const [y, m, j] = String(d || '').slice(0, 10).split('-'); return j ? `${j}/${m}/${y}` : ''; };
+  const maint = new Date(), imprime = `${fD(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
+  const sports = c.sports || (c.sport ? [c.sport] : []);
+  const adherent = c.numero_adherent ? String(c.numero_adherent) : (c.id ? `ADH-${c.id.substring(0, 8).toUpperCase()}` : '');
+  const mt = v => montantPdf(v);
+  const lignes = paies.map(x => {
+    const des = DESIG[x.type] || x.type || 'Paiement';
+    const per = periodeRecu(x);
+    return `<div class="li"><div class="li-h"><span>${e(des)}</span><b>${mt(x.montant)}</b></div>${per && per !== '-' ? `<div class="pt">${e(per)}</div>` : ''}</div>`;
+  }).join('');
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Ticket ${e(r.numero)}</title><style>
+    @page { size: ${largeur}mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: #000; }
+    body { width: ${largeur}mm; padding: 3mm ${largeur === 58 ? 2 : 4}mm 8mm; font: ${largeur === 58 ? 10 : 11.5}px/1.35 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { display: block; width: 100%; margin: 0 auto 2mm; }
+    .c { text-align: center; } .pt { font-size: .85em; }
+    .sep { border-top: 1px dashed #000; margin: 2mm 0; }
+    .titre { font-size: 1.25em; font-weight: 800; letter-spacing: .5px; }
+    .kv { display: flex; justify-content: space-between; gap: 2mm; } .kv b { text-align: right; }
+    .li { padding: .8mm 0; } .li-h { display: flex; justify-content: space-between; gap: 2mm; }
+    .total { display: flex; justify-content: space-between; font-size: 1.45em; font-weight: 900; padding: 1mm 0; }
+    .merci { font-weight: 700; margin-top: 2mm; }
+  </style></head><body>
+    <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
+    <div class="c pt">${e(RECU_ASSO.adresse)}<br>Tél. ${e(RECU_ASSO.tel)}<br>${e(RECU_ASSO.email)}</div>
+    <div class="sep"></div>
+    <div class="c titre">REÇU DE PAIEMENT</div>
+    <div class="c"><b>N° ${e(r.numero)}</b></div>
+    <div class="kv"><span>Date du paiement</span><b>${fD(p0.date_paiement)}</b></div>
+    <div class="kv pt"><span>Imprimé le</span><span>${imprime}</span></div>
+    <div class="sep"></div>
+    <div class="kv"><span>Client</span><b>${e(`${c.prenom || ''} ${c.nom || ''}`.trim() || '-')}</b></div>
+    ${adherent ? `<div class="kv"><span>N° adhérent</span><b>${e(adherent)}</b></div>` : ''}
+    ${c.cin ? `<div class="kv"><span>CIN</span><b>${e(c.cin)}</b></div>` : ''}
+    ${c.telephone ? `<div class="kv"><span>Tél.</span><b>${e(c.telephone)}</b></div>` : ''}
+    ${sports.length ? `<div class="kv"><span>Sport(s)</span><b>${e(sports.join(', '))}</b></div>` : ''}
+    <div class="sep"></div>
+    ${lignes}
+    <div class="sep"></div>
+    <div class="total"><span>TOTAL</span><span>${mt(total)}</span></div>
+    <div class="pt">Arrêté à la somme de : ${e(montantEnLettres(total))}.</div>
+    <div class="sep"></div>
+    <div class="kv"><span>Mode</span><b>${e([...new Set(paies.map(x => x.mode).filter(Boolean))].join(', ') || '-')}</b></div>
+    ${r.encaissePar ? `<div class="kv"><span>Encaissé par</span><b>${e(r.encaissePar)}</b></div>` : ''}
+    <div class="sep"></div>
+    <div class="c merci">Merci de votre confiance !</div>
+    <div class="c pt">Conservez ce ticket comme justificatif.</div>
+  </body></html>`;
+  // Impression dans un cadre caché, une fois le logo chargé
+  document.getElementById('cadre-ticket')?.remove();
+  const f = document.createElement('iframe');
+  f.id = 'cadre-ticket'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(f);
+  const d = f.contentWindow.document; d.open(); d.write(html); d.close();
+  const lancer = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (_) { const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); w.print(); } } };
+  const img = d.querySelector('.logo');
+  if (img && !img.complete) { img.onload = img.onerror = () => setTimeout(lancer, 50); } else setTimeout(lancer, 50);
+  logAudit('PRINT', 'paiements', `Ticket ${r.numero} (${largeur} mm)`);
 }
 
 function imprimerRecu() {
