@@ -1973,9 +1973,9 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div id="recu-mail-info" style="font-size:12px;color:var(--text2);margin-top:8px"></div>
           <div class="mo-footer" style="flex-wrap:wrap">
             <button class="btn" onclick="closeRecu()" data-i18n="common.fermer">Fermer</button>
+            <span style="display:inline-flex;gap:4px;align-items:center"><button class="btn btn-p" onclick="imprimerTicket()" data-i18n="recu.ticket">🧾 Imprimer le reçu</button><select id="recu-ticket-largeur" title="Largeur du rouleau" style="width:auto;padding:6px 8px"><option value="80">80 mm</option><option value="58">58 mm</option></select></span>
+            <button class="btn" onclick="imprimerRecu()" data-i18n="recu.imprimer">Imprimer la facture (A4)</button>
             <button class="btn" onclick="telechargerRecu()" data-i18n="recu.telecharger">Télécharger PDF</button>
-            <button class="btn" onclick="imprimerRecu()" data-i18n="recu.imprimer">Imprimer</button>
-            <span style="display:inline-flex;gap:4px;align-items:center"><button class="btn" onclick="imprimerTicket()" data-i18n="recu.ticket">🧾 Ticket</button><select id="recu-ticket-largeur" title="Largeur du rouleau" style="width:auto;padding:6px 8px"><option value="80">80 mm</option><option value="58">58 mm</option></select></span>
             <button class="btn" id="btn-recu-email-add" onclick="ajouterEmailRecu()" style="display:none" data-i18n="recu.ajouter_email">Ajouter un email</button>
             <button class="btn btn-p" id="btn-recu-mail" onclick="envoyerRecuMail()" data-i18n="recu.envoyer">Envoyer par mail</button>
             <button class="btn" id="btn-recu-wa" onclick="envoyerRecuWhatsApp()" style="background:#25D366;color:#fff;border-color:#25D366" data-i18n="recu.whatsapp">Envoyer par WhatsApp</button>
@@ -2848,7 +2848,7 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
-    "recu.ticket": "🧾 Ticket",
+    "recu.ticket": "🧾 Imprimer le reçu",
     "recu.whatsapp": "Envoyer par WhatsApp",
     "recu.wa_no_tel": "Pas de numéro de téléphone sur la fiche du client",
     "recu.wa_message": "Bonjour %p, voici votre reçu %n de %m — Association Les Collines. Merci !",
@@ -3729,7 +3729,7 @@ const I18N = {
     'doublons.inscrit':  'inscrit le',
     'recu.btn':          'Reçu',
     'recu.telecharger':  'Télécharger PDF',
-    'recu.imprimer':     'Imprimer',
+    'recu.imprimer':     'Imprimer la facture (A4)',
     'recu.envoyer':      'Envoyer par mail',
     'recu.envoi':        'Envoi en cours…',
     'recu.envoye':       'Reçu envoyé à %s',
@@ -4041,7 +4041,7 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
-    "recu.ticket": "🧾 تذكرة",
+    "recu.ticket": "🧾 طباعة الوصل",
     "recu.whatsapp": "إرسال عبر واتساب",
     "recu.wa_no_tel": "لا يوجد رقم هاتف في بطاقة الزبون",
     "recu.wa_message": "مرحباً %p، إليك وصل الأداء %n بمبلغ %m — جمعية التلال. شكراً !",
@@ -4866,7 +4866,7 @@ const I18N = {
     'doublons.inscrit': 'مسجل في',
     'recu.btn':         'وصل',
     'recu.telecharger': 'تحميل PDF',
-    'recu.imprimer':    'طباعة',
+    'recu.imprimer':    'طباعة الفاتورة (A4)',
     'recu.envoyer':     'إرسال بالبريد',
     'recu.envoi':       'جارٍ الإرسال…',
     'recu.envoye':      'تم إرسال الوصل إلى %s',
@@ -8265,10 +8265,11 @@ function imprimerTicket() {
     @page { size: ${largeur}mm auto; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { background: #fff; color: #000; }
-    body { width: ${largeur}mm; padding: 3mm ${largeur === 58 ? 2 : 4}mm 8mm; font: ${largeur === 58 ? 10 : 11.5}px/1.35 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .logo { display: block; width: 100%; margin: 0 auto 2mm; }
+    body { width: ${largeur}mm; padding: 5mm ${largeur === 58 ? 2 : 4}mm 0; font: ${largeur === 58 ? 10 : 11.5}px/1.5 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { display: block; width: 100%; margin: 0 auto 3mm; }
     .c { text-align: center; } .pt { font-size: .85em; }
-    .sep { border-top: 1px dashed #000; margin: 2mm 0; }
+    .sep { border-top: 1px dashed #000; margin: 3mm 0; }
+    .avance { white-space: pre; line-height: 1.6; font-size: 8px; color: #000; text-align: center; }
     .titre { font-size: 1.25em; font-weight: 800; letter-spacing: .5px; }
     .kv { display: flex; justify-content: space-between; gap: 2mm; } .kv b { text-align: right; }
     .li { padding: .8mm 0; } .li-h { display: flex; justify-content: space-between; gap: 2mm; }
@@ -8299,6 +8300,8 @@ function imprimerTicket() {
     <div class="sep"></div>
     <div class="c merci">Merci de votre confiance !</div>
     <div class="c pt">Conservez ce ticket comme justificatif.</div>
+    <!-- Avance du papier (~6 lignes) avant la coupe ; le point final empêche le pilote de supprimer cet espace blanc -->
+    <div class="avance">\n\n\n\n\n\n.</div>
   </body></html>`;
   // Impression dans un cadre caché, une fois le logo chargé
   document.getElementById('cadre-ticket')?.remove();
