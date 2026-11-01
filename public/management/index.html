@@ -8269,7 +8269,7 @@ function imprimerTicket() {
     .logo { display: block; width: 100%; margin: 0 auto 3mm; }
     .c { text-align: center; } .pt { font-size: .85em; }
     .sep { border-top: 1px dashed #000; margin: 3mm 0; }
-    .avance { white-space: pre; line-height: 1.6; font-size: 8px; color: #000; text-align: center; }
+    .avance { white-space: pre; line-height: 1.6; color: #000; text-align: center; }
     .titre { font-size: 1.25em; font-weight: 800; letter-spacing: .5px; }
     .kv { display: flex; justify-content: space-between; gap: 2mm; } .kv b { text-align: right; }
     .li { padding: .8mm 0; } .li-h { display: flex; justify-content: space-between; gap: 2mm; }
@@ -8300,8 +8300,8 @@ function imprimerTicket() {
     <div class="sep"></div>
     <div class="c merci">Merci de votre confiance !</div>
     <div class="c pt">Conservez ce ticket comme justificatif.</div>
-    <!-- Avance du papier (~12 lignes) avant la coupe ; le point final empêche le pilote de supprimer cet espace blanc -->
-    <div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n.</div>
+    <!-- Avance du papier (~15 lignes) avant la coupe ; le point final empêche le pilote de supprimer cet espace blanc -->
+    <div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.</div>
   </body></html>`;
   // Impression dans un cadre caché, une fois le logo chargé
   document.getElementById('cadre-ticket')?.remove();
