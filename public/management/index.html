@@ -7631,18 +7631,18 @@ function imprimerListeRelance(type) {
   if (!liste.length) { showToast(t('relance.vide'), 'e'); return; }
   const ticket = formatListeRelance() === '80';
   const e = s => echapper(s ?? '');
-  const titre = type === 'assurance' ? 'ASSURANCE À PAYER' : 'ABONNEMENTS ÉCHUS';
+  const titre = type === 'assurance' ? 'ASSURANCE' : 'PAIEMENT MENSUALITÉ';
   const colEtat = type === 'assurance' ? 'Assurance' : 'Retard';
   const maint = new Date();
   const le = `${dateFr(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
   const tel = c => [c.telephone, c.telephone2].filter(Boolean).join(' / ');
   const sports = c => (c.sports || (c.sport ? [c.sport] : [])).join(', ');
   const lignes = liste.map(({ c, info, etat }, i) => ticket
-    ? `<tr><td class="n">${i + 1}</td><td><b>${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</b>${tel(c) ? `<br>${e(tel(c))}` : ''}${sports(c) ? `<br><span class="pt">${e(sports(c))}</span>` : ''}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td></tr>`
-    : `<tr><td class="n">${i + 1}</td><td><b>${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</b></td><td>${e(tel(c)) || '—'}</td><td>${e(sports(c)) || '—'}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td><td></td></tr>`).join('');
+    ? `<tr><td class="n">${i + 1}</td><td><div class="nom">${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</div>${tel(c) ? e(tel(c)) : ''}${sports(c) ? `<br><span class="pt">${e(sports(c))}</span>` : ''}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td></tr>`
+    : `<tr><td class="n">${i + 1}</td><td><div class="nom">${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</div></td><td>${e(tel(c)) || '—'}</td><td>${e(sports(c)) || '—'}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td><td></td></tr>`).join('');
   const entete = ticket
     ? '<th class="n">N°</th><th>Client</th><th>' + colEtat + '</th>'
-    : `<th class="n">N°</th><th>Nom</th><th>Téléphone</th><th>Sport(s)</th><th>${colEtat}</th><th style="width:28%">Observation</th>`;
+    : `<th class="n">N°</th><th>Nom et prénom</th><th>Téléphone</th><th>Sport(s)</th><th>${colEtat}</th><th style="width:28%">Observation</th>`;
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${titre}</title><style>
     @page { size: ${ticket ? '80mm auto' : 'A4'}; margin: ${ticket ? '0' : '12mm'}; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -7650,7 +7650,9 @@ function imprimerListeRelance(type) {
     body { ${ticket ? 'width: 80mm; padding: 5mm 3mm 0;' : ''} font: ${ticket ? '10.5px' : '12px'}/1.45 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .logo { display: block; width: ${ticket ? '100%' : '70mm'}; margin: 0 auto 3mm; }
     .c { text-align: center; } .pt { font-size: .85em; }
-    .titre { font-size: 1.35em; font-weight: 800; letter-spacing: .5px; }
+    .titre { font-size: ${ticket ? '2em' : '2.4em'}; font-weight: 900; letter-spacing: .5px; line-height: 1.2; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 1.5mm 0; margin-top: 1mm; }
+    .sous-titre { font-size: 1.1em; font-weight: 700; margin-top: 1.5mm; }
+    .nom { font-size: ${ticket ? '1.45em' : '1.5em'}; font-weight: 800; line-height: 1.25; }
     .info { margin: 1mm 0 4mm; }
     table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #000; padding: ${ticket ? '1.2mm' : '2mm 2.5mm'}; text-align: left; vertical-align: top; }
@@ -7660,6 +7662,7 @@ function imprimerListeRelance(type) {
   </style></head><body>
     <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
     <div class="c titre">${titre}</div>
+    <div class="c sous-titre">${type === 'assurance' ? "Clients dont l'assurance est à payer" : "Clients dont la mensualité n'est pas payée"}</div>
     <div class="c info">${liste.length} client${liste.length > 1 ? 's' : ''} — liste du ${le}</div>
     <table><thead><tr>${entete}</tr></thead><tbody>${lignes}</tbody></table>
     ${ticket ? `<div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.</div>` : ''}
