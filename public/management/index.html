@@ -977,17 +977,27 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         <!-- Sélecteur de mois -->
         <div class="toolbar">
           <label style="font-size:13px;color:var(--text2);font-weight:500" data-i18n="db.mois">Mois affiché :</label>
-          <input type="month" id="db-mois" style="font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)" onchange="loadDashboard()">
-          <button class="btn btn-sm" onclick="document.getElementById('db-mois').value=thisMonth();loadDashboard()" data-i18n="db.cemois">Ce mois</button>
+          <select id="db-mois" style="width:auto;font-size:13px;padding:6px 12px" onchange="loadDashboard()"><option value="" data-i18n="fin.tous_mois">Tous les mois (passés et à venir)</option></select>
+          <button class="btn btn-sm" onclick="dbChoisirMois(thisMonth())" data-i18n="db.cemois">Ce mois</button>
+          <button class="btn btn-sm" onclick="dbChoisirMois('')" data-i18n="fin.btn_tous">Tous les mois</button>
         </div>
         <div id="db-assur-alert" class="al al-e" style="display:none;margin-bottom:1rem;cursor:pointer" onclick="nav('clients',document.querySelector('.nav[data-page=clients]'))"></div>
 
         <!-- Stats principales -->
-        <div class="sg" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        <div class="sg" style="grid-template-columns:repeat(5,minmax(0,1fr))">
           <div class="sc" style="cursor:pointer" onclick="nav('clients',document.querySelector('.nav[data-page=clients]'))"><div class="sc-label" data-i18n="db.clients_actifs">Clients actifs</div><div class="sc-val" id="db-nc">—</div><div class="sc-sub" id="db-nc-sub"></div></div>
-          <div class="sc" style="cursor:pointer" onclick="nav('paiements',document.querySelector('.nav[data-page=paiements]'))"><div class="sc-label" data-i18n="db.recettes_mois">Recettes du mois</div><div class="sc-val" id="db-rm" style="color:var(--green-text)">—</div></div>
-          <div class="sc" style="cursor:pointer" onclick="nav('charges',document.querySelector('.nav[data-page=charges]'))"><div class="sc-label" data-i18n="db.charges_mois">Charges du mois</div><div class="sc-val" id="db-cm" style="color:var(--red-text)">—</div></div>
-          <div class="sc" style="cursor:pointer" onclick="nav('stats',document.querySelector('.nav-single[data-page=stats]'))"><div class="sc-label" data-i18n="db.solde">Solde net</div><div class="sc-val" id="db-sol" style="color:var(--blue-text)">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="fin.recettes">Recettes</div><div class="sc-val" id="db-rm" style="color:var(--green-text)">—</div><div class="sc-sub db-fin-per"></div></div>
+          <div class="sc"><div class="sc-label" data-i18n="fin.depenses_col">Dépenses</div><div class="sc-val" id="db-cm" style="color:var(--red-text)">—</div><div class="sc-sub" data-i18n="fin.depenses_sub">Charges + salaires</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="fin.solde_tous">Solde (tous modes)</div><div class="sc-val" id="db-sol">—</div><div class="sc-sub" data-i18n="fin.solde_sub">Recettes − dépenses</div></div>
+          <div class="sc" style="border:1px solid var(--green);"><div class="sc-label" data-i18n="vs.caisse_reelle">Caisse réelle (espèces)</div><div class="sc-val" id="db-caisse">—</div><div class="sc-sub" id="db-caisse-sub"></div></div>
+        </div>
+
+        <!-- Recettes et dépenses de tous les mois -->
+        <div class="card" style="margin-bottom:1.25rem">
+          <div class="ct" data-i18n="fin.titre_mois">Recettes et dépenses par mois</div>
+          <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="fin.note">Tous les mois, y compris les paiements d'avance datés des mois à venir. Cliquez sur un mois pour voir son détail. Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces (+ capital), comme sur la page Associés.</p>
+          <div style="overflow-x:auto"><table id="db-fin-table"></table></div>
+          <div id="db-fin-detail"></div>
         </div>
 
         <!-- Stats secondaires -->
@@ -2282,21 +2292,12 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         <p class="psubtitle" data-i18n="stats.subtitle">Analysez les performances financières et sportives</p>
         <div class="toolbar">
           <button class="btn btn-p" onclick="openBilanMensuel()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg> <span data-i18n="bilan.btn">Récapitulatif entrées / sorties</span></button>
-          <select id="st-fin-mois" onchange="renderFinances()" style="width:auto"><option value="" data-i18n="fin.tous_mois">Tous les mois (passés et à venir)</option></select>
-          <span id="st-fin-periode" style="font-size:12px;color:var(--text2)"></span>
         </div>
-        <div class="sg" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+        <div class="sg">
           <div class="sc"><div class="sc-label" data-i18n="stats.total_clients">Total clients</div><div class="sc-val" id="st-tc">—</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="stats.total_recettes">Total recettes</div><div class="sc-val" id="st-tr" style="color:var(--green)">—</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="fin.depenses">Total dépenses</div><div class="sc-val" id="st-tch" style="color:var(--red)">—</div><div style="font-size:11px;color:var(--text3)" data-i18n="fin.depenses_sub">Charges + salaires</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="fin.solde_tous">Solde (tous modes)</div><div class="sc-val" id="st-bn">—</div><div style="font-size:11px;color:var(--text3)" data-i18n="fin.solde_sub">Recettes − dépenses</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="vs.caisse_reelle">Caisse réelle (espèces)</div><div class="sc-val" id="st-caisse">—</div><div style="font-size:11px;color:var(--text3)" id="st-caisse-sub"></div></div>
-        </div>
-        <div class="card" style="margin-bottom:1rem">
-          <div class="ct" data-i18n="fin.titre_mois">Recettes et dépenses par mois</div>
-          <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="fin.note">Tous les mois, y compris les paiements d'avance datés des mois à venir. Cliquez sur un mois pour voir son détail. Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces (+ capital), comme sur la page Associés.</p>
-          <div style="overflow-x:auto"><table id="st-fin-table"></table></div>
-          <div id="st-fin-detail"></div>
+          <div class="sc"><div class="sc-label" data-i18n="stats.total_recettes">Total recettes</div><div class="sc-val" id="st-tr">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="stats.total_charges">Total charges</div><div class="sc-val" id="st-tch">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="stats.benefice_net">Bénéfice net</div><div class="sc-val" id="st-bn">—</div></div>
         </div>
         <div class="g2">
           <div class="card"><div class="ct" data-i18n="stats.clients_sport">Clients par sport</div><div id="st-sports"></div></div>
@@ -2865,6 +2866,7 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "fin.btn_tous": "Tous les mois",
     "fin.tous_mois": "Tous les mois (passés et à venir)",
     "fin.depenses": "Total dépenses",
     "fin.depenses_sub": "Charges + salaires",
@@ -4090,6 +4092,7 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "fin.btn_tous": "كل الأشهر",
     "fin.tous_mois": "كل الأشهر (الماضية والقادمة)",
     "fin.depenses": "إجمالي المصاريف",
     "fin.depenses_sub": "التكاليف + الأجور",
@@ -5345,11 +5348,11 @@ function applyLang() {
   // ── Dashboard ───────────────────────────────────────────────
   const dbSc = document.getElementById('db-mois');
   if (dbSc?.previousElementSibling) dbSc.previousElementSibling.textContent = t('db.mois');
-  const cemoisBtn = document.querySelector('[onclick="document.getElementById(\'db-mois\').value=thisMonth();loadDashboard()"]');
+  const cemoisBtn = document.querySelector('[onclick="dbChoisirMois(thisMonth())"]');
   if (cemoisBtn) cemoisBtn.textContent = t('db.cemois');
 
-  [{id:'db-nc',k:'db.clients_actifs'},{id:'db-rm',k:'db.recettes_mois'},
-   {id:'db-cm',k:'db.charges_mois'},{id:'db-sol',k:'db.solde'},
+  [{id:'db-nc',k:'db.clients_actifs'},{id:'db-rm',k:'fin.recettes'},
+   {id:'db-cm',k:'fin.depenses_col'},{id:'db-sol',k:'fin.solde_tous'},{id:'db-caisse',k:'vs.caisse_reelle'},
    {id:'db-rec-annee',k:'db.rec_annee'},{id:'db-sal-mois',k:'db.salaires_mois'}
   ].forEach(({id,k})=>{
     const sc=document.getElementById(id)?.closest('.sc');
@@ -5787,10 +5790,9 @@ function nav(page, btn) {
 // ════════════════════════════════════════════════════════════
 async function loadDashboard() {
   majAlerteAssuranceDashboard();
-  // Mois sélectionné (défaut = mois en cours)
-  const moisEl = document.getElementById('db-mois');
-  if (!moisEl.value) moisEl.value = thisMonth();
-  const mois = moisEl.value;
+  loadFinances();
+  // Mois sélectionné (vide = tous les mois) ; les blocs propres à un mois prennent alors le mois en cours
+  const mois = document.getElementById('db-mois').value || thisMonth();
   const year = mois.split('-')[0];
 
   // Chargement parallèle de toutes les données nécessaires
@@ -5823,13 +5825,8 @@ async function loadDashboard() {
 
   document.getElementById('db-nc').textContent      = nbActifs;
   document.getElementById('db-nc-sub').textContent  = LANG === 'ar' ? `${nbTotal} إجمالي المسجلين` : `${nbTotal} total inscrits`;
-  document.getElementById('db-rm').textContent      = fmt(recMois);
-  document.getElementById('db-cm').textContent      = fmt(totalCh);
   document.getElementById('db-rec-annee').textContent = fmt(recYear);
   document.getElementById('db-sal-mois').textContent  = fmt(salMois);
-  const solEl = document.getElementById('db-sol');
-  solEl.textContent  = fmt(solde);
-  solEl.style.color  = solde >= 0 ? 'var(--green)' : 'var(--red)';
 
   // ── Situation des abonnements aujourd'hui (période glissante) ──
   const sitAbo = situationAbonnements(paie);
@@ -10958,13 +10955,21 @@ async function delPlanning(id) {
 // ════════════════════════════════════════════════════════════
 async function loadStats() {
   const year = new Date().getFullYear();
-  loadFinances();
-  const [{ count: tc }, { data: paie }, { data: clients }] = await Promise.all([
+  const [{ count: tc }, { data: paie }, { data: charges }, { data: sal }, { data: clients }] = await Promise.all([
     sb.from('clients').select('*',{count:'exact',head:true}),
     fetchAllRows(() => sb.from('paiements').select('montant,date_paiement').order('id')),
+    fetchAllRows(() => sb.from('charges').select('montant,date_charge').order('id')),
+    fetchAllRows(() => sb.from('salaires_paie').select('montant').order('id')),
     sb.from('clients').select('sport,statut')
   ]);
+
+  const tr   = (paie||[]).reduce((a,p)=>a+parseFloat(p.montant||0),0);
+  const tch  = (charges||[]).reduce((a,c)=>a+parseFloat(c.montant||0),0) + (sal||[]).reduce((a,s)=>a+parseFloat(s.montant||0),0);
+  const bn   = tr - tch;
   document.getElementById('st-tc').textContent  = tc||0;
+  document.getElementById('st-tr').textContent  = fmt(tr);
+  document.getElementById('st-tch').textContent = fmt(tch);
+  const bnel = document.getElementById('st-bn'); bnel.textContent = fmt(bn); bnel.style.color = bn>=0?'var(--green)':'var(--red)';
 
   // Sports
   const sc = {};
@@ -11046,10 +11051,23 @@ async function loadFinances() {
   Object.keys(M).sort().forEach(m => { const o = M[m]; o.esp = o.espIn - o.espOut - o.verse; caisse += o.esp; o.caisseFin = Math.round(caisse * 100) / 100; });
   _fin = { M, capital, caisse: Math.round(caisse * 100) / 100 };
 
-  const sel = document.getElementById('st-fin-mois'), cur = sel.value;
-  sel.innerHTML = `<option value="">${t('fin.tous_mois')}</option>` + Object.keys(M).sort().reverse().map(m => `<option value="${m}">${nomMoisFin(m)}</option>`).join('');
-  if (cur && M[cur]) sel.value = cur;
+  remplirMoisDashboard();
   renderFinances();
+}
+
+// Liste du filtre : tous les mois ayant des recettes ou des dépenses, et le mois en cours
+function remplirMoisDashboard() {
+  const sel = document.getElementById('db-mois'), cur = sel.value;
+  const liste = [...new Set([...Object.keys(_fin?.M || {}), thisMonth(), ...(cur ? [cur] : [])])].sort().reverse();
+  sel.innerHTML = `<option value="">${t('fin.tous_mois')}</option>` + liste.map(m => `<option value="${m}">${nomMoisFin(m)}</option>`).join('');
+  sel.value = cur;
+}
+
+function dbChoisirMois(m) {
+  const sel = document.getElementById('db-mois');
+  if (m && ![...sel.options].some(o => o.value === m)) sel.insertAdjacentHTML('beforeend', `<option value="${m}">${nomMoisFin(m)}</option>`);
+  sel.value = m;
+  loadDashboard();
 }
 
 function nomMoisFin(m) {
@@ -11058,23 +11076,24 @@ function nomMoisFin(m) {
 }
 
 function choisirMoisFinances(m) {
-  const sel = document.getElementById('st-fin-mois');
-  sel.value = sel.value === m ? '' : m;   // re-cliquer sur le mois choisi revient à « Tous les mois »
-  renderFinances();
+  dbChoisirMois(document.getElementById('db-mois').value === m ? '' : m);   // re-cliquer sur le mois choisi revient à « Tous les mois »
 }
 
 function renderFinances() {
   if (!_fin) return;
-  const { M } = _fin, sel = document.getElementById('st-fin-mois').value, moisCourant = thisMonth();
+  const { M } = _fin, sel = document.getElementById('db-mois').value, moisCourant = thisMonth();
   const cl = v => v < 0 ? 'color:var(--red)' : v > 0 ? 'color:var(--green)' : 'color:var(--text3)';
   const liste = Object.keys(M).sort().reverse();
   const somme = k => (sel ? [sel] : liste).reduce((s, m) => s + (M[m]?.[k] || 0), 0);
   const rec = somme('recettes'), dep = somme('depenses'), solde = rec - dep;
-  document.getElementById('st-fin-periode').textContent = sel ? `${t('fin.periode')} : ${nomMoisFin(sel)}` : '';
-  document.getElementById('st-tr').textContent = fmt(rec);
-  document.getElementById('st-tch').textContent = fmt(dep);
-  const bn = document.getElementById('st-bn'); bn.textContent = fmt(solde); bn.style.cssText = cl(solde);
-  const ca = document.getElementById('st-caisse'), sub = document.getElementById('st-caisse-sub');
+  document.querySelectorAll('.db-fin-per').forEach(x => { x.textContent = sel ? nomMoisFin(sel) : t('fin.tous_mois'); });
+  document.getElementById('db-rm').textContent = fmt(rec);
+  document.getElementById('db-cm').textContent = fmt(dep);
+  const bn = document.getElementById('db-sol'); bn.textContent = fmt(solde); bn.style.cssText = cl(solde);
+  // Caisse réelle : réservée aux comptes qui voient les associés (versements et capital entrent dans le calcul)
+  const voirCaisse = !!PERMS.associes?.lire;
+  const ca = document.getElementById('db-caisse'), sub = document.getElementById('db-caisse-sub');
+  ca.closest('.sc').style.display = voirCaisse ? '' : 'none';
   if (sel) {
     const o = M[sel] || { esp: 0, caisseFin: 0 };
     ca.textContent = fmt(o.esp); ca.style.cssText = cl(o.esp);
@@ -11093,21 +11112,21 @@ function renderFinances() {
     return `<tr style="cursor:pointer;${actif}" onclick="choisirMoisFinances('${m}')" title="${t('fin.voir_detail')}">
       <td><strong>${nomMoisFin(m)}</strong>${m > moisCourant ? ` <span class="badge b-i" style="font-size:10px">${t('fin.a_venir')}</span>` : ''}</td>
       <td style="color:var(--green);font-weight:600">${fmt(o.recettes)}</td><td style="color:var(--red);font-weight:600">${fmt(o.depenses)}</td>
-      <td style="font-weight:700;${cl(s)}">${fmt(s)}</td><td style="${cl(o.esp)}">${fmt(o.esp)}</td><td style="font-weight:700;${cl(o.caisseFin)}">${fmt(o.caisseFin)}</td></tr>`;
+      <td style="font-weight:700;${cl(s)}">${fmt(s)}</td>${voirCaisse ? `<td style="${cl(o.esp)}">${fmt(o.esp)}</td><td style="font-weight:700;${cl(o.caisseFin)}">${fmt(o.caisseFin)}</td>` : ''}</tr>`;
   }).join('');
   const sTot = tot.recettes - tot.depenses;
-  document.getElementById('st-fin-table').innerHTML = liste.length ? `<thead><tr><th>${t('as.mois')}</th><th>${t('fin.recettes')}</th><th>${t('fin.depenses_col')}</th>
-      <th>${t('fin.solde_tous')}</th><th>${t('fin.esp_col')}</th><th>${t('vs.caisse_fin')}</th></tr></thead><tbody>${lignes}
+  document.getElementById('db-fin-table').innerHTML = liste.length ? `<thead><tr><th>${t('as.mois')}</th><th>${t('fin.recettes')}</th><th>${t('fin.depenses_col')}</th>
+      <th>${t('fin.solde_tous')}</th>${voirCaisse ? `<th>${t('fin.esp_col')}</th><th>${t('vs.caisse_fin')}</th>` : ''}</tr></thead><tbody>${lignes}
       <tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('fin.total')}</td>
       <td style="font-weight:800;color:var(--green)">${fmt(tot.recettes)}</td><td style="font-weight:800;color:var(--red)">${fmt(tot.depenses)}</td>
-      <td style="font-weight:800;${cl(sTot)}">${fmt(sTot)}</td><td style="font-weight:800;${cl(tot.esp)}">${fmt(tot.esp)}</td>
-      <td style="font-weight:800;${cl(_fin.caisse)}">${fmt(_fin.caisse)}</td></tr></tbody>`
+      <td style="font-weight:800;${cl(sTot)}">${fmt(sTot)}</td>${voirCaisse ? `<td style="font-weight:800;${cl(tot.esp)}">${fmt(tot.esp)}</td>
+      <td style="font-weight:800;${cl(_fin.caisse)}">${fmt(_fin.caisse)}</td>` : ''}</tr></tbody>`
     : `<tbody><tr class="empty-row"><td>${t('msg.no_data')}</td></tr></tbody>`;
-  if (_fin.capital) document.getElementById('st-fin-table').insertAdjacentHTML('beforeend',
+  if (voirCaisse && _fin.capital) document.getElementById('db-fin-table').insertAdjacentHTML('beforeend',
     `<caption style="caption-side:bottom;text-align:start;font-size:11px;color:var(--text3);padding-top:6px">${t('fin.capital')} : ${fmt(_fin.capital)}</caption>`);
 
   // Détail du mois choisi
-  const det = document.getElementById('st-fin-detail');
+  const det = document.getElementById('db-fin-detail');
   if (!sel || !M[sel]) { det.innerHTML = ''; return; }
   const o = M[sel];
   const TYPES = { abo: t('fin.t_abo'), inscr: t('fin.t_inscr'), assur: t('fin.t_assur'), autre: t('fin.t_autre') };
@@ -11126,9 +11145,9 @@ function renderFinances() {
       <div><div style="display:flex;justify-content:space-between;font-weight:800"><span>${t('fin.depenses_col')}</span><span style="color:var(--red)">${fmt(o.depenses)}</span></div>
         ${bloc(t('fin.par_cat'), o.cats, {}, 'var(--red)')}${bloc(t('fin.par_mode'), o.modesD, MODES, 'var(--red)')}</div>
     </div>
-    <div style="margin-top:10px;font-size:12px;color:var(--text2)">${t('fin.esp_detail')} <strong style="color:var(--green-text)">${fmt(o.espIn)}</strong>
+    ${!voirCaisse ? '' : `<div style="margin-top:10px;font-size:12px;color:var(--text2)">${t('fin.esp_detail')} <strong style="color:var(--green-text)">${fmt(o.espIn)}</strong>
       − ${t('fin.esp_sorties')} <strong>${fmt(o.espOut)}</strong> − ${t('vs.det_verses')} <strong>${fmt(o.verse)}</strong>
-      = <strong style="${cl(o.esp)}">${fmt(o.esp)}</strong> · ${t('fin.caisse_fin')} : <strong style="${cl(o.caisseFin)}">${fmt(o.caisseFin)}</strong></div>
+      = <strong style="${cl(o.esp)}">${fmt(o.esp)}</strong> · ${t('fin.caisse_fin')} : <strong style="${cl(o.caisseFin)}">${fmt(o.caisseFin)}</strong></div>`}
   </div>`;
 }
 
