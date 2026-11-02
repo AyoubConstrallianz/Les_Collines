@@ -7996,34 +7996,69 @@ function renderDeclarations() {
     </tr>`).join('');
 }
 
-// Liste A4 à envoyer à l'assurance : ID, NOM, PRÉNOM, DATE DE NAISSANCE
-function imprimerListeDeclaration() {
+// Liste à envoyer à l'assurance : PDF A4 (ID, NOM, PRÉNOM, DATE DE NAISSANCE) avec cachet en bas.
+// Un vrai PDF A4 garde son format même si la dernière imprimante utilisée est la thermique.
+async function imprimerListeDeclaration() {
   const liste = _declaration;
   if (!liste.length) { showToast(t('relance.vide'), 'e'); return; }
-  const e = s => echapper(s ?? '');
-  const lignes = liste.map(({ c }) => `<tr><td class="id">${c.numero_adherent ?? ''}</td><td>${e((c.nom || '').toUpperCase())}</td><td>${e((c.prenom || '').toUpperCase())}</td><td class="d">${c.date_naissance ? dateFr(c.date_naissance) : ''}</td></tr>`).join('');
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Déclaration assurance</title><style>
-    @page { size: A4; margin: 12mm; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background: #fff; color: #000; }
-    body { font: 12px/1.45 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .logo { display: block; width: 70mm; margin: 0 auto 3mm; }
-    .c { text-align: center; }
-    .titre { font-size: 2em; font-weight: 900; letter-spacing: .5px; line-height: 1.2; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 1.5mm 0; margin-top: 1mm; }
-    .sous-titre { font-size: 1.1em; font-weight: 700; margin-top: 1.5mm; }
-    .info { margin: 1mm 0 4mm; }
-    table { width: 100%; border-collapse: collapse; font-size: 1.15em; }
-    th, td { border: 1px solid #000; padding: 2mm 2.5mm; text-align: left; }
-    th { font-weight: 800; background: #eee; } tr { page-break-inside: avoid; }
-    .id { width: 18mm; text-align: center; } .d { width: 45mm; text-align: center; white-space: nowrap; }
-  </style></head><body>
-    <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
-    <div class="c titre">DÉCLARATION ASSURANCE</div>
-    <div class="c sous-titre">${e(RECU_ASSO.nom)} — Adhérents à déclarer</div>
-    <div class="c info">${liste.length} adhérent${liste.length > 1 ? 's' : ''} — liste du ${dateFr(today())}</div>
-    <table><thead><tr><th class="id">ID</th><th>NOM</th><th>PRÉNOM</th><th class="d">DATE DE NAISSANCE</th></tr></thead><tbody>${lignes}</tbody></table>
-  </body></html>`;
-  imprimerThermique(html);
+  if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  // Onglet ouvert tout de suite (sinon bloqué comme fenêtre surgissante), rempli quand le PDF est prêt
+  const onglet = window.open('', '_blank');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, H = 297, M = 15, bas = H - 14;
+  const cols = [{ t: 'ID', w: 20, c: true }, { t: 'NOM', w: 60 }, { t: 'PRÉNOM', w: 58 }, { t: 'DATE DE NAISSANCE', w: 42, c: true }];
+  const le = dateFr(today());
+  let y = M;
+  try {
+    const img = await loadImageAsync('/images/logo-ticket.png');
+    const lw = 55, lh = lw * img.naturalHeight / img.naturalWidth;
+    doc.addImage(img, 'PNG', (W - lw) / 2, y, lw, lh); y += lh + 4;
+  } catch (_) {}
+  doc.setLineWidth(0.6); doc.line(M, y, W - M, y);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.text('DÉCLARATION ASSURANCE', W / 2, y + 8, { align: 'center' });
+  y += 11.5; doc.line(M, y, W - M, y);
+  doc.setFontSize(11); doc.text(`${RECU_ASSO.nom} — Adhérents à déclarer`, W / 2, y + 6, { align: 'center' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  doc.text(`${liste.length} adhérent${liste.length > 1 ? 's' : ''} — liste du ${le}`, W / 2, y + 11, { align: 'center' });
+  y += 16;
+
+  const entete = () => {
+    doc.setLineWidth(0.3); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+    let x = M;
+    // Couleur de fond remise à chaque case : jsPDF écrit le texte avec la couleur de remplissage
+    cols.forEach(col => { doc.setFillColor(235, 235, 235); doc.rect(x, y, col.w, 8, 'FD'); doc.setTextColor(0); doc.text(col.t, col.c ? x + col.w / 2 : x + 2.5, y + 5.4, col.c ? { align: 'center' } : {}); x += col.w; });
+    y += 8; doc.setFont('helvetica', 'normal');
+  };
+  entete();
+  liste.forEach(({ c }) => {
+    const vals = [String(c.numero_adherent ?? ''), (c.nom || '').toUpperCase(), (c.prenom || '').toUpperCase(), c.date_naissance ? dateFr(c.date_naissance) : ''];
+    const lignes = vals.map((v, i) => doc.splitTextToSize(v, cols[i].w - 5));
+    const h = Math.max(6.8, ...lignes.map(l => l.length * 4.4 + 2.4));
+    if (y + h > bas) { doc.addPage(); y = M; entete(); }
+    let x = M;
+    cols.forEach((col, i) => { doc.rect(x, y, col.w, h); doc.text(lignes[i], col.c ? x + col.w / 2 : x + 2.5, y + 4.6, col.c ? { align: 'center' } : {}); x += col.w; });
+    y += h;
+  });
+
+  // Bas de la dernière page : lieu et date, cadre pour le cachet et la signature
+  const hCachet = 38, yCachet = bas - hCachet;
+  if (y + 8 > yCachet) { doc.addPage(); }
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
+  doc.text(`Fait à Casablanca, le ${le}`, M, yCachet + 6);
+  doc.setLineWidth(0.4); doc.rect(W - M - 85, yCachet, 85, hCachet);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+  doc.text("Cachet et signature de l'association", W - M - 42.5, yCachet + 6, { align: 'center' });
+
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++) {
+    doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110);
+    doc.text(`Page ${i} / ${n}`, W / 2, H - 6, { align: 'center' }); doc.setTextColor(0);
+  }
+  doc.setProperties({ title: `Déclaration assurance ${le}` });
+  const url = URL.createObjectURL(doc.output('blob'));
+  if (onglet) onglet.location.href = url;
+  else doc.save(`declaration-assurance-${today()}.pdf`);
   logAudit('PRINT', 'clients', `Liste déclaration assurance (${liste.length})`);
 }
 
