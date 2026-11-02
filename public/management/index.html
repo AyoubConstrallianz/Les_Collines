@@ -1255,7 +1255,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
                 </div>
               </div>
             </div>
-            <div class="fg" style="margin-bottom:10px"><label data-i18n="paie.note">Note</label><textarea id="p-note" rows="2" style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)"></textarea></div>
+            <div class="fg" style="margin-bottom:10px"><label data-i18n="paie.note">Note</label><textarea id="p-note" rows="2" placeholder="Commentaire sur le paiement (facultatif)" data-i18n-ph="paie.note_ph" style="width:100%;font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)"></textarea></div>
             <div class="mo-footer"><button class="btn" onclick="closePaiementForm()" data-i18n="common.annuler">Annuler</button><button class="btn btn-p" id="btn-save-paie" onclick="savePaiement()" data-i18n="paie.save">Enregistrer le paiement</button></div>
             </div>
           </div>
@@ -2022,6 +2022,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="fg" style="margin-bottom:0"><label data-i18n="paie.inscr_mode">Mode de paiement</label><select id="inscr-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
             <div class="fg" style="margin-bottom:0"><label data-i18n="paie.inscr_date">Date d'inscription et du paiement</label><input id="inscr-date" type="date" onchange="majTotalInscription()"></div>
           </div>
+          <div class="fg" style="margin:10px 0 0"><label data-i18n="paie.note">Note</label><textarea id="inscr-note" rows="2" placeholder="Commentaire sur le paiement (facultatif)" data-i18n-ph="paie.note_ph" style="width:100%;font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)"></textarea></div>
           <div id="inscr-total" style="text-align:end;font-size:16px;font-weight:700;margin-top:10px"></div>
           <div class="mo-footer">
             <button class="btn" onclick="fermerInscription()" data-i18n="paie.inscr_later">Plus tard</button>
@@ -2849,6 +2850,7 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "paie.note_ph": "Commentaire sur le paiement (facultatif)",
     "bq.liste_imprimer": "🧾 Liste des articles",
     "recu.ticket": "🧾 Imprimer le reçu",
     "recu.whatsapp": "Envoyer par WhatsApp",
@@ -4043,6 +4045,7 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "paie.note_ph": "تعليق على الأداء (اختياري)",
     "bq.liste_imprimer": "🧾 قائمة المنتجات",
     "recu.ticket": "🧾 طباعة الوصل",
     "recu.whatsapp": "إرسال عبر واتساب",
@@ -6531,6 +6534,7 @@ function ouvrirInscriptionModal(client, montantsSaisis = {}) {
     <div style="font-size:12px;color:var(--text2);margin-top:2px">${sports.join(', ') || '—'}</div>`;
   document.getElementById('inscr-formule').value = formule;
   document.getElementById('inscr-date').value = client.date_inscription || today();
+  document.getElementById('inscr-note').value = '';
   document.getElementById('inscr-abo-montant').value = abo || '';
   document.getElementById('inscr-montant').value = inscr || '';
   document.getElementById('inscr-assur-montant').value = assur || '';
@@ -6582,12 +6586,13 @@ async function confirmerInscription() {
   const formule = document.getElementById('inscr-formule').value;
   const dateInscr = document.getElementById('inscr-date').value || client.date_inscription || today();
   const base = { client_id: client.id, date_paiement: dateInscr, mode, created_by: ME.id };
+  const note = document.getElementById('inscr-note').value.trim();
 
   // Une ligne par mouvement (stats propres), toutes rattachées à la même transaction (un seul reçu)
   const lignes = [];
-  if (on('abo') && val('inscr-abo-montant'))    lignes.push({ ...base, type: formule, montant: val('inscr-abo-montant'), note: '' });
-  if (on('ins') && val('inscr-montant'))        lignes.push({ ...base, type: 'Inscription', montant: val('inscr-montant'), note: 'Frais d\'inscription' });
-  if (on('assur') && val('inscr-assur-montant')) lignes.push({ ...base, type: 'Assurance', montant: val('inscr-assur-montant'), note: 'Assurance 1 an' });
+  if (on('abo') && val('inscr-abo-montant'))    lignes.push({ ...base, type: formule, montant: val('inscr-abo-montant'), note });
+  if (on('ins') && val('inscr-montant'))        lignes.push({ ...base, type: 'Inscription', montant: val('inscr-montant'), note: note || 'Frais d\'inscription' });
+  if (on('assur') && val('inscr-assur-montant')) lignes.push({ ...base, type: 'Assurance', montant: val('inscr-assur-montant'), note: note || 'Assurance 1 an' });
   if (!lignes.length) return;
   const total = lignes.reduce((a, l) => a + l.montant, 0);
 
@@ -7799,7 +7804,7 @@ async function loadPaiements() {
         <td>${badges}</td>
         <td style="color:var(--blue);font-size:12px">${mcCell}</td>
         <td>${modeTr[p.mode]||p.mode}</td>
-        <td style="color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis">${notes}</td>
+        <td style="color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${echapper(notes)}">${echapper(notes)}</td>
         <td>${saisie(p)}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecu(${idsAttr(g)})">${t('recu.btn')}</button> ${canEdit?`<button class="btn btn-sm" onclick="modifierTransaction(${idsAttr(g)})">${t('common.modifier')}</button>`:''} ${canDel?`<button class="btn btn-sm btn-d" onclick="delTransaction(${idsAttr(g)})">${t('msg.suppr')}</button>`:''}</td></tr>`;
       }).join('')
