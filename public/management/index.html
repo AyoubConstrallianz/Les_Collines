@@ -7697,14 +7697,13 @@ function imprimerListeRelance(type) {
   const colEtat = type === 'assurance' ? 'Assurance' : 'Retard';
   const maint = new Date();
   const le = `${dateFr(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
-  const tel = c => [c.telephone, c.telephone2].filter(Boolean).join(' / ');
   const sports = c => (c.sports || (c.sport ? [c.sport] : [])).join(', ');
   const lignes = liste.map(({ c, info, etat }, i) => ticket
-    ? `<tr><td class="n">${i + 1}</td><td><div class="nom">${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</div>${tel(c) ? e(tel(c)) : ''}${sports(c) ? `<br><span class="pt">${e(sports(c))}</span>` : ''}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td></tr>`
-    : `<tr><td class="n">${i + 1}</td><td><div class="nom">${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</div></td><td>${e(tel(c)) || '—'}</td><td>${e(sports(c)) || '—'}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td><td></td></tr>`).join('');
+    ? `<tr><td class="n">${i + 1}</td><td><div class="nom">${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</div>${sports(c) ? `<span class="pt">${e(sports(c))}</span>` : ''}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td></tr>`
+    : `<tr><td class="n">${i + 1}</td><td><div class="nom">${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</div></td><td>${e(sports(c)) || '—'}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td><td></td></tr>`).join('');
   const entete = ticket
     ? '<th class="n">N°</th><th>Client</th><th>' + colEtat + '</th>'
-    : `<th class="n">N°</th><th>Nom et prénom</th><th>Téléphone</th><th>Sport(s)</th><th>${colEtat}</th><th style="width:28%">Observation</th>`;
+    : `<th class="n">N°</th><th>Nom et prénom</th><th>Sport(s)</th><th>${colEtat}</th><th style="width:30%">Observation</th>`;
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${titre}</title><style>
     @page { size: ${ticket ? '80mm auto' : 'A4'}; margin: ${ticket ? '0' : '12mm'}; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
