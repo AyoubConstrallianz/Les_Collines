@@ -1081,6 +1081,25 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <tbody id="assur-tb"></tbody></table>
           </div>
         </div>
+        <!-- DÉCLARATION À L'ASSURANCE : assurances payées pas encore déclarées à l'assureur -->
+        <div class="card" id="decl-card" style="display:none;border-left:3px solid var(--blue);border-radius:0 var(--rl) var(--rl) 0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;gap:8px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="ct" style="margin:0;color:var(--blue-text)" data-i18n="decl.title">À déclarer à l'assurance</span>
+              <span id="decl-count" class="badge b-i">0</span>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" id="decl-actions">
+              <button class="btn btn-sm" onclick="imprimerListeDeclaration()" style="font-size:12px" data-i18n="decl.imprimer">🖨️ Liste pour l'assurance</button>
+              <button class="btn btn-sm btn-p" id="decl-tout" onclick="marquerDeclares(_declaration.map(x => x.paie.id))" style="font-size:12px" data-i18n="decl.tout_marquer">✓ Marquer la liste comme déclarée</button>
+              <button class="btn btn-sm" onclick="const z=document.getElementById('decl-zone');z.style.display=z.style.display==='none'?'block':'none';this.textContent=z.style.display==='none'?t('msg.show'):t('msg.hide')" style="font-size:12px" data-i18n="msg.show">Afficher</button>
+            </div>
+          </div>
+          <div id="decl-sql" class="al al-i" style="display:none;margin:0" data-i18n="decl.sql">Pour suivre les déclarations à l'assurance, exécutez une fois le script 37_assurance_declaree.sql dans Supabase.</div>
+          <div id="decl-zone" style="overflow-x:auto;display:none">
+            <table><thead><tr><th>ID</th><th data-i18n="decl.nom">Nom</th><th data-i18n="decl.prenom">Prénom</th><th data-i18n="clients.dob">Date de naissance</th><th data-i18n="decl.payee_le">Assurance payée le</th><th data-i18n="clients.action_rapide">Action rapide</th></tr></thead>
+            <tbody id="decl-tb"></tbody></table>
+          </div>
+        </div>
         <div class="mo" id="client-form-modal">
         <div class="mo-box" style="max-width:720px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -2866,6 +2885,23 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    'decl.title':        'À déclarer à l\'assurance',
+    'decl.imprimer':     '🖨️ Liste pour l\'assurance',
+    'decl.tout_marquer': '✓ Marquer la liste comme déclarée',
+    'decl.sql':          'Pour suivre les déclarations à l\'assurance, exécutez une fois le script 37_assurance_declaree.sql dans Supabase.',
+    'decl.nom':          'Nom',
+    'decl.prenom':       'Prénom',
+    'decl.payee_le':     'Assurance payée le',
+    'decl.dob_manque':   'À compléter',
+    'decl.marquer':      'Déclaré ✓',
+    'decl.annuler':      'Annuler',
+    'decl.confirm':      'Marquer ces %n clients comme déclarés à l\'assurance aujourd\'hui ?',
+    'decl.refuse':       'Modification refusée : il faut le droit de modifier les paiements.',
+    'decl.ok':           '%n client(s) marqué(s) déclaré(s) à l\'assurance',
+    'decl.annule_ok':    'Déclaration annulée',
+    'decl.fiche':        'Déclaration assurance',
+    'decl.declaree_le':  'Déclarée le',
+    'decl.non_declaree': 'Non déclarée',
     'paie.suite':        'Suite de la dernière période payée (fin le %d) · date modifiable',
     'paie.suite_fin':    'Dernière période payée jusqu\'au %d',
     'paie.suite_retard': '%n jour(s) de retard',
@@ -4097,6 +4133,23 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    'decl.title':        'للتصريح لدى التأمين',
+    'decl.imprimer':     '🖨️ لائحة التأمين',
+    'decl.tout_marquer': '✓ تسجيل اللائحة كمصرّح بها',
+    'decl.sql':          'لتتبع التصريحات لدى التأمين، نفّذ مرة واحدة السكريبت 37_assurance_declaree.sql في Supabase.',
+    'decl.nom':          'الاسم العائلي',
+    'decl.prenom':       'الاسم الشخصي',
+    'decl.payee_le':     'تاريخ أداء التأمين',
+    'decl.dob_manque':   'يجب الإكمال',
+    'decl.marquer':      'تم التصريح ✓',
+    'decl.annuler':      'إلغاء',
+    'decl.confirm':      'تسجيل هؤلاء %n زبناء كمصرّح بهم لدى التأمين اليوم؟',
+    'decl.refuse':       'تم الرفض: يلزم حق تعديل الأداءات.',
+    'decl.ok':           'تم تسجيل %n زبون كمصرّح به لدى التأمين',
+    'decl.annule_ok':    'تم إلغاء التصريح',
+    'decl.fiche':        'التصريح لدى التأمين',
+    'decl.declaree_le':  'مصرّح به في',
+    'decl.non_declaree': 'غير مصرّح به',
     'paie.suite':        'تتمة آخر فترة مدفوعة (انتهت في %d) · التاريخ قابل للتعديل',
     'paie.suite_fin':    'آخر فترة مدفوعة إلى غاية %d',
     'paie.suite_retard': '%n يوم تأخير',
@@ -6787,6 +6840,7 @@ async function showClientFiche(idx, event) {
   if (event && (event.target.closest('button') || event.target.closest('.btn'))) return;
   const c = CLIENTS_CACHE[idx];
   if (!c) return;
+  window._ficheClientId = c.id;
 
   // Charger les paiements du client
   const { data: paies } = await sb.from('paiements').select('*').eq('client_id', c.id).order('date_paiement', { ascending: false });
@@ -6855,6 +6909,16 @@ async function showClientFiche(idx, event) {
           const [y, m, d] = today().split('-').map(Number);
           const etat = !last ? 'jamais' : fin < today() ? 'expiree' : fin <= isoLocal(new Date(y, m - 1, d + 30)) ? 'bientot' : 'ok';
           return badgeAssurance({ etat, fin });
+        })())}
+        ${infoLine(t('decl.fiche'), (() => {
+          // Assurance en cours (script 37 exécuté) : déclarée ou non à l'assureur
+          const cur = (paies||[]).filter(p => p.type === 'Assurance' && p.date_paiement && 'assurance_declaree_le' in p && finAssurance(p.date_paiement) >= today())
+            .sort((a, b) => b.date_paiement.localeCompare(a.date_paiement))[0];
+          if (!cur) return '';
+          const btn = (txt, declare) => PERMS.paiements?.ecrire ? ` <button class="btn btn-sm" style="font-size:10px;padding:1px 7px" onclick="marquerDeclares(['${cur.id}'], ${declare})">${txt}</button>` : '';
+          return cur.assurance_declaree_le
+            ? `<span class="badge b-g" style="font-size:10px">${t('decl.declaree_le')} ${dateFr(cur.assurance_declaree_le)}</span>${btn(t('decl.annuler'), false)}`
+            : `<span class="badge b-w" style="font-size:10px">${t('decl.non_declaree')}</span>${btn(t('decl.marquer'), true)}`;
         })())}
       </div>
     </div>
@@ -7677,6 +7741,7 @@ function toggleImpayes() {
 async function loadImpayes() {
   document.querySelectorAll('.liste-format').forEach(s => { s.value = formatListeRelance(); });
   loadAssuranceAlertes();
+  loadDeclarations();
   const moisCur = thisMonth();
 
   // Récupère TOUS les clients sauf Suspendus (les impayés sont devenus Inactifs)
@@ -7848,6 +7913,90 @@ async function loadAssuranceAlertes() {
       <td>${canWrite ? `<button class="btn btn-sm btn-p" onclick="encaisserAssurance('${c.id}')">${t('assur.encaisser')}</button>` : '—'}</td>
     </tr>`;
   }).join('');
+}
+
+// ── Déclaration à l'assurance : assurance en cours (payée, non expirée) pas encore déclarée ──
+// Chaque paiement d'assurance se déclare : un renouvellement repart « non déclaré »
+let _declaration = []; // [{ c, paie }]
+async function loadDeclarations() {
+  const card = document.getElementById('decl-card');
+  if (!card) return;
+  const [{ data: clients }, { data: assur, error }] = await Promise.all([
+    fetchAllRows(() => sb.from('clients').select('id,numero_adherent,prenom,nom,date_naissance').order('id')),
+    fetchAllRows(() => sb.from('paiements').select('id,client_id,date_paiement,assurance_declaree_le').eq('type', 'Assurance').order('id'))
+  ]);
+  // Colonne absente : le script 37 n'a pas encore été exécuté
+  const manque = !!error;
+  document.getElementById('decl-sql').style.display = manque ? 'block' : 'none';
+  document.getElementById('decl-actions').style.display = manque ? 'none' : 'flex';
+  if (manque) { _declaration = []; card.style.display = PERMS.paiements?.ecrire ? 'block' : 'none'; document.getElementById('decl-count').textContent = '—'; return; }
+  const auj = today(), enCours = {};
+  (assur || []).forEach(p => {
+    if (!p.client_id || !p.date_paiement || finAssurance(p.date_paiement) < auj) return;
+    if (!enCours[p.client_id] || p.date_paiement > enCours[p.client_id].date_paiement) enCours[p.client_id] = p;
+  });
+  const parId = Object.fromEntries((clients || []).map(c => [c.id, c]));
+  _declaration = Object.values(enCours).filter(p => !p.assurance_declaree_le && parId[p.client_id])
+    .map(paie => ({ c: parId[paie.client_id], paie }))
+    .sort((a, b) => (a.c.nom || '').localeCompare(b.c.nom || '', 'fr') || (a.c.prenom || '').localeCompare(b.c.prenom || '', 'fr'));
+  document.getElementById('decl-count').textContent = _declaration.length;
+  card.style.display = _declaration.length ? 'block' : 'none';
+  const canWrite = PERMS.paiements?.ecrire;
+  document.getElementById('decl-tout').style.display = canWrite ? '' : 'none';
+  document.getElementById('decl-tb').innerHTML = _declaration.map(({ c, paie }) => `
+    <tr style="cursor:pointer" title="${t('fiche.voir')}" onclick="ouvrirFicheClient('${c.id}', event)">
+      <td>${c.numero_adherent ?? '—'}</td>
+      <td><strong>${echapper((c.nom || '').toUpperCase())}</strong></td>
+      <td>${echapper(c.prenom || '')}</td>
+      <td>${c.date_naissance ? dateFr(c.date_naissance) : `<span class="badge b-w" style="font-size:10px">${t('decl.dob_manque')}</span>`}</td>
+      <td>${dateFr(paie.date_paiement)}</td>
+      <td>${canWrite ? `<button class="btn btn-sm" onclick="event.stopPropagation();marquerDeclares(['${paie.id}'])">${t('decl.marquer')}</button>` : '—'}</td>
+    </tr>`).join('');
+}
+
+// Liste A4 à envoyer à l'assurance : ID, NOM, PRÉNOM, DATE DE NAISSANCE
+function imprimerListeDeclaration() {
+  const liste = _declaration;
+  if (!liste.length) { showToast(t('relance.vide'), 'e'); return; }
+  const e = s => echapper(s ?? '');
+  const lignes = liste.map(({ c }) => `<tr><td class="id">${c.numero_adherent ?? ''}</td><td>${e((c.nom || '').toUpperCase())}</td><td>${e((c.prenom || '').toUpperCase())}</td><td class="d">${c.date_naissance ? dateFr(c.date_naissance) : ''}</td></tr>`).join('');
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Déclaration assurance</title><style>
+    @page { size: A4; margin: 12mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: #000; }
+    body { font: 12px/1.45 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { display: block; width: 70mm; margin: 0 auto 3mm; }
+    .c { text-align: center; }
+    .titre { font-size: 2em; font-weight: 900; letter-spacing: .5px; line-height: 1.2; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 1.5mm 0; margin-top: 1mm; }
+    .sous-titre { font-size: 1.1em; font-weight: 700; margin-top: 1.5mm; }
+    .info { margin: 1mm 0 4mm; }
+    table { width: 100%; border-collapse: collapse; font-size: 1.15em; }
+    th, td { border: 1px solid #000; padding: 2mm 2.5mm; text-align: left; }
+    th { font-weight: 800; background: #eee; } tr { page-break-inside: avoid; }
+    .id { width: 18mm; text-align: center; } .d { width: 45mm; text-align: center; white-space: nowrap; }
+  </style></head><body>
+    <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
+    <div class="c titre">DÉCLARATION ASSURANCE</div>
+    <div class="c sous-titre">${e(RECU_ASSO.nom)} — Adhérents à déclarer</div>
+    <div class="c info">${liste.length} adhérent${liste.length > 1 ? 's' : ''} — liste du ${dateFr(today())}</div>
+    <table><thead><tr><th class="id">ID</th><th>NOM</th><th>PRÉNOM</th><th class="d">DATE DE NAISSANCE</th></tr></thead><tbody>${lignes}</tbody></table>
+  </body></html>`;
+  imprimerThermique(html);
+  logAudit('PRINT', 'clients', `Liste déclaration assurance (${liste.length})`);
+}
+
+// Marque des paiements d'assurance comme déclarés (date du jour) ou non déclarés (declare = false)
+async function marquerDeclares(ids, declare = true) {
+  ids = (ids || []).filter(Boolean);
+  if (!ids.length) { showToast(t('relance.vide'), 'e'); return; }
+  if (ids.length > 1 && !confirm(t('decl.confirm').replace('%n', ids.length))) return;
+  const { data, error } = await sb.from('paiements').update({ assurance_declaree_le: declare ? today() : null }).in('id', ids).select('id');
+  if (error) { showToast(error.message, 'e'); return; }
+  if (!(data || []).length) { showToast(t('decl.refuse'), 'e'); return; }
+  await logAudit('UPDATE', 'paiements', `Assurance ${declare ? 'déclarée' : 'non déclarée'} (${data.length})`);
+  showToast(declare ? t('decl.ok').replace('%n', data.length) : t('decl.annule_ok'), 's');
+  loadDeclarations();
+  if (document.getElementById('client-fiche-modal')?.classList.contains('open') && window._ficheClientId) ouvrirFicheClient(window._ficheClientId);
 }
 
 async function majAlerteAssuranceDashboard() {
