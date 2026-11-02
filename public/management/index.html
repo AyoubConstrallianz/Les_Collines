@@ -1089,9 +1089,10 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
               <span id="decl-count" class="badge b-i">0</span>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" id="decl-actions">
+              <input id="decl-q" type="search" placeholder="Rechercher (ID, nom, prénom)..." data-i18n-ph="decl.recherche" oninput="rechercherDeclaration()" style="width:220px;padding:4px 8px;font-size:12px">
               <button class="btn btn-sm" onclick="imprimerListeDeclaration()" style="font-size:12px" data-i18n="decl.imprimer">🖨️ Liste pour l'assurance</button>
               <button class="btn btn-sm btn-p" id="decl-tout" onclick="marquerDeclares(_declaration.map(x => x.paie.id))" style="font-size:12px" data-i18n="decl.tout_marquer">✓ Marquer la liste comme déclarée</button>
-              <button class="btn btn-sm" onclick="const z=document.getElementById('decl-zone');z.style.display=z.style.display==='none'?'block':'none';this.textContent=z.style.display==='none'?t('msg.show'):t('msg.hide')" style="font-size:12px" data-i18n="msg.show">Afficher</button>
+              <button class="btn btn-sm" id="decl-toggle" onclick="const z=document.getElementById('decl-zone');z.style.display=z.style.display==='none'?'block':'none';this.textContent=z.style.display==='none'?t('msg.show'):t('msg.hide')" style="font-size:12px" data-i18n="msg.show">Afficher</button>
             </div>
           </div>
           <div id="decl-sql" class="al al-i" style="display:none;margin:0" data-i18n="decl.sql">Pour suivre les déclarations à l'assurance, exécutez une fois le script 37_assurance_declaree.sql dans Supabase.</div>
@@ -2889,6 +2890,8 @@ const I18N = {
     'decl.imprimer':     '🖨️ Liste pour l\'assurance',
     'decl.tout_marquer': '✓ Marquer la liste comme déclarée',
     'decl.sql':          'Pour suivre les déclarations à l\'assurance, exécutez une fois le script 37_assurance_declaree.sql dans Supabase.',
+    'decl.recherche':    'Rechercher (ID, nom, prénom)...',
+    'decl.aucun':        'Aucun client trouvé',
     'decl.nom':          'Nom',
     'decl.prenom':       'Prénom',
     'decl.payee_le':     'Assurance payée le',
@@ -4137,6 +4140,8 @@ const I18N = {
     'decl.imprimer':     '🖨️ لائحة التأمين',
     'decl.tout_marquer': '✓ تسجيل اللائحة كمصرّح بها',
     'decl.sql':          'لتتبع التصريحات لدى التأمين، نفّذ مرة واحدة السكريبت 37_assurance_declaree.sql في Supabase.',
+    'decl.recherche':    'بحث (الرقم، الاسم)...',
+    'decl.aucun':        'لا يوجد أي زبون',
     'decl.nom':          'الاسم العائلي',
     'decl.prenom':       'الاسم الشخصي',
     'decl.payee_le':     'تاريخ أداء التأمين',
@@ -7942,9 +7947,28 @@ async function loadDeclarations() {
     .sort((a, b) => (b.c.numero_adherent ?? -1) - (a.c.numero_adherent ?? -1) || (a.c.nom || '').localeCompare(b.c.nom || '', 'fr'));
   document.getElementById('decl-count').textContent = _declaration.length;
   card.style.display = _declaration.length ? 'block' : 'none';
+  document.getElementById('decl-tout').style.display = PERMS.paiements?.ecrire ? '' : 'none';
+  renderDeclarations();
+}
+
+// Recherche : ouvre le tableau et filtre par ID, nom ou prénom (la liste imprimée reste complète)
+function rechercherDeclaration() {
+  if (document.getElementById('decl-q').value.trim()) {
+    document.getElementById('decl-zone').style.display = 'block';
+    document.getElementById('decl-toggle').textContent = t('msg.hide');
+  }
+  renderDeclarations();
+}
+function renderDeclarations() {
   const canWrite = PERMS.paiements?.ecrire;
-  document.getElementById('decl-tout').style.display = canWrite ? '' : 'none';
-  document.getElementById('decl-tb').innerHTML = _declaration.map(({ c, paie }) => `
+  const sansAccents = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const q = sansAccents(document.getElementById('decl-q')?.value.trim());
+  const liste = !q ? _declaration : _declaration.filter(({ c }) => /^\d+$/.test(q)
+    ? String(c.numero_adherent ?? '').includes(q)
+    : sansAccents(`${c.nom} ${c.prenom} ${c.prenom} ${c.nom}`).includes(q));
+  document.getElementById('decl-tb').innerHTML = !liste.length
+    ? `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:14px">${t('decl.aucun')}</td></tr>`
+    : liste.map(({ c, paie }) => `
     <tr style="cursor:pointer" title="${t('fiche.voir')}" onclick="ouvrirFicheClient('${c.id}', event)">
       <td>${c.numero_adherent ?? '—'}</td>
       <td><strong>${echapper((c.nom || '').toUpperCase())}</strong></td>
