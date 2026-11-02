@@ -8743,10 +8743,16 @@ async function delSport(id) { if(!confirm(t('msg.confirm_delete')))return; await
 // ════════════════════════════════════════════════════════════
 // CHARGES
 // ════════════════════════════════════════════════════════════
+// Premier jour du mois suivant ('2026-11' → '2026-12-01') : filtre d'un mois par intervalle de dates
+function debutMoisSuivant(mois) {
+  const [a, m] = mois.split('-').map(Number);
+  return m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, '0')}-01`;
+}
+
 async function loadCharges() {
   const mois = document.getElementById('sch-mois')?.value||'';
   let query = sb.from('charges').select('*').order('date_charge',{ascending:false});
-  if (mois) query = query.like('date_charge',mois+'%');
+  if (mois) query = query.gte('date_charge', mois + '-01').lt('date_charge', debutMoisSuivant(mois));
   const { data: chargesData } = await query;
 
   // Salaires payés (Coaches & Salariés) : affichés avec les charges, rattachés au mois de paie (comme dans le bilan)
@@ -12404,7 +12410,7 @@ async function loadPresenceSemaine() {
 
   // Charge les présences enregistrées en base
   const { data: presences } = await sb.from('presences')
-    .select('*').eq('employe_id',empId).like('date_seance',mois+'%');
+    .select('*').eq('employe_id',empId).gte('date_seance', mois + '-01').lt('date_seance', debutMoisSuivant(mois));
 
   // Initialise l'état : base = ce qui est en BD, local = modifications en attente
   _pointageDatesSeances = datesSeances;
@@ -12953,7 +12959,7 @@ async function loadAbsencesHist() {
     .order('date_seance',{ascending:false})
     .limit(100);
   if (empId) query = query.eq('employe_id',empId);
-  if (mois)  query = query.like('date_seance',mois+'%');
+  if (mois)  query = query.gte('date_seance', mois + '-01').lt('date_seance', debutMoisSuivant(mois));
   const { data, error } = await query;
 
   // Peuple filtre mois
