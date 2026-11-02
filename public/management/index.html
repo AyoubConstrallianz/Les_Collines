@@ -2905,6 +2905,10 @@ const I18N = {
     'decl.fiche':        'Déclaration assurance',
     'decl.declaree_le':  'Déclarée le',
     'decl.non_declaree': 'Non déclarée',
+    'decl.sans_paie':    'sans paiement',
+    'decl.declarer_sans_paie': 'Déclarer (sans paiement)',
+    'decl.sans_paie_confirm': 'Déclarer ce client à l\'assurance aujourd\'hui, sans paiement d\'assurance ? (valable 1 an)',
+    'decl.refuse_cli':   'Modification refusée : il faut le droit de modifier les clients.',
     'paie.suite':        'Suite de la dernière période payée (fin le %d) · date modifiable',
     'paie.suite_fin':    'Dernière période payée jusqu\'au %d',
     'paie.suite_retard': '%n jour(s) de retard',
@@ -4155,6 +4159,10 @@ const I18N = {
     'decl.fiche':        'التصريح لدى التأمين',
     'decl.declaree_le':  'مصرّح به في',
     'decl.non_declaree': 'غير مصرّح به',
+    'decl.sans_paie':    'بدون أداء',
+    'decl.declarer_sans_paie': 'تصريح (بدون أداء)',
+    'decl.sans_paie_confirm': 'التصريح بهذا الزبون لدى التأمين اليوم بدون أداء التأمين؟ (صالح لسنة)',
+    'decl.refuse_cli':   'تم الرفض: يلزم حق تعديل الزبناء.',
     'paie.suite':        'تتمة آخر فترة مدفوعة (انتهت في %d) · التاريخ قابل للتعديل',
     'paie.suite_fin':    'آخر فترة مدفوعة إلى غاية %d',
     'paie.suite_retard': '%n يوم تأخير',
@@ -6919,7 +6927,13 @@ async function showClientFiche(idx, event) {
           // Assurance en cours (script 37 exécuté) : déclarée ou non à l'assureur
           const cur = (paies||[]).filter(p => p.type === 'Assurance' && p.date_paiement && 'assurance_declaree_le' in p && finAssurance(p.date_paiement) >= today())
             .sort((a, b) => b.date_paiement.localeCompare(a.date_paiement))[0];
-          if (!cur) return '';
+          // Déclaration sans paiement (script 38), valable 1 an
+          const btnCli = (txt, declare) => PERMS.clients?.ecrire ? ` <button class="btn btn-sm" style="font-size:10px;padding:1px 7px" onclick="declarerSansPaiement('${c.id}', ${declare})">${txt}</button>` : '';
+          const sansPaie = 'assurance_declaree_le' in c && declareSansPaiement(c, cur ? cur.date_paiement : today());
+          if (sansPaie && !cur?.assurance_declaree_le)
+            return `<span class="badge b-g" style="font-size:10px">${t('decl.declaree_le')} ${dateFr(c.assurance_declaree_le)} · ${t('decl.sans_paie')}</span>${btnCli(t('decl.annuler'), false)}`;
+          if (!cur) return 'assurance_declaree_le' in c
+            ? `<span class="badge b-w" style="font-size:10px">${t('decl.non_declaree')}</span>${btnCli(t('decl.declarer_sans_paie'), true)}` : '';
           const btn = (txt, declare) => PERMS.paiements?.ecrire ? ` <button class="btn btn-sm" style="font-size:10px;padding:1px 7px" onclick="marquerDeclares(['${cur.id}'], ${declare})">${txt}</button>` : '';
           return cur.assurance_declaree_le
             ? `<span class="badge b-g" style="font-size:10px">${t('decl.declaree_le')} ${dateFr(cur.assurance_declaree_le)}</span>${btn(t('decl.annuler'), false)}`
@@ -7926,10 +7940,13 @@ let _declaration = []; // [{ c, paie }]
 async function loadDeclarations() {
   const card = document.getElementById('decl-card');
   if (!card) return;
-  const [{ data: clients }, { data: assur, error }] = await Promise.all([
-    fetchAllRows(() => sb.from('clients').select('id,numero_adherent,prenom,nom,date_naissance').order('id')),
+  const colsCli = 'id,numero_adherent,prenom,nom,date_naissance';
+  let [{ data: clients, error: errCli }, { data: assur, error }] = await Promise.all([
+    fetchAllRows(() => sb.from('clients').select(colsCli + ',assurance_declaree_le').order('id')),
     fetchAllRows(() => sb.from('paiements').select('id,client_id,date_paiement,assurance_declaree_le').eq('type', 'Assurance').order('id'))
   ]);
+  // Script 38 pas encore exécuté : pas de déclaration sans paiement
+  if (errCli) ({ data: clients } = await fetchAllRows(() => sb.from('clients').select(colsCli).order('id')));
   // Colonne absente : le script 37 n'a pas encore été exécuté
   const manque = !!error;
   document.getElementById('decl-sql').style.display = manque ? 'block' : 'none';
@@ -7941,7 +7958,7 @@ async function loadDeclarations() {
     if (!enCours[p.client_id] || p.date_paiement > enCours[p.client_id].date_paiement) enCours[p.client_id] = p;
   });
   const parId = Object.fromEntries((clients || []).map(c => [c.id, c]));
-  _declaration = Object.values(enCours).filter(p => !p.assurance_declaree_le && parId[p.client_id])
+  _declaration = Object.values(enCours).filter(p => !p.assurance_declaree_le && parId[p.client_id] && !declareSansPaiement(parId[p.client_id], p.date_paiement))
     .map(paie => ({ c: parId[paie.client_id], paie }))
     // ID (n° adhérent) décroissant ; sans n° à la fin, par nom
     .sort((a, b) => (b.c.numero_adherent ?? -1) - (a.c.numero_adherent ?? -1) || (a.c.nom || '').localeCompare(b.c.nom || '', 'fr'));
@@ -8022,6 +8039,28 @@ async function marquerDeclares(ids, declare = true) {
   showToast(declare ? t('decl.ok').replace('%n', data.length) : t('decl.annule_ok'), 's');
   loadDeclarations();
   if (document.getElementById('client-fiche-modal')?.classList.contains('open') && window._ficheClientId) ouvrirFicheClient(window._ficheClientId);
+}
+
+// Déclaration faite depuis la fiche, sans paiement d'assurance : valable 1 an.
+// Elle couvre la date donnée (aujourd'hui, ou la date d'un paiement d'assurance fait ensuite).
+function declareSansPaiement(c, dateRef = today()) {
+  const d = c?.assurance_declaree_le;
+  return !!d && finAssurance(d) >= dateRef;
+}
+
+// Fiche client : déclarer (ou annuler) le client à l'assurance sans paiement d'assurance
+async function declarerSansPaiement(clientId, declare = true) {
+  if (declare && !confirm(t('decl.sans_paie_confirm'))) return;
+  const { data, error } = await sb.from('clients').update({ assurance_declaree_le: declare ? today() : null, updated_at: new Date().toISOString() })
+    .eq('id', clientId).select('*');
+  if (error) { showToast(error.message, 'e'); return; }
+  if (!(data || []).length) { showToast(t('decl.refuse_cli'), 'e'); return; }
+  const i = CLIENTS_CACHE.findIndex(x => x.id === clientId);
+  if (i >= 0) CLIENTS_CACHE[i] = { ...CLIENTS_CACHE[i], ...data[0] };
+  await logAudit('UPDATE', 'clients', `Assurance ${declare ? 'déclarée' : 'déclaration annulée'} sans paiement : ${data[0].prenom} ${data[0].nom}`);
+  showToast(declare ? t('decl.ok').replace('%n', 1) : t('decl.annule_ok'), 's');
+  loadDeclarations();
+  if (i >= 0) showClientFiche(i);
 }
 
 async function majAlerteAssuranceDashboard() {
