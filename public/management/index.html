@@ -1232,7 +1232,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
                 <label><span data-i18n="paie.montant">Montant (DH)</span> <span id="p-montant-hint" style="font-size:11px;color:var(--blue-text);font-weight:400"></span></label>
                 <input id="p-montant" type="number" placeholder="0" min="0">
               </div>
-              <div class="fg"><label data-i18n="paie.date">Date</label><input id="p-date" type="date" onchange="updatePeriodeDetail();updateFraisInfo(window._paieClientCourant)"></div>
+              <div class="fg"><label data-i18n="paie.date">Date</label><input id="p-date" type="date" onchange="this.dataset.manuel='1';updatePeriodeDetail();updateFraisInfo(window._paieClientCourant)"></div>
             </div>
             <div id="p-frais-info" style="display:none;margin-bottom:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:12px"></div>
             <div id="p-sports-detail" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--r);font-size:12px;color:var(--text2)"></div>
@@ -2866,6 +2866,11 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    'paie.suite':        'Suite de la dernière période payée (fin le %d) · date modifiable',
+    'paie.suite_fin':    'Dernière période payée jusqu\'au %d',
+    'paie.suite_retard': '%n jour(s) de retard',
+    'paie.suite_auj':    'Commencer aujourd\'hui',
+    'paie.suite_reprendre': 'Reprendre au %d',
     "fin.btn_tous": "Tous les mois",
     "fin.tous_mois": "Tous les mois (passés et à venir)",
     "fin.depenses": "Total dépenses",
@@ -4092,6 +4097,11 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    'paie.suite':        'تتمة آخر فترة مدفوعة (انتهت في %d) · التاريخ قابل للتعديل',
+    'paie.suite_fin':    'آخر فترة مدفوعة إلى غاية %d',
+    'paie.suite_retard': '%n يوم تأخير',
+    'paie.suite_auj':    'البدء اليوم',
+    'paie.suite_reprendre': 'الاستئناف من %d',
     "fin.btn_tous": "كل الأشهر",
     "fin.tous_mois": "كل الأشهر (الماضية والقادمة)",
     "fin.depenses": "إجمالي المصاريف",
@@ -6234,9 +6244,46 @@ function selectClient(c) {
   document.getElementById('p-client-search').dataset.famille = tarifFamilleApplicable(c) ? '1' : '';
   document.getElementById('p-client-dropdown').classList.remove('open');
   document.getElementById('p-date').value = today();
+  document.getElementById('p-date').dataset.manuel = '';
+  _paieSuite = null;
   onPaiementTypeChange();
   window._paieClientCourant = c;
   updateFraisInfo(c);
+  chargerSuitePeriode(c);
+}
+
+// ── Un abonnement reprend à la fin de la dernière période payée ──
+// ex. mensualité du 01/10 au 31/10 → la suivante commence le 01/11, même payée le 03/11 (date modifiable)
+let _paieSuite = null; // { client_id, fin, debut }
+async function chargerSuitePeriode(c) {
+  const { data } = await sb.from('paiements').select('date_paiement,type')
+    .eq('client_id', c.id).in('type', TYPES_PERIODIQUES);
+  // Le client a pu changer pendant le chargement
+  if (document.getElementById('p-client').value !== c.id) return;
+  let fin = null;
+  (data || []).forEach(p => { const f = finCouverture(p.date_paiement, p.type); if (f && (!fin || f > fin)) fin = f; });
+  if (!fin) return;
+  const [y, m, d] = fin.split('-').map(Number);
+  _paieSuite = { client_id: c.id, fin, debut: isoLocal(new Date(y, m - 1, d + 1)) };
+  appliquerDateSuite();
+}
+// Date proposée selon le type : suite de la période pour un abonnement, aujourd'hui sinon
+function appliquerDateSuite() {
+  const el = document.getElementById('p-date');
+  if (el.dataset.manuel === '1' || !document.getElementById('p-client').value) return;
+  const suite = _paieSuite?.client_id === document.getElementById('p-client').value ? _paieSuite : null;
+  const v = DUREE_ABONNEMENT[document.getElementById('p-type').value] && suite ? suite.debut : today();
+  if (el.value === v) return;
+  el.value = v;
+  updatePeriodeDetail();
+  updateFraisInfo(window._paieClientCourant);
+}
+function choisirDatePaiement(v) {
+  const el = document.getElementById('p-date');
+  el.value = v; el.dataset.manuel = '1';
+  document.getElementById('p-overlap-alert')?.remove();
+  updatePeriodeDetail();
+  updateFraisInfo(window._paieClientCourant);
 }
 
 // Fermer le dropdown quand on clique ailleurs
@@ -6254,6 +6301,7 @@ async function onPaiementTypeChange() {
   const type = document.getElementById('p-type').value;
   const searchEl = document.getElementById('p-client-search');
   if (!searchEl) return;
+  appliquerDateSuite();
 
   // Assurance : montant unique par saison, indépendant des sports
   if (type === 'Assurance') {
@@ -6322,11 +6370,11 @@ function updatePeriodeDetail() {
   if (!dateVal || !DUREE_ABONNEMENT[type]) {
     el.style.display = 'none'; return;
   }
-  const d = new Date(dateVal);
+  const [yy, mm0, dd0] = dateVal.split('-').map(Number);
+  const d = new Date(yy, mm0 - 1, dd0);
   let months = DUREE_ABONNEMENT[type];
-  const fin = new Date(d);
-  fin.setMonth(fin.getMonth() + months);
-  fin.setDate(fin.getDate() - 1);
+  const [yf, mf, df] = finCouverture(dateVal, type).split('-').map(Number);
+  const fin = new Date(yf, mf - 1, df);
   const fmtDate = dt => {
     const dd = String(dt.getDate()).padStart(2,'0');
     const mm = String(dt.getMonth()+1).padStart(2,'0');
@@ -6342,8 +6390,27 @@ function updatePeriodeDetail() {
   const label = ({ 'Mensualité': t('paie.periode_mois'), 'Trimestriel': t('paie.periode_trim'), 'Semestriel': t('paie.periode_sem') })[type] || t('paie.periode_annuel');
   el.innerHTML = `<div style="margin-bottom:4px"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${label}</div>`
     + `<div style="font-weight:600;font-size:13px">${fmtDate(d)} → ${fmtDate(fin)}</div>`
-    + `<div style="margin-top:4px;font-size:11px;color:var(--text2)">${t('paie.mois_couverts')} : ${moisList.join(', ')}</div>`;
+    + `<div style="margin-top:4px;font-size:11px;color:var(--text2)">${t('paie.mois_couverts')} : ${moisList.join(', ')}</div>`
+    + ligneSuitePeriode(dateVal);
   el.style.display = 'block';
+}
+
+// Rappel sous la période : reprise après la dernière période payée, avec bouton pour changer la date
+function ligneSuitePeriode(dateVal) {
+  const s = _paieSuite;
+  if (!s || s.client_id !== document.getElementById('p-client').value) return '';
+  const btn = (v, txt) => `<button type="button" class="btn btn-sm" style="margin-left:6px;font-size:11px;padding:2px 8px" onclick="choisirDatePaiement('${v}')">${txt}</button>`;
+  const retard = joursRetard({ finPassee: s.debut }, today());
+  const auj = today();
+  let html;
+  if (dateVal === s.debut) {
+    html = t('paie.suite').replace('%d', dateFr(s.fin))
+      + (retard > 0 ? ` · <strong style="color:var(--amber,#f59e0b)">${t('paie.suite_retard').replace('%n', retard)}</strong>` : '')
+      + (s.debut < auj ? btn(auj, t('paie.suite_auj')) : '');
+  } else {
+    html = t('paie.suite_fin').replace('%d', dateFr(s.fin)) + btn(s.debut, t('paie.suite_reprendre').replace('%d', dateFr(s.debut)));
+  }
+  return `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed rgba(59,130,246,.25);font-size:11px;color:var(--text2)">↪ ${html}</div>`;
 }
 
 // ── Mini calculatrice ──
@@ -7956,6 +8023,9 @@ function openPaiementForm() {
   document.getElementById('p-type-autre').value = '';
   document.getElementById('p-type-autre').style.display = 'none';
   document.getElementById('p-date').value = '';
+  document.getElementById('p-date').dataset.manuel = '';
+  _paieSuite = null;
+  document.getElementById('p-overlap-alert')?.remove();
   document.getElementById('p-montant-hint').textContent = '';
   document.getElementById('p-sports-detail').style.display = 'none';
   document.getElementById('p-periode-detail').style.display = 'none';
