@@ -2282,12 +2282,21 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         <p class="psubtitle" data-i18n="stats.subtitle">Analysez les performances financières et sportives</p>
         <div class="toolbar">
           <button class="btn btn-p" onclick="openBilanMensuel()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg> <span data-i18n="bilan.btn">Récapitulatif entrées / sorties</span></button>
+          <select id="st-fin-mois" onchange="renderFinances()" style="width:auto"><option value="" data-i18n="fin.tous_mois">Tous les mois (passés et à venir)</option></select>
+          <span id="st-fin-periode" style="font-size:12px;color:var(--text2)"></span>
         </div>
-        <div class="sg">
+        <div class="sg" style="grid-template-columns:repeat(5,minmax(0,1fr))">
           <div class="sc"><div class="sc-label" data-i18n="stats.total_clients">Total clients</div><div class="sc-val" id="st-tc">—</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="stats.total_recettes">Total recettes</div><div class="sc-val" id="st-tr">—</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="stats.total_charges">Total charges</div><div class="sc-val" id="st-tch">—</div></div>
-          <div class="sc"><div class="sc-label" data-i18n="stats.benefice_net">Bénéfice net</div><div class="sc-val" id="st-bn">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="stats.total_recettes">Total recettes</div><div class="sc-val" id="st-tr" style="color:var(--green)">—</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="fin.depenses">Total dépenses</div><div class="sc-val" id="st-tch" style="color:var(--red)">—</div><div style="font-size:11px;color:var(--text3)" data-i18n="fin.depenses_sub">Charges + salaires</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="fin.solde_tous">Solde (tous modes)</div><div class="sc-val" id="st-bn">—</div><div style="font-size:11px;color:var(--text3)" data-i18n="fin.solde_sub">Recettes − dépenses</div></div>
+          <div class="sc"><div class="sc-label" data-i18n="vs.caisse_reelle">Caisse réelle (espèces)</div><div class="sc-val" id="st-caisse">—</div><div style="font-size:11px;color:var(--text3)" id="st-caisse-sub"></div></div>
+        </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div class="ct" data-i18n="fin.titre_mois">Recettes et dépenses par mois</div>
+          <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="fin.note">Tous les mois, y compris les paiements d'avance datés des mois à venir. Cliquez sur un mois pour voir son détail. Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces (+ capital), comme sur la page Associés.</p>
+          <div style="overflow-x:auto"><table id="st-fin-table"></table></div>
+          <div id="st-fin-detail"></div>
         </div>
         <div class="g2">
           <div class="card"><div class="ct" data-i18n="stats.clients_sport">Clients par sport</div><div id="st-sports"></div></div>
@@ -2856,6 +2865,34 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "fin.tous_mois": "Tous les mois (passés et à venir)",
+    "fin.depenses": "Total dépenses",
+    "fin.depenses_sub": "Charges + salaires",
+    "fin.solde_tous": "Solde (tous modes)",
+    "fin.solde_sub": "Recettes − dépenses",
+    "fin.titre_mois": "Recettes et dépenses par mois",
+    "fin.note": "Tous les mois, y compris les paiements d'avance datés des mois à venir. Cliquez sur un mois pour voir son détail. Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces (+ capital), comme sur la page Associés.",
+    "fin.periode": "Période",
+    "fin.esp_mois": "Mouvement espèces du mois",
+    "fin.caisse_fin": "Caisse à la fin du mois",
+    "fin.caisse_sub": "Tout l'argent en espèces à ce jour, paiements d'avance compris",
+    "fin.voir_detail": "Voir le détail de ce mois",
+    "fin.a_venir": "à venir",
+    "fin.recettes": "Recettes",
+    "fin.depenses_col": "Dépenses",
+    "fin.esp_col": "Espèces du mois",
+    "fin.total": "Total",
+    "fin.capital": "Caisse réelle : capital apporté par les associés compris",
+    "fin.t_abo": "Abonnements",
+    "fin.t_inscr": "Frais d'inscription",
+    "fin.t_assur": "Assurances",
+    "fin.t_autre": "Autres",
+    "fin.detail": "Détail",
+    "fin.par_type": "Par type",
+    "fin.par_mode": "Par mode de paiement",
+    "fin.par_cat": "Par catégorie",
+    "fin.esp_detail": "Espèces encaissées",
+    "fin.esp_sorties": "dépenses en espèces",
     "relance.btn": "🖨️ Liste",
     "relance.vide": "La liste est vide",
     "paie.note_ph": "Commentaire sur le paiement (facultatif)",
@@ -4053,6 +4090,34 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "fin.tous_mois": "كل الأشهر (الماضية والقادمة)",
+    "fin.depenses": "إجمالي المصاريف",
+    "fin.depenses_sub": "التكاليف + الأجور",
+    "fin.solde_tous": "الرصيد (كل طرق الأداء)",
+    "fin.solde_sub": "الإيرادات − المصاريف",
+    "fin.titre_mois": "الإيرادات والمصاريف حسب الشهر",
+    "fin.note": "كل الأشهر، بما فيها الأداءات المسبقة المؤرخة في الأشهر القادمة. انقر على شهر لرؤية تفاصيله. الصندوق الفعلي = النقد المحصل − التكاليف والأجور والدفعات للشركاء المؤداة نقداً (+ رأس المال)، كما في صفحة الشركاء.",
+    "fin.periode": "الفترة",
+    "fin.esp_mois": "حركة النقد خلال الشهر",
+    "fin.caisse_fin": "الصندوق في نهاية الشهر",
+    "fin.caisse_sub": "كل النقد إلى اليوم، بما فيه الأداءات المسبقة",
+    "fin.voir_detail": "عرض تفاصيل هذا الشهر",
+    "fin.a_venir": "قادم",
+    "fin.recettes": "الإيرادات",
+    "fin.depenses_col": "المصاريف",
+    "fin.esp_col": "نقد الشهر",
+    "fin.total": "المجموع",
+    "fin.capital": "الصندوق الفعلي : يشمل رأس المال الذي قدمه الشركاء",
+    "fin.t_abo": "الاشتراكات",
+    "fin.t_inscr": "رسوم التسجيل",
+    "fin.t_assur": "التأمين",
+    "fin.t_autre": "أخرى",
+    "fin.detail": "التفاصيل",
+    "fin.par_type": "حسب النوع",
+    "fin.par_mode": "حسب طريقة الأداء",
+    "fin.par_cat": "حسب الفئة",
+    "fin.esp_detail": "النقد المحصل",
+    "fin.esp_sorties": "المصاريف نقداً",
     "relance.btn": "🖨️ قائمة",
     "relance.vide": "القائمة فارغة",
     "paie.note_ph": "تعليق على الأداء (اختياري)",
@@ -10893,21 +10958,13 @@ async function delPlanning(id) {
 // ════════════════════════════════════════════════════════════
 async function loadStats() {
   const year = new Date().getFullYear();
-  const [{ count: tc }, { data: paie }, { data: charges }, { data: sal }, { data: clients }] = await Promise.all([
+  loadFinances();
+  const [{ count: tc }, { data: paie }, { data: clients }] = await Promise.all([
     sb.from('clients').select('*',{count:'exact',head:true}),
-    sb.from('paiements').select('montant,date_paiement'),
-    sb.from('charges').select('montant,date_charge'),
-    sb.from('salaires_paie').select('montant'),
+    fetchAllRows(() => sb.from('paiements').select('montant,date_paiement').order('id')),
     sb.from('clients').select('sport,statut')
   ]);
-
-  const tr   = (paie||[]).reduce((a,p)=>a+parseFloat(p.montant||0),0);
-  const tch  = (charges||[]).reduce((a,c)=>a+parseFloat(c.montant||0),0) + (sal||[]).reduce((a,s)=>a+parseFloat(s.montant||0),0);
-  const bn   = tr - tch;
   document.getElementById('st-tc').textContent  = tc||0;
-  document.getElementById('st-tr').textContent  = fmt(tr);
-  document.getElementById('st-tch').textContent = fmt(tch);
-  const bnel = document.getElementById('st-bn'); bnel.textContent = fmt(bn); bnel.style.color = bn>=0?'var(--green)':'var(--red)';
 
   // Sports
   const sc = {};
@@ -10941,6 +10998,138 @@ async function loadStats() {
   document.getElementById('st-retards').innerHTML = retards.length ? retards.join('') : `<div class="al al-s">${t('select.no_late')}</div>`;
 
   loadRecapSports();
+}
+
+// ── Recettes, dépenses et caisse : tous les mois (passés et à venir) ou un mois choisi ──
+let _fin = null;
+
+async function loadFinances() {
+  const [rp, rc0, rs, rv, ra] = await Promise.all([
+    fetchAllRows(() => sb.from('paiements').select('montant,date_paiement,type,mode').order('id')),
+    fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie,mode').order('id')),
+    fetchAllRows(() => sb.from('salaires_paie').select('montant,mois,mode').order('id')),
+    fetchAllRows(() => sb.from('versements_associes').select('montant,date_versement,mode').eq('activite', 'club').order('id')),
+    sb.from('associes').select('capital,actif')
+  ]);
+  // Script 36 non exécuté (pas de mode sur les charges) : toutes les charges comptées en espèces
+  const rc = rc0.error ? await fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie').order('id')) : rc0;
+  const esp = m => !m || !/^(virement|ch[eè]que)$/i.test(String(m).trim());   // même règle que la caisse de la page Associés
+  const M = {};
+  const mois = m => M[m] ??= { recettes: 0, depenses: 0, espIn: 0, espOut: 0, verse: 0, types: {}, modesR: {}, cats: {}, modesD: {} };
+  const add = (o, k, v) => { o[k] = (o[k] || 0) + v; };
+  (rp.data || []).forEach(x => {
+    const m = String(x.date_paiement || '').slice(0, 7); if (!m) return;
+    const o = mois(m), v = parseFloat(x.montant) || 0;
+    o.recettes += v;
+    add(o.types, DUREE_ABONNEMENT[x.type] ? 'abo' : x.type === 'Inscription' ? 'inscr' : x.type === 'Assurance' ? 'assur' : 'autre', v);
+    add(o.modesR, x.mode || 'Espèces', v);
+    if (x.mode === 'Espèces') o.espIn += v;
+  });
+  (rc.data || []).forEach(x => {
+    const m = String(x.date_charge || '').slice(0, 7); if (!m) return;
+    const o = mois(m), v = parseFloat(x.montant) || 0;
+    o.depenses += v; add(o.cats, x.categorie || 'Autre', v); add(o.modesD, esp(x.mode) ? 'Espèces' : x.mode, v);
+    if (esp(x.mode)) o.espOut += v;
+  });
+  (rs.data || []).forEach(x => {
+    if (!x.mois) return;
+    const o = mois(x.mois), v = parseFloat(x.montant) || 0;
+    o.depenses += v; add(o.cats, 'Salaires', v); add(o.modesD, esp(x.mode) ? 'Espèces' : x.mode, v);
+    if (esp(x.mode)) o.espOut += v;
+  });
+  (rv.error ? [] : rv.data || []).filter(x => esp(x.mode)).forEach(x => {
+    const m = String(x.date_versement || '').slice(0, 7); if (m) mois(m).verse += parseFloat(x.montant) || 0;
+  });
+  const capital = (ra.data || []).filter(a => a.actif !== false).reduce((s, a) => s + (parseFloat(a.capital) || 0), 0);
+  // Caisse espèces à la fin de chaque mois (du plus ancien au plus récent, mois à venir compris)
+  let caisse = capital;
+  Object.keys(M).sort().forEach(m => { const o = M[m]; o.esp = o.espIn - o.espOut - o.verse; caisse += o.esp; o.caisseFin = Math.round(caisse * 100) / 100; });
+  _fin = { M, capital, caisse: Math.round(caisse * 100) / 100 };
+
+  const sel = document.getElementById('st-fin-mois'), cur = sel.value;
+  sel.innerHTML = `<option value="">${t('fin.tous_mois')}</option>` + Object.keys(M).sort().reverse().map(m => `<option value="${m}">${nomMoisFin(m)}</option>`).join('');
+  if (cur && M[cur]) sel.value = cur;
+  renderFinances();
+}
+
+function nomMoisFin(m) {
+  const s = new Date(m + '-01T12:00:00').toLocaleDateString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { month: 'long', year: 'numeric' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function choisirMoisFinances(m) {
+  const sel = document.getElementById('st-fin-mois');
+  sel.value = sel.value === m ? '' : m;   // re-cliquer sur le mois choisi revient à « Tous les mois »
+  renderFinances();
+}
+
+function renderFinances() {
+  if (!_fin) return;
+  const { M } = _fin, sel = document.getElementById('st-fin-mois').value, moisCourant = thisMonth();
+  const cl = v => v < 0 ? 'color:var(--red)' : v > 0 ? 'color:var(--green)' : 'color:var(--text3)';
+  const liste = Object.keys(M).sort().reverse();
+  const somme = k => (sel ? [sel] : liste).reduce((s, m) => s + (M[m]?.[k] || 0), 0);
+  const rec = somme('recettes'), dep = somme('depenses'), solde = rec - dep;
+  document.getElementById('st-fin-periode').textContent = sel ? `${t('fin.periode')} : ${nomMoisFin(sel)}` : '';
+  document.getElementById('st-tr').textContent = fmt(rec);
+  document.getElementById('st-tch').textContent = fmt(dep);
+  const bn = document.getElementById('st-bn'); bn.textContent = fmt(solde); bn.style.cssText = cl(solde);
+  const ca = document.getElementById('st-caisse'), sub = document.getElementById('st-caisse-sub');
+  if (sel) {
+    const o = M[sel] || { esp: 0, caisseFin: 0 };
+    ca.textContent = fmt(o.esp); ca.style.cssText = cl(o.esp);
+    sub.innerHTML = `${t('fin.esp_mois')}<br>${t('fin.caisse_fin')} : <strong style="${cl(o.caisseFin)}">${fmt(o.caisseFin)}</strong>`;
+  } else {
+    ca.textContent = fmt(_fin.caisse); ca.style.cssText = cl(_fin.caisse);
+    sub.textContent = t('fin.caisse_sub');
+  }
+
+  // Tableau : un mois par ligne (les plus récents en haut), cliquable
+  const tot = { recettes: 0, depenses: 0, esp: 0 };
+  const lignes = liste.map(m => {
+    const o = M[m], s = o.recettes - o.depenses;
+    tot.recettes += o.recettes; tot.depenses += o.depenses; tot.esp += o.esp;
+    const actif = m === sel ? 'background:var(--bg3);outline:2px solid var(--accent, var(--blue));outline-offset:-2px;' : '';
+    return `<tr style="cursor:pointer;${actif}" onclick="choisirMoisFinances('${m}')" title="${t('fin.voir_detail')}">
+      <td><strong>${nomMoisFin(m)}</strong>${m > moisCourant ? ` <span class="badge b-i" style="font-size:10px">${t('fin.a_venir')}</span>` : ''}</td>
+      <td style="color:var(--green);font-weight:600">${fmt(o.recettes)}</td><td style="color:var(--red);font-weight:600">${fmt(o.depenses)}</td>
+      <td style="font-weight:700;${cl(s)}">${fmt(s)}</td><td style="${cl(o.esp)}">${fmt(o.esp)}</td><td style="font-weight:700;${cl(o.caisseFin)}">${fmt(o.caisseFin)}</td></tr>`;
+  }).join('');
+  const sTot = tot.recettes - tot.depenses;
+  document.getElementById('st-fin-table').innerHTML = liste.length ? `<thead><tr><th>${t('as.mois')}</th><th>${t('fin.recettes')}</th><th>${t('fin.depenses_col')}</th>
+      <th>${t('fin.solde_tous')}</th><th>${t('fin.esp_col')}</th><th>${t('vs.caisse_fin')}</th></tr></thead><tbody>${lignes}
+      <tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="font-weight:800">${t('fin.total')}</td>
+      <td style="font-weight:800;color:var(--green)">${fmt(tot.recettes)}</td><td style="font-weight:800;color:var(--red)">${fmt(tot.depenses)}</td>
+      <td style="font-weight:800;${cl(sTot)}">${fmt(sTot)}</td><td style="font-weight:800;${cl(tot.esp)}">${fmt(tot.esp)}</td>
+      <td style="font-weight:800;${cl(_fin.caisse)}">${fmt(_fin.caisse)}</td></tr></tbody>`
+    : `<tbody><tr class="empty-row"><td>${t('msg.no_data')}</td></tr></tbody>`;
+  if (_fin.capital) document.getElementById('st-fin-table').insertAdjacentHTML('beforeend',
+    `<caption style="caption-side:bottom;text-align:start;font-size:11px;color:var(--text3);padding-top:6px">${t('fin.capital')} : ${fmt(_fin.capital)}</caption>`);
+
+  // Détail du mois choisi
+  const det = document.getElementById('st-fin-detail');
+  if (!sel || !M[sel]) { det.innerHTML = ''; return; }
+  const o = M[sel];
+  const TYPES = { abo: t('fin.t_abo'), inscr: t('fin.t_inscr'), assur: t('fin.t_assur'), autre: t('fin.t_autre') };
+  const MODES = { 'Espèces': t('paie.m_especes'), 'Virement': t('paie.m_virement'), 'Chèque': t('paie.m_cheque') };
+  const bloc = (titre, obj, lib, couleur) => {
+    const e = Object.entries(obj).filter(([, v]) => v).sort((a, b) => b[1] - a[1]);
+    return `<div style="font-size:12px;font-weight:700;color:var(--text2);margin:10px 0 4px">${titre}</div>` + (e.length ? e.map(([k, v]) =>
+      `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span>${echapper(lib[k] || k)}</span><strong style="color:${couleur}">${fmt(v)}</strong></div>`).join('')
+      : `<div style="font-size:12px;color:var(--text3)">—</div>`);
+  };
+  det.innerHTML = `<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+    <div class="ct" style="margin-bottom:4px">${t('fin.detail')} — ${nomMoisFin(sel)}</div>
+    <div class="g2" style="margin-bottom:0">
+      <div><div style="display:flex;justify-content:space-between;font-weight:800"><span>${t('fin.recettes')}</span><span style="color:var(--green)">${fmt(o.recettes)}</span></div>
+        ${bloc(t('fin.par_type'), o.types, TYPES, 'var(--green)')}${bloc(t('fin.par_mode'), o.modesR, MODES, 'var(--green)')}</div>
+      <div><div style="display:flex;justify-content:space-between;font-weight:800"><span>${t('fin.depenses_col')}</span><span style="color:var(--red)">${fmt(o.depenses)}</span></div>
+        ${bloc(t('fin.par_cat'), o.cats, {}, 'var(--red)')}${bloc(t('fin.par_mode'), o.modesD, MODES, 'var(--red)')}</div>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--text2)">${t('fin.esp_detail')} <strong style="color:var(--green-text)">${fmt(o.espIn)}</strong>
+      − ${t('fin.esp_sorties')} <strong>${fmt(o.espOut)}</strong> − ${t('vs.det_verses')} <strong>${fmt(o.verse)}</strong>
+      = <strong style="${cl(o.esp)}">${fmt(o.esp)}</strong> · ${t('fin.caisse_fin')} : <strong style="${cl(o.caisseFin)}">${fmt(o.caisseFin)}</strong></div>
+  </div>`;
 }
 
 // ── Récapitulatif mensuel des entrées et sorties (trésorerie) ──
