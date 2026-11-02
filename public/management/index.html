@@ -7938,7 +7938,8 @@ async function loadDeclarations() {
   const parId = Object.fromEntries((clients || []).map(c => [c.id, c]));
   _declaration = Object.values(enCours).filter(p => !p.assurance_declaree_le && parId[p.client_id])
     .map(paie => ({ c: parId[paie.client_id], paie }))
-    .sort((a, b) => (a.c.nom || '').localeCompare(b.c.nom || '', 'fr') || (a.c.prenom || '').localeCompare(b.c.prenom || '', 'fr'));
+    // ID (n° adhérent) décroissant ; sans n° à la fin, par nom
+    .sort((a, b) => (b.c.numero_adherent ?? -1) - (a.c.numero_adherent ?? -1) || (a.c.nom || '').localeCompare(b.c.nom || '', 'fr'));
   document.getElementById('decl-count').textContent = _declaration.length;
   card.style.display = _declaration.length ? 'block' : 'none';
   const canWrite = PERMS.paiements?.ecrire;
