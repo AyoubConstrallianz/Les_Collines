@@ -1045,7 +1045,10 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
               <span class="ct" style="margin:0;color:var(--red)" data-i18n="clients.impayes_title">Clients dont l'abonnement est échu</span>
               <span id="impayes-count" class="badge b-d">0</span>
             </div>
-            <button class="btn btn-sm" onclick="toggleImpayes()" id="btn-toggle-impayes" style="font-size:12px" data-i18n="msg.show">Afficher</button>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="btn btn-sm" onclick="imprimerListeRelance('mois')" style="font-size:12px" data-i18n="relance.btn">🖨️ Liste</button><select class="liste-format" onchange="choisirFormatListe(this.value)" title="Format d'impression" style="width:auto;padding:4px 6px;font-size:12px"><option value="a4">A4</option><option value="80">Ticket 80 mm</option></select>
+              <button class="btn btn-sm" onclick="toggleImpayes()" id="btn-toggle-impayes" style="font-size:12px" data-i18n="msg.show">Afficher</button>
+            </div>
           </div>
           <div id="impayes-zone" style="display:none">
             <table><thead><tr><th data-i18n="common.nom">Nom</th><th data-i18n="clients.tel">Téléphone</th><th data-i18n="planning.sport">Sport</th><th data-i18n="clients.dernier_paie">Dernier paiement</th><th data-i18n="clients.retard">Retard</th><th data-i18n="clients.action_rapide">Action rapide</th></tr></thead>
@@ -1058,7 +1061,10 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
               <span class="ct" style="margin:0;color:var(--amber-text)" data-i18n="assur.alerte_title">Assurance à payer</span>
               <span id="assur-count" class="badge b-w">0</span>
             </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="btn btn-sm" onclick="imprimerListeRelance('assurance')" style="font-size:12px" data-i18n="relance.btn">🖨️ Liste</button><select class="liste-format" onchange="choisirFormatListe(this.value)" title="Format d'impression" style="width:auto;padding:4px 6px;font-size:12px"><option value="a4">A4</option><option value="80">Ticket 80 mm</option></select>
             <button class="btn btn-sm" onclick="const z=document.getElementById('assur-zone');z.style.display=z.style.display==='none'?'block':'none';this.textContent=z.style.display==='none'?t('msg.show'):t('msg.hide')" style="font-size:12px" data-i18n="msg.show">Afficher</button>
+            </div>
           </div>
           <div id="assur-zone" style="overflow-x:auto;display:none">
             <table><thead><tr><th data-i18n="common.nom">Nom</th><th data-i18n="clients.tel">Téléphone</th><th data-i18n="planning.sport">Sport</th><th data-i18n="assur.etat">Assurance</th><th data-i18n="clients.action_rapide">Action rapide</th></tr></thead>
@@ -2850,6 +2856,8 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "relance.btn": "🖨️ Liste",
+    "relance.vide": "La liste est vide",
     "paie.note_ph": "Commentaire sur le paiement (facultatif)",
     "bq.liste_imprimer": "🧾 Liste des articles",
     "recu.ticket": "🧾 Imprimer le reçu",
@@ -4045,6 +4053,8 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "relance.btn": "🖨️ قائمة",
+    "relance.vide": "القائمة فارغة",
     "paie.note_ph": "تعليق على الأداء (اختياري)",
     "bq.liste_imprimer": "🧾 قائمة المنتجات",
     "recu.ticket": "🧾 طباعة الوصل",
@@ -7536,6 +7546,7 @@ function toggleImpayes() {
 }
 
 async function loadImpayes() {
+  document.querySelectorAll('.liste-format').forEach(s => { s.value = formatListeRelance(); });
   loadAssuranceAlertes();
   const moisCur = thisMonth();
 
@@ -7553,7 +7564,13 @@ async function loadImpayes() {
   const sit = situationAbonnements(paiements);
   const latestPai = {};
   Object.entries(sit).forEach(([id, s]) => { latestPai[id] = s.dernier; });
-  const impayes = (clients||[]).filter(c => estEnRetard(c, sit));
+  const impayes = (clients||[]).filter(c => estEnRetard(c, sit))
+    .sort((a,b) => (sit[a.id]?.finPassee || '').localeCompare(sit[b.id]?.finPassee || ''));
+  _listesRelance.mois = impayes.map(c => {
+    const j = joursRetard(sit[c.id]);
+    return { c, info: sit[c.id]?.finPassee ? `Couvert jusqu'au ${dateFr(sit[c.id].finPassee)}` : (latestPai[c.id] ? `Dernier paiement ${dateFr(latestPai[c.id])}` : ''),
+      etat: j === null ? libelleSansAbonnement(sit[c.id]) : `${j} jour${j > 1 ? 's' : ''} de retard` };
+  });
 
   const now = new Date();
   document.getElementById('impayes-count').textContent = impayes.length;
@@ -7564,7 +7581,6 @@ async function loadImpayes() {
 
   const canWrite = PERMS.paiements?.ecrire;
   document.getElementById('impayes-tb').innerHTML = impayes
-    .sort((a,b) => (sit[a.id]?.finPassee || '').localeCompare(sit[b.id]?.finPassee || ''))
     .map(c => {
       const last = latestPai[c.id];
       const diffJ = joursRetard(sit[c.id]);
@@ -7597,6 +7613,59 @@ async function loadImpayes() {
           : '—'}</td>
       </tr>`;
     }).join('');
+}
+
+// ── Listes à imprimer : abonnements échus et assurances à payer ──
+const _listesRelance = { mois: [], assurance: [] };
+
+function formatListeRelance() {
+  try { return localStorage.getItem('liste_format') === '80' ? '80' : 'a4'; } catch (_) { return 'a4'; }
+}
+function choisirFormatListe(v) {
+  try { localStorage.setItem('liste_format', v); } catch (_) {}
+  document.querySelectorAll('.liste-format').forEach(s => { s.value = v; });
+}
+
+function imprimerListeRelance(type) {
+  const liste = _listesRelance[type] || [];
+  if (!liste.length) { showToast(t('relance.vide'), 'e'); return; }
+  const ticket = formatListeRelance() === '80';
+  const e = s => echapper(s ?? '');
+  const titre = type === 'assurance' ? 'ASSURANCE À PAYER' : 'ABONNEMENTS ÉCHUS';
+  const colEtat = type === 'assurance' ? 'Assurance' : 'Retard';
+  const maint = new Date();
+  const le = `${dateFr(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
+  const tel = c => [c.telephone, c.telephone2].filter(Boolean).join(' / ');
+  const sports = c => (c.sports || (c.sport ? [c.sport] : [])).join(', ');
+  const lignes = liste.map(({ c, info, etat }, i) => ticket
+    ? `<tr><td class="n">${i + 1}</td><td><b>${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</b>${tel(c) ? `<br>${e(tel(c))}` : ''}${sports(c) ? `<br><span class="pt">${e(sports(c))}</span>` : ''}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td></tr>`
+    : `<tr><td class="n">${i + 1}</td><td><b>${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</b></td><td>${e(tel(c)) || '—'}</td><td>${e(sports(c)) || '—'}</td><td>${e(etat)}${info ? `<br><span class="pt">${e(info)}</span>` : ''}</td><td></td></tr>`).join('');
+  const entete = ticket
+    ? '<th class="n">N°</th><th>Client</th><th>' + colEtat + '</th>'
+    : `<th class="n">N°</th><th>Nom</th><th>Téléphone</th><th>Sport(s)</th><th>${colEtat}</th><th style="width:28%">Observation</th>`;
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${titre}</title><style>
+    @page { size: ${ticket ? '80mm auto' : 'A4'}; margin: ${ticket ? '0' : '12mm'}; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: #000; }
+    body { ${ticket ? 'width: 80mm; padding: 5mm 3mm 0;' : ''} font: ${ticket ? '10.5px' : '12px'}/1.45 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { display: block; width: ${ticket ? '100%' : '70mm'}; margin: 0 auto 3mm; }
+    .c { text-align: center; } .pt { font-size: .85em; }
+    .titre { font-size: 1.35em; font-weight: 800; letter-spacing: .5px; }
+    .info { margin: 1mm 0 4mm; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #000; padding: ${ticket ? '1.2mm' : '2mm 2.5mm'}; text-align: left; vertical-align: top; }
+    th { font-weight: 800; background: #eee; } tr { page-break-inside: avoid; }
+    .n { width: ${ticket ? '6mm' : '10mm'}; text-align: center; }
+    .avance { white-space: pre; line-height: 1.6; text-align: center; }
+  </style></head><body>
+    <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
+    <div class="c titre">${titre}</div>
+    <div class="c info">${liste.length} client${liste.length > 1 ? 's' : ''} — liste du ${le}</div>
+    <table><thead><tr>${entete}</tr></thead><tbody>${lignes}</tbody></table>
+    ${ticket ? `<div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.</div>` : ''}
+  </body></html>`;
+  imprimerThermique(html);
+  logAudit('PRINT', 'clients', `Liste ${titre.toLowerCase()} (${liste.length})`);
 }
 
 // ── Assurance à payer : jamais payée, expirée, ou expirant dans les 30 jours ──
@@ -7634,6 +7703,8 @@ async function loadAssuranceAlertes() {
   const liste = (await etatAssurances()).filter(e => e.etat !== 'ok')
     .sort((a, b) => ordre[a.etat] - ordre[b.etat] || (a.fin || '').localeCompare(b.fin || ''));
   document.getElementById('assur-count').textContent = liste.length;
+  _listesRelance.assurance = liste.map(({ client: c, ...e }) => ({ c, info: '',
+    etat: e.etat === 'jamais' ? 'Jamais payée' : e.etat === 'expiree' ? `Expirée le ${dateFr(e.fin)}` : `Expire le ${dateFr(e.fin)}` }));
   card.style.display = liste.length ? 'block' : 'none';
   const canWrite = PERMS.paiements?.ecrire;
   document.getElementById('assur-tb').innerHTML = liste.map(({ client: c, ...e }) => {
