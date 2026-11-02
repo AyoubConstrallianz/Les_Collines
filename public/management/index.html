@@ -394,6 +394,10 @@ th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--
 th:first-child{border-radius:var(--r) 0 0 0}
 th:last-child{border-radius:0 var(--r) 0 0}
 td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;transition:background var(--dur) var(--ease)}
+/* Tableau des paiements : resserré pour tenir dans le cadre ; boutons d'action empilés */
+.tb-paie th,.tb-paie td{padding:9px 8px}
+.tb-paie .paie-actions{display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.tb-paie .paie-actions .btn{justify-content:center;white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--blue-light)}
 .th-sort{cursor:pointer;user-select:none;white-space:nowrap}
@@ -1353,7 +1357,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <button class="btn btn-sm" onclick="resetFiltresPaiements()" data-i18n="filtre.reset">Réinitialiser</button>
             <span id="sp-resultat" style="font-size:12px;color:var(--text2);margin-inline-start:auto"></span>
           </div>
-          <table><thead><tr><th data-i18n="common.date">Date</th><th data-i18n="paie.client">Client</th><th data-i18n="planning.sport">Sport</th><th data-i18n="paie.montant">Montant</th><th data-i18n="paie.type">Type</th><th data-i18n="paie.mois_couverts">Mois couverts</th><th data-i18n="paie.mode">Mode</th><th data-i18n="paie.note">Note</th><th data-i18n="paie.ajoute_par">Ajouté par</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="paiements-tb"></tbody></table>
+          <div style="overflow-x:auto"><table class="tb-paie"><thead><tr><th data-i18n="common.date">Date</th><th data-i18n="paie.client">Client</th><th data-i18n="planning.sport">Sport</th><th data-i18n="paie.montant">Montant</th><th data-i18n="paie.type">Type</th><th data-i18n="paie.mois_couverts">Mois couverts</th><th data-i18n="paie.mode">Mode</th><th data-i18n="paie.note">Note</th><th data-i18n="paie.ajoute_par">Ajouté par</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="paiements-tb"></tbody></table></div>
         </div>
       </div>
 
@@ -8256,7 +8260,7 @@ async function loadPaiements() {
         <td>${modeTr[p.mode]||p.mode}</td>
         <td style="color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${echapper(notes)}">${echapper(notes)}</td>
         <td>${saisie(p)}</td>
-        <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecu(${idsAttr(g)})">${t('recu.btn')}</button> ${canEdit?`<button class="btn btn-sm" onclick="modifierTransaction(${idsAttr(g)})">${t('common.modifier')}</button>`:''} ${canDel?`<button class="btn btn-sm btn-d" onclick="delTransaction(${idsAttr(g)})">${t('msg.suppr')}</button>`:''}</td></tr>`;
+        <td><div class="paie-actions"><button class="btn btn-sm" onclick="ouvrirRecu(${idsAttr(g)})">${t('recu.btn')}</button>${canEdit?`<button class="btn btn-sm" onclick="modifierTransaction(${idsAttr(g)})">${t('common.modifier')}</button>`:''}${canDel?`<button class="btn btn-sm btn-d" onclick="delTransaction(${idsAttr(g)})">${t('msg.suppr')}</button>`:''}</div></td></tr>`;
       }).join('')
     : `<tr class="empty-row"><td colspan="10">${t('msg.no_payment')}</td></tr>`;
 
