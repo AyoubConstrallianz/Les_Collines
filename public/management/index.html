@@ -1505,6 +1505,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
                 </select>
                 <button class="btn btn-p" id="bp-facture" onclick="boutiqueOnglet('factures');ouvrirFacture()" data-i18n="bq.entree_facture">+ Entrée par facture</button>
                 <button class="btn" id="bp-new" onclick="ouvrirProduit()" data-i18n="bq.nouvel_article">+ Nouvel article</button>
+                <button class="btn" id="bp-liste" onclick="imprimerListeArticles()" data-i18n="bq.liste_imprimer">🧾 Liste des articles</button>
               </div>
             </div>
             <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bq.note_stock">Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » enregistre le stock compté dans la case « Stock inventaire », sans modifier le stock calculé.</p>
@@ -2848,6 +2849,7 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    "bq.liste_imprimer": "🧾 Liste des articles",
     "recu.ticket": "🧾 Imprimer le reçu",
     "recu.whatsapp": "Envoyer par WhatsApp",
     "recu.wa_no_tel": "Pas de numéro de téléphone sur la fiche du client",
@@ -4041,6 +4043,7 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    "bq.liste_imprimer": "🧾 قائمة المنتجات",
     "recu.ticket": "🧾 طباعة الوصل",
     "recu.whatsapp": "إرسال عبر واتساب",
     "recu.wa_no_tel": "لا يوجد رقم هاتف في بطاقة الزبون",
@@ -8303,7 +8306,12 @@ function imprimerTicket() {
     <!-- Avance du papier (~15 lignes) avant la coupe ; le point final empêche le pilote de supprimer cet espace blanc -->
     <div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.</div>
   </body></html>`;
-  // Impression dans un cadre caché, une fois le logo chargé
+  imprimerThermique(html);
+  logAudit('PRINT', 'paiements', `Ticket ${r.numero} (${largeur} mm)`);
+}
+
+// Impression sur imprimante thermique dans un cadre caché, une fois le logo chargé
+function imprimerThermique(html) {
   document.getElementById('cadre-ticket')?.remove();
   const f = document.createElement('iframe');
   f.id = 'cadre-ticket'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
@@ -8312,7 +8320,6 @@ function imprimerTicket() {
   const lancer = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (_) { const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); w.print(); } } };
   const img = d.querySelector('.logo');
   if (img && !img.complete) { img.onload = img.onerror = () => setTimeout(lancer, 50); } else setTimeout(lancer, 50);
-  logAudit('PRINT', 'paiements', `Ticket ${r.numero} (${largeur} mm)`);
 }
 
 function imprimerRecu() {
@@ -9141,6 +9148,47 @@ function renderProduits() {
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">${canW ? `<button class="btn btn-sm" onclick="ouvrirMouvement('${p.id}','Ajustement')">${t('bq.inventaire')}</button>
         <button class="btn btn-sm" onclick="ouvrirProduit('${p.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delProduit('${p.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
   }).join('') : `<tr class="empty-row"><td colspan="8">${t(_bt.produits.length ? 'bq.aucun_filtre' : 'bq.aucun_article')}</td></tr>`;
+}
+
+// Fiche des articles pour imprimante thermique 75 mm : date vide en haut, quantité à remplir à la main
+function imprimerListeArticles() {
+  const liste = (_bt.produits || []).filter(p => p.actif !== false)
+    .sort((a, b) => (!a.categorie - !b.categorie) || (a.categorie || '').localeCompare(b.categorie || '', 'fr') || a.nom.localeCompare(b.nom, 'fr'));
+  if (!liste.length) { showToast(t('bq.aucun_article'), 'e'); return; }
+  const e = s => echapper(s ?? '');
+  let cat = null, n = 0;
+  const lignes = liste.map(p => {
+    const entete = (p.categorie || '') !== cat ? `<tr class="cat"><td colspan="3">${e(p.categorie || 'Sans catégorie')}</td></tr>` : '';
+    cat = p.categorie || '';
+    return `${entete}<tr><td class="n">${++n}</td><td>${e(p.nom)}</td><td class="q"></td></tr>`;
+  }).join('');
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Liste des articles</title><style>
+    @page { size: 75mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: #000; }
+    body { width: 75mm; padding: 5mm 3mm 0; font: 11px/1.5 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { display: block; width: 100%; margin: 0 auto 3mm; }
+    .c { text-align: center; }
+    .titre { font-size: 1.3em; font-weight: 800; letter-spacing: .5px; }
+    .date { margin: 4mm 0 3mm; font-size: 1.1em; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #000; padding: 1.6mm 1.2mm; text-align: left; vertical-align: middle; }
+    th { font-weight: 800; }
+    .n { width: 7mm; text-align: center; } .q { width: 16mm; }
+    .cat td { font-weight: 800; text-transform: uppercase; font-size: .9em; padding: 1mm 1.2mm; }
+    .bas { margin-top: 5mm; } .bas div { margin-bottom: 4mm; }
+    .avance { white-space: pre; line-height: 1.6; text-align: center; }
+  </style></head><body>
+    <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
+    <div class="c titre">LISTE DES ARTICLES</div>
+    <div class="c">Boutique — ${n} article${n > 1 ? 's' : ''}</div>
+    <div class="date">Date : ____ / ____ / ________</div>
+    <table><thead><tr><th class="n">N°</th><th>Article</th><th class="q">Qté</th></tr></thead><tbody>${lignes}</tbody></table>
+    <div class="bas"><div>Compté par : ______________________</div><div>Signature : _______________________</div></div>
+    <div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.</div>
+  </body></html>`;
+  imprimerThermique(html);
+  logAudit('PRINT', 'produits', `Liste des articles (${n})`);
 }
 
 // Case « Stock inventaire » : quantité comptée (bouton Inventaire) et écart avec le stock calculé
