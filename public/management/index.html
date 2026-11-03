@@ -1986,6 +1986,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
               <option value="saisie" data-i18n="rj.base_saisie">Paiements au jour de l'encaissement (saisie)</option>
               <option value="date" data-i18n="rj.base_date">Paiements à la date du paiement</option>
             </select>
+            <button class="btn btn-sm btn-p" onclick="imprimerRapportJour()" style="margin-inline-start:auto" data-i18n="rj.imprimer">Imprimer en reçu</button>
           </div>
           <div class="sg" id="rj-totaux" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
           <div style="overflow-x:auto"><table id="rj-table"></table></div>
@@ -2930,6 +2931,7 @@ const I18N = {
     'rj.charge':         'Charge',
     'rj.salaire':        'Salaire',
     'rj.vide':           'Aucune entrée ni sortie sur cette période',
+    'rj.imprimer':       'Imprimer en reçu',
     'decl.title':        'À déclarer à l\'assurance',
     'decl.imprimer':     '🖨️ Liste pour l\'assurance',
     'decl.tout_marquer': '✓ Marquer la liste comme déclarée',
@@ -4200,6 +4202,7 @@ const I18N = {
     'rj.charge':         'تكلفة',
     'rj.salaire':        'أجر',
     'rj.vide':           'لا توجد مداخيل ولا مصاريف في هذه الفترة',
+    'rj.imprimer':       'طباعة على شكل وصل',
     'decl.title':        'للتصريح لدى التأمين',
     'decl.imprimer':     '🖨️ لائحة التأمين',
     'decl.tout_marquer': '✓ تسجيل اللائحة كمصرّح بها',
@@ -11542,7 +11545,7 @@ async function openBilanMensuel() {
 }
 
 // ── Rapport journalier : entrées, sorties et solde jour par jour ──
-let _rj = { jours: {}, ouvert: null };
+let _rj = { jours: {}, ouvert: null, du: null, au: null, parSaisie: true };
 function rjPeriode(p) {
   const auj = today(), [y, m, d] = auj.split('-').map(Number);
   document.getElementById('rj-au').value = auj;
@@ -11598,7 +11601,7 @@ async function chargerRapportJour() {
       quoi: `${t('rj.salaire')} ${x.mois ? nomMoisFin(x.mois) : ''}`.trim(), mode: x.mode || '', note: '', montant: v });
   });
   Object.values(J).forEach(o => { o.lignesE.sort((a, b) => a.heure.localeCompare(b.heure)); o.lignesS.sort((a, b) => a.heure.localeCompare(b.heure)); });
-  _rj = { jours: J, ouvert: Object.keys(J).length === 1 ? Object.keys(J)[0] : null };
+  _rj = { jours: J, ouvert: Object.keys(J).length === 1 ? Object.keys(J)[0] : null, du, au, parSaisie };
   afficherRapportJour();
 }
 function rjBasculer(k) { _rj.ouvert = _rj.ouvert === k ? null : k; afficherRapportJour(); }
@@ -11629,6 +11632,70 @@ function afficherRapportJour() {
         + (ouvert ? `<tr><td colspan="5" style="background:var(--bg2);padding:8px 14px">${detail(o.lignesE, 'var(--green)', t('rj.entrees'))}${detail(o.lignesS, 'var(--red)', t('rj.sorties'))}</td></tr>` : '');
     }).join('') + `<tr style="font-weight:700"><td>${t('fin.total')}</td><td style="text-align:end;color:var(--green)">${fmt(tot.e)}</td><td style="text-align:end;color:var(--red)">${fmt(tot.s)}</td><td style="text-align:end">${fmt(sol)}</td><td></td></tr>`
     : `<tr class="empty-row"><td colspan="5">${t('rj.vide')}</td></tr>`}</tbody>`;
+}
+
+// Rapport journalier imprimé sur l'imprimante des reçus (ticket thermique)
+function imprimerRapportJour() {
+  if (!_rj.du) return;
+  let largeur = 80;
+  try { if (localStorage.getItem('ticket_largeur') === '58') largeur = 58; } catch (_) {}
+  const J = _rj.jours, jours = Object.keys(J).sort();
+  const e = s => echapper(s ?? ''), mt = v => montantPdf(v);
+  const fD = d => { const [y, m, j] = String(d || '').split('-'); return j ? `${j}/${m}/${y}` : ''; };
+  const nomJour = k => { const [y, m, d] = k.split('-').map(Number); const x = new Date(y, m - 1, d).toLocaleDateString('fr-FR', { weekday: 'long' }); return x.charAt(0).toUpperCase() + x.slice(1); };
+  const maint = new Date(), imprime = `${fD(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
+  const tot = { e: 0, s: 0 }, parMode = {}, especes = { e: 0, s: 0 };
+  const ligne = l => `<div class="li"><div class="kv"><span>${l.heure ? `${e(l.heure)} ` : ''}${e(l.qui)}</span><b>${mt(l.montant)}</b></div><div class="pt">${e(l.quoi)}${l.mode ? ` · ${e(l.mode)}` : ''}${l.note ? ` · ${e(l.note)}` : ''}</div></div>`;
+  const blocs = jours.map(k => {
+    const o = J[k];
+    tot.e += o.entrees; tot.s += o.sorties;
+    o.lignesE.forEach(l => { const m = l.mode || 'Espèces'; parMode[m] = (parMode[m] || 0) + l.montant; if (m === 'Espèces') especes.e += l.montant; });
+    o.lignesS.forEach(l => { if ((l.mode || 'Espèces') === 'Espèces') especes.s += l.montant; });
+    return `<div class="jour">${e(nomJour(k))} ${fD(k)}</div>
+      ${o.lignesE.length ? `<div class="st">ENTRÉES (${o.lignesE.length})</div>${o.lignesE.map(ligne).join('')}<div class="kv sous"><span>Total entrées</span><b>${mt(o.entrees)}</b></div>` : ''}
+      ${o.lignesS.length ? `<div class="st">SORTIES (${o.lignesS.length})</div>${o.lignesS.map(ligne).join('')}<div class="kv sous"><span>Total sorties</span><b>${mt(o.sorties)}</b></div>` : ''}
+      <div class="kv solde"><span>Solde du jour</span><b>${mt(o.entrees - o.sorties)}</b></div>
+      <div class="sep"></div>`;
+  }).join('');
+  const periode = _rj.du === _rj.au ? `Journée du ${fD(_rj.du)}` : `Du ${fD(_rj.du)} au ${fD(_rj.au)}`;
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport journalier</title><style>
+    @page { size: ${largeur}mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: #000; }
+    body { width: ${largeur}mm; padding: 5mm ${largeur === 58 ? 2 : 4}mm 0; font: ${largeur === 58 ? 10 : 11.5}px/1.5 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { display: block; width: 100%; margin: 0 auto 3mm; }
+    .c { text-align: center; } .pt { font-size: .85em; }
+    .sep { border-top: 1px dashed #000; margin: 3mm 0; }
+    .titre { font-size: 1.25em; font-weight: 800; letter-spacing: .5px; }
+    .kv { display: flex; justify-content: space-between; gap: 2mm; } .kv b { text-align: right; white-space: nowrap; }
+    .jour { font-weight: 800; font-size: 1.1em; text-transform: uppercase; margin-bottom: 1mm; }
+    .st { font-weight: 800; margin-top: 1.5mm; border-bottom: 1px solid #000; }
+    .li { padding: .6mm 0; }
+    .sous { font-weight: 700; border-top: 1px solid #000; margin-top: .5mm; }
+    .solde { font-weight: 900; font-size: 1.1em; margin-top: 1.5mm; }
+    .total { display: flex; justify-content: space-between; font-size: 1.3em; font-weight: 900; padding: .5mm 0; }
+    .bas { margin-top: 5mm; }
+    .avance { white-space: pre; line-height: 1.6; text-align: center; }
+  </style></head><body>
+    <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
+    <div class="c titre">RAPPORT JOURNALIER</div>
+    <div class="c"><b>${periode}</b></div>
+    <div class="c pt">Paiements ${_rj.parSaisie ? "au jour de l'encaissement" : 'à la date du paiement'}</div>
+    <div class="kv pt"><span>Imprimé le</span><span>${imprime}</span></div>
+    <div class="sep"></div>
+    ${blocs || `<div class="c">Aucune entrée ni sortie</div><div class="sep"></div>`}
+    ${jours.length > 1 ? `<div class="c titre">TOTAL DE LA PÉRIODE</div>` : ''}
+    <div class="total"><span>Entrées</span><span>${mt(tot.e)}</span></div>
+    <div class="total"><span>Sorties</span><span>${mt(tot.s)}</span></div>
+    <div class="total"><span>SOLDE</span><span>${mt(tot.e - tot.s)}</span></div>
+    ${Object.keys(parMode).length ? `<div class="sep"></div><div class="st">Entrées par mode</div>${Object.entries(parMode).map(([m, v]) => `<div class="kv"><span>${e(m)}</span><b>${mt(v)}</b></div>`).join('')}
+    <div class="kv solde"><span>Espèces (entrées − sorties)</span><b>${mt(especes.e - especes.s)}</b></div>` : ''}
+    <div class="sep"></div>
+    <div class="bas">Visa : ______________________</div>
+    <div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.</div>
+  </body></html>`;
+  imprimerThermique(html);
+  logAudit('PRINT', 'paiements', `Rapport journalier ${periode}`);
 }
 
 async function chargerBilan() {
