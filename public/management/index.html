@@ -1983,8 +1983,8 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <button class="btn btn-sm" onclick="rjPeriode('semaine')" data-i18n="rj.7jours">7 derniers jours</button>
             <button class="btn btn-sm" onclick="rjPeriode('mois')" data-i18n="rj.ce_mois">Ce mois</button>
             <select id="rj-base" onchange="chargerRapportJour()" style="width:auto;font-size:12px">
+              <option value="date" data-i18n="rj.base_date">Paiements à la date de début d'abonnement</option>
               <option value="saisie" data-i18n="rj.base_saisie">Paiements au jour de l'encaissement (saisie)</option>
-              <option value="date" data-i18n="rj.base_date">Paiements à la date du paiement</option>
             </select>
             <button class="btn btn-sm btn-p" onclick="imprimerRapportJour()" style="margin-inline-start:auto" data-i18n="rj.imprimer">Imprimer en reçu</button>
           </div>
@@ -2921,7 +2921,8 @@ const I18N = {
     'rj.7jours':         '7 derniers jours',
     'rj.ce_mois':        'Ce mois',
     'rj.base_saisie':    'Paiements au jour de l\'encaissement (saisie)',
-    'rj.base_date':      'Paiements à la date du paiement',
+    'rj.base_date':      "Paiements à la date de début d'abonnement",
+    'rj.encaisse_le':    'Encaissé le',
     'rj.note':           'Cliquez sur un jour pour voir le détail. Entrées = paiements des clients. Sorties = charges (date de la charge) + salaires (jour où le salaire a été enregistré).',
     'rj.entrees':        'Entrées',
     'rj.sorties':        'Sorties',
@@ -4192,7 +4193,8 @@ const I18N = {
     'rj.7jours':         'آخر 7 أيام',
     'rj.ce_mois':        'هذا الشهر',
     'rj.base_saisie':    'الأداءات حسب يوم التحصيل (التسجيل)',
-    'rj.base_date':      'الأداءات حسب تاريخ الأداء',
+    'rj.base_date':      'الأداءات حسب تاريخ بداية الاشتراك',
+    'rj.encaisse_le':    'تم التحصيل يوم',
     'rj.note':           'اضغط على يوم لرؤية التفاصيل. المداخيل = أداءات الزبناء. المصاريف = التكاليف + الأجور (يوم تسجيل الأجر).',
     'rj.entrees':        'المداخيل',
     'rj.sorties':        'المصاريف',
@@ -11545,7 +11547,7 @@ async function openBilanMensuel() {
 }
 
 // ── Rapport journalier : entrées, sorties et solde jour par jour ──
-let _rj = { jours: {}, ouvert: null, du: null, au: null, parSaisie: true };
+let _rj = { jours: {}, ouvert: null, du: null, au: null, parSaisie: false };
 function rjPeriode(p) {
   const auj = today(), [y, m, d] = auj.split('-').map(Number);
   document.getElementById('rj-au').value = auj;
@@ -11584,7 +11586,8 @@ async function chargerRapportJour() {
     const v = parseFloat(p.montant) || 0, o = jour(k);
     o.entrees += v;
     o.lignesE.push({ heure: heure(p.created_at), qui: `${p.clients?.prenom || ''} ${p.clients?.nom || ''}`.trim() || '—',
-      quoi: typeTr[p.type] || p.type || '—', mode: p.mode || '', note: p.note || '', montant: v });
+      quoi: typeTr[p.type] || p.type || '—', mode: p.mode || '',
+      note: [!parSaisie && jourLocal(p.created_at) !== k ? `${t('rj.encaisse_le')} ${dateFr(jourLocal(p.created_at))}` : '', p.note || ''].filter(Boolean).join(' · '), montant: v });
   });
   (rc.data || []).forEach(c => {
     if (!c.date_charge) return;
@@ -11680,7 +11683,7 @@ function imprimerRapportJour() {
     <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
     <div class="c titre">RAPPORT JOURNALIER</div>
     <div class="c"><b>${periode}</b></div>
-    <div class="c pt">Paiements ${_rj.parSaisie ? "au jour de l'encaissement" : 'à la date du paiement'}</div>
+    <div class="c pt">Paiements ${_rj.parSaisie ? "au jour de l'encaissement" : "à la date de début d'abonnement"}</div>
     <div class="kv pt"><span>Imprimé le</span><span>${imprime}</span></div>
     <div class="sep"></div>
     ${blocs || `<div class="c">Aucune entrée ni sortie</div><div class="sep"></div>`}
