@@ -2061,6 +2061,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <div class="fg"><label data-i18n="dv.remise">Remise (DH)</label><input id="dv-remise" type="number" min="0" placeholder="0" oninput="devisTotal()"></div>
             <div class="fg"><label data-i18n="dv.validite">Valable (jours)</label><input id="dv-validite" type="number" min="1" value="15" oninput="devisTotal()"></div>
           </div>
+          <div class="fg" style="margin-bottom:10px"><label><span data-i18n="dv.banque">Coordonnées bancaires</span> <span style="font-weight:400;color:var(--text3)" data-i18n="dv.banque_aide">(gardées pour les prochains devis)</span></label><textarea id="dv-banque" rows="3" placeholder="Banque : ...&#10;Titulaire : Association Les Collines&#10;RIB : ..." style="width:100%;font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)"></textarea></div>
           <div class="fg" style="margin-bottom:10px"><label data-i18n="paie.note">Note</label><input id="dv-note" placeholder="Ex. : horaires, conditions particulières (facultatif)" data-i18n-ph="dv.note_ph"></div>
           <div id="dv-total" style="text-align:end;font-size:16px;font-weight:700"></div>
           <div class="mo-footer">
@@ -2996,6 +2997,8 @@ const I18N = {
     'reste.a_payer':     'À payer',
     'reste.paye':        'Payé',
     'dv.btn':            '📝 Faire un devis',
+    'dv.banque':         'Coordonnées bancaires',
+    'dv.banque_aide':    '(gardées pour les prochains devis)',
     'dv.title':          'Nouveau devis',
     'dv.nom':            'Nom du client',
     'dv.nom_ph':         'Prénom Nom (client inscrit ou non)',
@@ -4308,6 +4311,8 @@ const I18N = {
     'reste.a_payer':     'المستحق',
     'reste.paye':        'المدفوع',
     'dv.btn':            '📝 إعداد عرض أسعار',
+    'dv.banque':         'المعلومات البنكية',
+    'dv.banque_aide':    '(تُحفظ للعروض القادمة)',
     'dv.title':          'عرض أسعار جديد',
     'dv.nom':            'اسم الزبون',
     'dv.nom_ph':         'الاسم الكامل (مسجل أو غير مسجل)',
@@ -6424,6 +6429,9 @@ async function ouvrirDevis() {
   document.getElementById('dv-sports').innerHTML = SPORTS_CACHE.map(sp => `<label><input type="checkbox" value="${echapper(sp.nom)}" onchange="devisCalcul()" style="width:15px;height:15px;accent-color:var(--blue)"> <span><strong>${echapper(sp.nom)}</strong> <span style="color:var(--text3)">· ${fmt(sp.tarif_mensuel)}</span></span></label>`).join('');
   ['dv-nom', 'dv-tel', 'dv-remise', 'dv-note'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('dv-validite').value = 15;
+  let banque = PARAMS?.devis_banque || '';
+  if (!banque) try { banque = localStorage.getItem('devis_banque') || ''; } catch (_) {}
+  document.getElementById('dv-banque').value = banque;
   document.getElementById('dv-formule').value = 'Mensualité';
   document.getElementById('dv-famille').checked = false;
   document.getElementById('dv-numero').textContent = `N° ${_devis.numero}`;
@@ -6502,7 +6510,14 @@ async function genererDevis(telecharger) {
   const remise = Math.min(st, parseFloat(document.getElementById('dv-remise').value) || 0);
   const jours = Math.max(1, parseInt(document.getElementById('dv-validite').value, 10) || 15);
   const [y, m, d] = today().split('-').map(Number);
-  const infos = { numero: _devis.numero, date: today(), validite: isoLocal(new Date(y, m - 1, d + jours)), nom,
+  const banque = document.getElementById('dv-banque').value.trim();
+  if (banque !== (PARAMS?.devis_banque || '')) {
+    try { localStorage.setItem('devis_banque', banque); } catch (_) {}
+    // Pour tous les postes (si l'utilisateur a le droit de modifier les paramètres)
+    const { error } = await sb.from('parametres').upsert({ cle: 'devis_banque', valeur: banque, updated_at: new Date().toISOString() });
+    if (!error) await loadParametres(true);
+  }
+  const infos = { banque, numero: _devis.numero, date: today(), validite: isoLocal(new Date(y, m - 1, d + jours)), nom,
     tel: document.getElementById('dv-tel').value.trim(), lignes, remise, total: st - remise, note: document.getElementById('dv-note').value.trim(),
     sports: [...document.querySelectorAll('#dv-sports input:checked')].map(x => x.value) };
   // Onglet ouvert tout de suite (sinon le navigateur bloque la fenêtre ouverte après le calcul)
@@ -6623,16 +6638,30 @@ async function genererDevisPdf(dv) {
     });
 
   // Signatures (nouvelle page si le devis est long)
-  if (y + 42 > H - 30) { doc.addPage(); cadre(); y = 25; }
+  const lb = 74;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+  const lignesBanque = dv.banque ? dv.banque.split(/\n/).flatMap(l => doc.splitTextToSize(l.trim(), lb - 10)) : [];
+  const hb = Math.max(30, lignesBanque.length * 4.4 + 15);
+  if (y + hb + 12 > H - 30) { doc.addPage(); cadre(); y = 25; }
   y += 6;
-  const lb = 74, hb = 30;
-  [[M, 'BON POUR ACCORD', 'Signature du client'], [W - M - lb, "CACHET DE L'ASSOCIATION", 'Cachet et signature']].forEach(([x, titre, sous]) => {
-    doc.setDrawColor(...or); doc.setLineWidth(0.3); doc.rect(x, y, lb, hb);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(...or);
-    espace(titre, x + lb / 2, y + 6, 0.7);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gris);
-    doc.text(sous, x + lb / 2, y + 10.5, { align: 'center' });
+  // Coordonnées bancaires (à gauche) : texte saisi, sinon lignes à remplir à la main
+  doc.setFillColor(...creme); doc.rect(M, y, lb, hb, 'F');
+  doc.setDrawColor(...or); doc.setLineWidth(0.3); doc.rect(M, y, lb, hb);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(...or);
+  espace('COORDONNÉES BANCAIRES', M + lb / 2, y + 6, 0.7);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...noir);
+  if (lignesBanque.length) doc.text(lignesBanque, M + 5, y + 13, { lineHeightFactor: 1.5 });
+  else ['Banque :', 'Titulaire :', 'RIB :'].forEach((l, k) => {
+    doc.setTextColor(...gris); doc.text(l, M + 5, y + 13 + k * 6);
+    doc.setDrawColor(200, 190, 170); doc.setLineWidth(0.15); doc.line(M + 22, y + 13.5 + k * 6, M + lb - 5, y + 13.5 + k * 6);
   });
+  // Cachet (à droite)
+  const xc = W - M - lb;
+  doc.setDrawColor(...or); doc.setLineWidth(0.3); doc.rect(xc, y, lb, hb);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(...or);
+  espace("CACHET DE L'ASSOCIATION", xc + lb / 2, y + 6, 0.7);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gris);
+  doc.text('Cachet et signature', xc + lb / 2, y + 10.5, { align: 'center' });
 
   // Pied de page
   doc.setDrawColor(...or); doc.setLineWidth(0.3); doc.line(M, H - 24, W - M, H - 24);
