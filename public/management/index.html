@@ -358,6 +358,8 @@ body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Inter','Sego
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.fr3{grid-template-columns:1fr 1fr 1fr}
+.p-reste{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3);font-weight:700;font-size:14px;min-height:36px}
 
 /* ══════════════════════════════════════════
    FORM CONTROLS
@@ -1105,6 +1107,21 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <tbody id="decl-tb"></tbody></table>
           </div>
         </div>
+        <!-- RESTES À PAYER : paiements partiels pas encore soldés (script 39) -->
+        <div class="card" id="restes-card" style="display:none;border-left:3px solid var(--red);border-radius:0 var(--rl) var(--rl) 0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;gap:8px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="ct" style="margin:0;color:var(--red)" data-i18n="restes.title">Restes à payer</span>
+              <span id="restes-count" class="badge b-d">0</span>
+              <span id="restes-total" style="font-size:13px;font-weight:700;color:var(--red)"></span>
+            </div>
+            <button class="btn btn-sm" onclick="const z=document.getElementById('restes-zone');z.style.display=z.style.display==='none'?'block':'none';this.textContent=z.style.display==='none'?t('msg.show'):t('msg.hide')" style="font-size:12px" data-i18n="msg.show">Afficher</button>
+          </div>
+          <div id="restes-zone" style="overflow-x:auto;display:none">
+            <table><thead><tr><th data-i18n="common.nom">Nom</th><th data-i18n="clients.tel">Téléphone</th><th data-i18n="restes.paiement">Paiement</th><th style="text-align:end" data-i18n="reste.a_payer">À payer</th><th style="text-align:end" data-i18n="reste.deja_paye">Déjà payé</th><th style="text-align:end" data-i18n="paie.reste">Reste à payer</th><th data-i18n="clients.action_rapide">Action rapide</th></tr></thead>
+            <tbody id="restes-tb"></tbody></table>
+          </div>
+        </div>
         <div class="mo" id="client-form-modal">
         <div class="mo-box" style="max-width:720px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -1251,11 +1268,21 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
               <div class="fg"><label data-i18n="paie.type">Type</label><select id="p-type" onchange="onPaiementTypeChange();toggleAutre('p-type','p-type-autre')"><option value="Mensualité" data-i18n="paie.t_mensualite">Mensualité</option><option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option><option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option><option value="Annuel" data-i18n="paie.t_annuel">Annuel</option><option value="Inscription" data-i18n="paie.t_inscription">Inscription</option><option value="Assurance" data-i18n="paie.t_assurance">Assurance</option><option value="Équipement" data-i18n="paie.t_equipement">Équipement</option><option value="Autre" data-i18n="paie.t_autre">Autre</option></select><input id="p-type-autre" placeholder="Précisez..." style="display:none;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);width:100%"></div>
               <div class="fg"><label data-i18n="paie.mode">Mode</label><select id="p-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
             </div>
-            <div class="fr">
+            <div class="fr fr3">
               <div class="fg">
-                <label><span data-i18n="paie.montant">Montant (DH)</span> <span id="p-montant-hint" style="font-size:11px;color:var(--blue-text);font-weight:400"></span></label>
-                <input id="p-montant" type="number" placeholder="0" min="0">
+                <label><span data-i18n="paie.a_payer">À payer (DH)</span> <span id="p-montant-hint" style="font-size:11px;color:var(--blue-text);font-weight:400"></span></label>
+                <input id="p-du" type="number" placeholder="0" min="0" oninput="majRestePaiement(true)">
               </div>
+              <div class="fg">
+                <label data-i18n="paie.montant_paye">Montant payé (DH)</label>
+                <input id="p-montant" type="number" placeholder="0" min="0" oninput="this.dataset.touche='1';majRestePaiement()" style="font-weight:700">
+              </div>
+              <div class="fg">
+                <label data-i18n="paie.reste">Reste à payer</label>
+                <div id="p-reste" class="p-reste">—</div>
+              </div>
+            </div>
+            <div class="fr">
               <div class="fg"><label data-i18n="paie.date">Date</label><input id="p-date" type="date" onchange="this.dataset.manuel='1';updatePeriodeDetail();updateFraisInfo(window._paieClientCourant)"></div>
             </div>
             <div id="p-frais-info" style="display:none;margin-bottom:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:12px"></div>
@@ -1967,6 +1994,26 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div class="sg" id="bilan-totaux" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
           <div style="overflow-x:auto"><table id="bilan-table" class="bilan-table"></table></div>
           <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="bilan.note">Entrées = paiements encaissés dans le mois (date du paiement). Sorties = charges du mois (date de la charge) + salaires du mois concerné.</p>
+        </div>
+      </div>
+
+      <div class="mo" id="reste-modal">
+        <div class="mo-box" style="max-width:480px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <div class="mo-title" style="margin-bottom:0" data-i18n="reste.title">Encaisser le reste</div>
+            <button class="btn btn-sm" onclick="document.getElementById('reste-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <div id="reste-info" style="font-size:13px;margin-bottom:14px"></div>
+          <div class="fr">
+            <div class="fg"><label data-i18n="paie.montant_paye">Montant payé (DH)</label><input id="reste-montant" type="number" min="0" oninput="majResteModal()" style="font-weight:700"></div>
+            <div class="fg"><label data-i18n="paie.mode">Mode</label><select id="reste-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
+          </div>
+          <div class="fr">
+            <div class="fg"><label data-i18n="paie.date">Date</label><input id="reste-date" type="date"></div>
+            <div class="fg"><label data-i18n="reste.apres">Reste après ce paiement</label><div id="reste-apres" class="p-reste">—</div></div>
+          </div>
+          <div class="fg" style="margin-bottom:10px"><label data-i18n="paie.note">Note</label><input id="reste-note"></div>
+          <div class="mo-footer"><button class="btn" onclick="document.getElementById('reste-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button><button class="btn btn-p" id="btn-reste-save" onclick="enregistrerReste()" data-i18n="reste.enregistrer">Enregistrer et voir le reçu</button></div>
         </div>
       </div>
 
@@ -2915,6 +2962,25 @@ const I18N = {
     'clients.actif':     'Actif',
     'clients.inactif':   'Inactif',
     'clients.suspendu':  'Suspendu',
+    'paie.a_payer':      'À payer (DH)',
+    'reste.a_payer':     'À payer',
+    'paie.montant_paye': 'Montant payé (DH)',
+    'paie.reste':        'Reste à payer',
+    'paie.t_complement': 'Reste payé',
+    'paie.sql_partiel':  'Pour les paiements partiels, exécutez une fois le script 39_paiement_partiel.sql dans Supabase.',
+    'reste.title':       'Encaisser le reste',
+    'reste.encaisser':   'Encaisser le reste',
+    'reste.paye_le':     'payé le',
+    'reste.deja_paye':   'Déjà payé',
+    'reste.apres':       'Reste après ce paiement',
+    'reste.enregistrer': 'Enregistrer et voir le reçu',
+    'reste.ok':          'Reste encaissé',
+    'reste.deja_solde':  'Ce paiement est déjà soldé',
+    'reste.solde_court': 'Soldé',
+    'reste.trop':        'Le montant dépasse le reste à payer (%s)',
+    'restes.title':      'Restes à payer',
+    'restes.total':      'Total',
+    'restes.paiement':   'Paiement',
     'rj.btn':            'Rapport journalier',
     'rj.title':          'Rapport journalier des entrées et sorties',
     'rj.aujourdhui':     'Aujourd\'hui',
@@ -4186,6 +4252,25 @@ const I18N = {
     'clients.actif':    'نشط',
     'clients.inactif':  'غير نشط',
     'clients.suspendu': 'موقوف',
+    'paie.a_payer':      'المبلغ المستحق (درهم)',
+    'reste.a_payer':     'المستحق',
+    'paie.montant_paye': 'المبلغ المدفوع (درهم)',
+    'paie.reste':        'الباقي للأداء',
+    'paie.t_complement': 'أداء الباقي',
+    'paie.sql_partiel':  'للأداءات الجزئية، نفّذ مرة واحدة السكريبت 39_paiement_partiel.sql في Supabase.',
+    'reste.title':       'تحصيل الباقي',
+    'reste.encaisser':   'تحصيل الباقي',
+    'reste.paye_le':     'أُدّي يوم',
+    'reste.deja_paye':   'المدفوع سابقا',
+    'reste.apres':       'الباقي بعد هذا الأداء',
+    'reste.enregistrer': 'تسجيل وعرض الوصل',
+    'reste.ok':          'تم تحصيل الباقي',
+    'reste.deja_solde':  'هذا الأداء مسدد بالكامل',
+    'reste.solde_court': 'مسدد',
+    'reste.trop':        'المبلغ يتجاوز الباقي للأداء (%s)',
+    'restes.title':      'الباقي للأداء',
+    'restes.total':      'المجموع',
+    'restes.paiement':   'الأداء',
     'rj.btn':            'التقرير اليومي',
     'rj.title':          'التقرير اليومي للمداخيل والمصاريف',
     'rj.aujourdhui':     'اليوم',
@@ -6230,6 +6315,143 @@ function grouperTransactions(paies) {
 }
 const idsAttr = g => JSON.stringify(g.map(p => p.id)).replace(/"/g, "'");
 
+// ── Paiements partiels (script 39) ──
+// montant_du = montant à payer d'une ligne payée en partie ; les paiements « Complément »
+// (reste_de = ligne d'origine) réduisent le reste. Renvoie { idOrigine: { orig, du, paye, reste, complements } }
+function calculerRestes(paies) {
+  const R = {};
+  (paies || []).forEach(p => { const du = parseFloat(p.montant_du); if (du > 0) R[p.id] = { orig: p, du, paye: parseFloat(p.montant) || 0, complements: [] }; });
+  (paies || []).forEach(p => { if (p.reste_de && R[p.reste_de]) { R[p.reste_de].paye += parseFloat(p.montant) || 0; R[p.reste_de].complements.push(p); } });
+  Object.values(R).forEach(r => { r.reste = Math.max(0, Math.round((r.du - r.paye) * 100) / 100); });
+  return R;
+}
+
+// Formulaire de paiement : « À payer » (tarif, modifiable), « Montant payé », « Reste » calculé
+function fixerAPayer(v) {
+  document.getElementById('p-du').value = v;
+  const m = document.getElementById('p-montant');
+  m.value = v; m.dataset.touche = '';
+  majRestePaiement();
+}
+function majRestePaiement(depuisAPayer) {
+  const du = document.getElementById('p-du'), m = document.getElementById('p-montant'), el = document.getElementById('p-reste');
+  if (depuisAPayer && !m.dataset.touche) m.value = du.value;
+  const vDu = parseFloat(du.value), vM = parseFloat(m.value) || 0;
+  if (!(vDu > 0)) { el.textContent = '—'; el.style.color = ''; return; }
+  const r = Math.max(0, vDu - vM);
+  el.textContent = r > 0 ? fmt(r) : `0 · ${t('reste.solde_court')}`;
+  el.style.color = r > 0 ? 'var(--red)' : 'var(--green)';
+}
+
+// Encaisser le reste d'un paiement partiel : nouveau paiement « Complément » relié à la ligne d'origine
+let _resteEdit = null;
+async function ouvrirReste(origId) {
+  const [{ data: orig, error }, { data: comps }] = await Promise.all([
+    sb.from('paiements').select('*,clients(id,prenom,nom,sports,sport)').eq('id', origId).maybeSingle(),
+    sb.from('paiements').select('id,montant,reste_de').eq('reste_de', origId)
+  ]);
+  if (error || !orig) { showToast(error?.message || t('msg.no_payment'), 'e'); return; }
+  const r = calculerRestes([orig, ...(comps || [])])[origId];
+  if (!r || r.reste <= 0) { showToast(t('reste.deja_solde'), 's'); return; }
+  _resteEdit = { orig, reste: r.reste };
+  const c = orig.clients || {}, sports = c.sports || (c.sport ? [c.sport] : []);
+  const kv = (l, v, st = '') => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">${l}</span><b style="${st}">${v}</b></div>`;
+  document.getElementById('reste-info').innerHTML = `<div style="font-weight:700;font-size:15px">${echapper(`${c.prenom || ''} ${c.nom || ''}`.trim())}</div>
+    <div style="color:var(--text2);margin:2px 0 8px">${echapper(libelleEncaissement(orig, sports))} · ${t('reste.paye_le')} ${dateFr(orig.date_paiement)}</div>
+    ${kv(t('reste.a_payer'), fmt(r.du))}${kv(t('reste.deja_paye'), fmt(r.paye))}${kv(t('paie.reste'), fmt(r.reste), 'color:var(--red)')}`;
+  document.getElementById('reste-montant').value = r.reste;
+  document.getElementById('reste-mode').value = orig.mode || 'Espèces';
+  document.getElementById('reste-date').value = today();
+  document.getElementById('reste-note').value = '';
+  majResteModal();
+  document.getElementById('reste-modal').classList.add('open');
+}
+function majResteModal() {
+  if (!_resteEdit) return;
+  const r = Math.max(0, _resteEdit.reste - (parseFloat(document.getElementById('reste-montant').value) || 0));
+  const el = document.getElementById('reste-apres');
+  el.textContent = r > 0 ? fmt(r) : `0 · ${t('reste.solde_court')}`;
+  el.style.color = r > 0 ? 'var(--red)' : 'var(--green)';
+}
+async function enregistrerReste() {
+  if (!_resteEdit) return;
+  const o = _resteEdit.orig, m = parseFloat(document.getElementById('reste-montant').value);
+  if (!(m > 0)) { showToast(t('paie.required'), 'e'); return; }
+  if (m > _resteEdit.reste + 0.001) { showToast(t('reste.trop').replace('%s', fmt(_resteEdit.reste)), 'e'); return; }
+  const btn = document.getElementById('btn-reste-save'); btn.disabled = true;
+  const { data: saved, error } = await sb.from('paiements').insert({
+    client_id: o.client_id, montant: m, date_paiement: document.getElementById('reste-date').value || today(),
+    type: 'Complément', mode: document.getElementById('reste-mode').value,
+    note: document.getElementById('reste-note').value.trim(), created_by: ME.id, reste_de: o.id
+  }).select('id').single();
+  btn.disabled = false;
+  if (error) { showToast(/reste_de/.test(error.message) ? t('paie.sql_partiel') : error.message, 'e'); return; }
+  await logAudit('CREATE', 'paiements', `Reste ${fmt(m)} ${o.clients?.prenom || ''} ${o.clients?.nom || ''}`.trim());
+  document.getElementById('reste-modal').classList.remove('open');
+  showToast(t('reste.ok'), 's');
+  _resteEdit = null;
+  if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
+  loadRestes();
+  if (window._ficheClientId === o.client_id && document.getElementById('client-fiche-modal').classList.contains('open')) {
+    const i = CLIENTS_CACHE.findIndex(x => x.id === o.client_id);
+    if (i >= 0) showClientFiche(i);
+  }
+  if (saved?.id) ouvrirRecu(saved.id);
+}
+
+// Liste « Restes à payer » (page Clients)
+async function loadRestes() {
+  const card = document.getElementById('restes-card');
+  if (!card) return;
+  const [ra, rb] = await Promise.all([
+    fetchAllRows(() => sb.from('paiements').select('id,client_id,montant,montant_du,type,date_paiement,mode,clients(id,prenom,nom,telephone,sports,sport)').not('montant_du', 'is', null).order('id')),
+    fetchAllRows(() => sb.from('paiements').select('id,montant,reste_de').not('reste_de', 'is', null).order('id'))
+  ]);
+  if (ra.error) { card.style.display = 'none'; return; }   // script 39 pas encore exécuté
+  const liste = Object.values(calculerRestes([...(ra.data || []), ...(rb.data || [])])).filter(r => r.reste > 0)
+    .sort((a, b) => (a.orig.date_paiement || '').localeCompare(b.orig.date_paiement || ''));
+  const total = liste.reduce((a, r) => a + r.reste, 0);
+  document.getElementById('restes-count').textContent = liste.length;
+  document.getElementById('restes-total').textContent = liste.length ? `${t('restes.total')} : ${fmt(total)}` : '';
+  card.style.display = liste.length ? 'block' : 'none';
+  const canW = PERMS.paiements?.ecrire;
+  document.getElementById('restes-tb').innerHTML = liste.map(r => {
+    const c = r.orig.clients || {}, sports = c.sports || (c.sport ? [c.sport] : []);
+    return `<tr style="cursor:pointer" title="${t('fiche.voir')}" onclick="ouvrirFicheClient('${r.orig.client_id}', event)">
+      <td><strong>${echapper(`${c.prenom || ''} ${c.nom || ''}`.trim())}</strong></td>
+      <td>${echapper(c.telephone || '—')}</td>
+      <td style="font-size:12px">${echapper(libelleEncaissement(r.orig, sports))}<div style="font-size:11px;color:var(--text3)">${t('reste.paye_le')} ${dateFr(r.orig.date_paiement)}</div></td>
+      <td style="text-align:end;white-space:nowrap">${fmt(r.du)}</td>
+      <td style="text-align:end;white-space:nowrap;color:var(--green)">${fmt(r.paye)}</td>
+      <td style="text-align:end;white-space:nowrap;font-weight:700;color:var(--red)">${fmt(r.reste)}</td>
+      <td>${canW ? `<button class="btn btn-sm btn-p" onclick="ouvrirReste('${r.orig.id}')">${t('reste.encaisser')}</button>` : ''}</td></tr>`;
+  }).join('');
+}
+
+// Reçu : pour chaque ligne partielle ou complément, montant à payer, déjà payé avant ce reçu, reste après
+async function infoRestesRecu(paies) {
+  const origIds = [...new Set(paies.map(p => parseFloat(p.montant_du) > 0 ? p.id : p.reste_de).filter(Boolean))];
+  if (!origIds.length) return null;
+  const [{ data: origs }, { data: comps }] = await Promise.all([
+    sb.from('paiements').select('id,type,date_paiement,montant,montant_du,created_at').in('id', origIds),
+    sb.from('paiements').select('id,montant,reste_de,created_at').in('reste_de', origIds)
+  ]);
+  const lignes = {};
+  let reste = 0;
+  origIds.forEach(oid => {
+    const o = (origs || []).find(x => x.id === oid);
+    const ici = paies.find(p => p.id === oid || p.reste_de === oid);
+    if (!o || !ici || !(parseFloat(o.montant_du) > 0)) return;
+    const avant = (ici.id === oid ? 0 : parseFloat(o.montant) || 0)
+      + (comps || []).filter(x => x.reste_de === oid && x.id !== ici.id && (x.created_at || '') <= (ici.created_at || ''))
+        .reduce((a, x) => a + (parseFloat(x.montant) || 0), 0);
+    const r = Math.max(0, Math.round((parseFloat(o.montant_du) - avant - (parseFloat(ici.montant) || 0)) * 100) / 100);
+    lignes[ici.id] = { du: parseFloat(o.montant_du), avant, reste: r, orig: o };
+    reste += r;
+  });
+  return Object.keys(lignes).length ? { lignes, reste } : null;
+}
+
 async function saveAssurance() {
   const valeur = String(parseFloat(document.getElementById('s-assurance').value) || 0);
   const { error } = await sb.from('parametres')
@@ -6436,7 +6658,7 @@ async function onPaiementTypeChange() {
   if (type === 'Assurance') {
     await loadParametres();
     const m = montantAssurance();
-    document.getElementById('p-montant').value = m || '';
+    fixerAPayer(m || '');
     const dA = document.getElementById('p-date').value || today();
     document.getElementById('p-montant-hint').textContent = `· ${t('paie.hint_assur')} : ${dateFr(dA)} → ${dateFr(finAssurance(dA))}`;
     document.getElementById('p-sports-detail').style.display = 'none';
@@ -6468,7 +6690,7 @@ async function onPaiementTypeChange() {
     const total = sports.reduce((a, s) => a + tarifSport(sportMap[s], type, famille), 0);
 
     // Auto-remplir le montant
-    document.getElementById('p-montant').value = total;
+    fixerAPayer(total);
 
     // Hint sous le label
     const hint = isMensuel ? t('paie.hint_calc') : isTrim ? t('paie.hint_trim') : isSem ? t('paie.hint_sem') : isAnnuel ? t('paie.hint_annuel') : t('paie.hint_inscr');
@@ -6485,7 +6707,7 @@ async function onPaiementTypeChange() {
     detail.innerHTML = lines + (sports.length>1?` = <strong style="color:var(--blue-text)">${fmt(total)}</strong>`:'');
     detail.style.display = 'block';
   } else {
-    document.getElementById('p-montant').value = '';
+    fixerAPayer('');
     document.getElementById('p-montant-hint').textContent = '';
     document.getElementById('p-sports-detail').style.display = 'none';
   }
@@ -6952,6 +7174,14 @@ async function showClientFiche(idx, event) {
   });
   const moisDoublons = new Set(Object.keys(moisCount).filter(k => moisCount[k] > 1));
   const paieHtml = renderEncaissementsClient(c, sports, paies || [], moisDoublons, idx);
+  // Restes à payer du client (paiements partiels)
+  const restesCli = Object.values(calculerRestes(paies)).filter(r => r.reste > 0);
+  const restesHtml = restesCli.length ? `<div style="margin-top:12px;padding:10px 14px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);font-size:13px">
+      <div style="font-weight:700;color:var(--red);margin-bottom:6px">${t('paie.reste')} : ${fmt(restesCli.reduce((a, r) => a + r.reste, 0))}</div>
+      ${restesCli.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-top:1px solid rgba(239,68,68,.15);flex-wrap:wrap">
+        <span>${echapper(libelleEncaissement(r.orig, sports))} <span style="font-size:11px;color:var(--text3)">· ${t('reste.a_payer')} ${fmt(r.du)} · ${t('reste.deja_paye')} ${fmt(r.paye)}</span></span>
+        <span style="white-space:nowrap"><b style="color:var(--red)">${fmt(r.reste)}</b>${PERMS.paiements?.ecrire ? ` <button class="btn btn-sm btn-p" style="font-size:11px" onclick="ouvrirReste('${r.orig.id}')">${t('reste.encaisser')}</button>` : ''}</span></div>`).join('')}
+    </div>` : '';
 
   // Infos ligne
   const infoLine = (label, val) => val ? `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">${label}</span><span style="font-weight:500">${val}</span></div>` : '';
@@ -7006,6 +7236,7 @@ async function showClientFiche(idx, event) {
     </div>
     <div id="fiche-famille"></div>
     ${cinHtml}
+    ${restesHtml}
     ${moisDoublons.size ? `<div style="margin-top:12px;padding:8px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--red);font-weight:500"><span style="font-size:16px">⚠</span> ${t('paie.doublon_warning')}</div>` : ''}
     ${paieHtml}`;
 
@@ -7049,6 +7280,8 @@ function renderEncaissementsClient(c, sports, paies, moisDoublons, idx) {
   const stat = (label, val) => `<div style="flex:1;min-width:110px;padding:8px 12px;background:var(--bg3);border-radius:var(--r)">
       <div style="font-size:11px;color:var(--text3)">${label}</div><div style="font-weight:700;font-size:15px">${val}</div></div>`;
 
+  const restes = calculerRestes(paies);
+  const parId = {}; paies.forEach(x => { parId[x.id] = x; });
   // Une ligne par transaction ; le détail des mouvements est listé dans le libellé
   const row = g => {
     const p = g[0];
@@ -7057,7 +7290,7 @@ function renderEncaissementsClient(c, sports, paies, moisDoublons, idx) {
       const doublon = moisCouvertsKeys(x.date_paiement, x.type).some(k => moisDoublons.has(k));
       const note = x.note && x.note !== "Frais d'inscription" && !/^Assurance/.test(x.note) ? ` <span style="font-size:11px;color:var(--text3)">(${x.note})</span>` : '';
       return `<div style="display:flex;justify-content:space-between;gap:10px;${doublon ? 'color:var(--red)' : ''}">
-        <span style="font-weight:500">${libelleEncaissement(x, sports)}${note}${doublon ? ` <span title="${t('fiche.doublon_mois')}">⚠</span>` : ''}</span>
+        <span style="font-weight:500">${x.type === 'Complément' ? `${t('paie.t_complement')}${parId[x.reste_de] ? ' — ' + libelleEncaissement(parId[x.reste_de], sports) : ''}` : libelleEncaissement(x, sports)}${note}${doublon ? ` <span title="${t('fiche.doublon_mois')}">⚠</span>` : ''}${restes[x.id] ? ` <span class="badge ${restes[x.id].reste > 0 ? 'b-d' : 'b-g'}" style="font-size:10px">${restes[x.id].reste > 0 ? `${t('paie.reste')} ${fmt(restes[x.id].reste)}` : t('reste.solde_court')}</span>` : ''}</span>
         ${g.length > 1 ? `<span style="white-space:nowrap;color:var(--text2)">${fmt(x.montant)}</span>` : ''}
       </div>`;
     };
@@ -7824,6 +8057,7 @@ async function loadImpayes() {
   document.querySelectorAll('.liste-format').forEach(s => { s.value = formatListeRelance(); });
   loadAssuranceAlertes();
   loadDeclarations();
+  loadRestes();
   const moisCur = thisMonth();
 
   // Récupère TOUS les clients sauf Suspendus (les impayés sont devenus Inactifs)
@@ -8260,7 +8494,7 @@ async function loadPaiements() {
   const recY = (allData||[]).filter(p=>p.date_paiement?.startsWith(year+'')).reduce((a,p)=>a+parseFloat(p.montant||0),0);
   document.getElementById('p-mois-total').textContent  = fmt(recM);
   document.getElementById('p-annee-total').textContent = fmt(recY);
-  const typeTr={'Mensualité':t('paie.t_mensualite'),'Trimestriel':t('paie.t_trimestriel'),'Semestriel':t('paie.t_semestriel'),'Annuel':t('paie.t_annuel'),'Inscription':t('paie.t_inscription'),'Assurance':t('paie.t_assurance'),'Équipement':t('paie.t_equipement'),'Autre':t('paie.t_autre')};
+  const typeTr={'Mensualité':t('paie.t_mensualite'),'Trimestriel':t('paie.t_trimestriel'),'Semestriel':t('paie.t_semestriel'),'Annuel':t('paie.t_annuel'),'Inscription':t('paie.t_inscription'),'Assurance':t('paie.t_assurance'),'Équipement':t('paie.t_equipement'),'Autre':t('paie.t_autre'),'Complément':t('paie.t_complement')};
   const modeTr={'Espèces':t('paie.m_especes'),'Virement':t('paie.m_virement'),'Chèque':t('paie.m_cheque')};
   const types = {};
   list.forEach(p=>{ const k=typeTr[p.type]||p.type; types[k]=(types[k]||0)+parseFloat(p.montant||0); });
@@ -8275,6 +8509,8 @@ async function loadPaiements() {
 
   const canDel = PERMS.paiements?.supprimer, canEdit = PERMS.paiements?.ecrire;
   const groupes = grouperTransactions(list);
+  const restes = calculerRestes(allData);
+  const paieParId = {}; (allData || []).forEach(x => { paieParId[x.id] = x; });
   // Qui a saisi chaque paiement, et quand
   const auteurs = [...new Set(list.map(x => x.created_by).filter(Boolean))];
   const { data: profs } = auteurs.length ? await sb.from('profils').select('id,prenom,nom').in('id', auteurs) : { data: [] };
@@ -8306,8 +8542,11 @@ async function loadPaiements() {
         const assur = g.find(x => x.type === 'Assurance');
         if (assur) mcCell = (abo ? mcCell + '<br>' : '') + `<span style="font-size:10px;color:var(--text2)">${t('paie.t_assurance')} → ${dateCourte(finAssurance(assur.date_paiement))}</span>`;
         const badges = g.map(x => `<span class="badge b-i" style="margin:1px">${typeTr[x.type] || x.type}</span>`).join('');
-        const detail = g.length > 1
-          ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">${g.map(x => fmt(x.montant)).join(' + ')}</div>` : '';
+        const detail = (g.length > 1
+          ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">${g.map(x => fmt(x.montant)).join(' + ')}</div>` : '')
+          + g.filter(x => x.type === 'Complément' && paieParId[x.reste_de]).map(x => `<div style="font-size:11px;color:var(--text3);margin-top:2px">→ ${typeTr[paieParId[x.reste_de].type] || paieParId[x.reste_de].type} ${dateCourte(paieParId[x.reste_de].date_paiement)}</div>`).join('')
+          + g.filter(x => restes[x.id]).map(x => `<div style="font-size:11px;font-weight:600;margin-top:2px;color:${restes[x.id].reste > 0 ? 'var(--red)' : 'var(--green)'}">${t('reste.a_payer')} ${fmt(restes[x.id].du)} · ${restes[x.id].reste > 0 ? `${t('paie.reste')} ${fmt(restes[x.id].reste)}` : t('reste.solde_court')}</div>`).join('');
+        const resteOuvert = g.find(x => restes[x.id]?.reste > 0);
         const notes = [...new Set(g.map(x => x.note).filter(n => n && n !== "Frais d'inscription" && !/^Assurance/.test(n)))].join(' · ');
         return `<tr>
         <td style="white-space:nowrap">${dateCourte(p.date_paiement)}</td>
@@ -8319,7 +8558,7 @@ async function loadPaiements() {
         <td>${modeTr[p.mode]||p.mode}</td>
         <td style="color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${echapper(notes)}">${echapper(notes)}</td>
         <td>${saisie(p)}</td>
-        <td><div class="paie-actions"><button class="btn btn-sm" onclick="ouvrirRecu(${idsAttr(g)})">${t('recu.btn')}</button>${canEdit?`<button class="btn btn-sm" onclick="modifierTransaction(${idsAttr(g)})">${t('common.modifier')}</button>`:''}${canDel?`<button class="btn btn-sm btn-d" onclick="delTransaction(${idsAttr(g)})">${t('msg.suppr')}</button>`:''}</div></td></tr>`;
+        <td><div class="paie-actions">${canEdit && resteOuvert ? `<button class="btn btn-sm btn-p" onclick="ouvrirReste('${resteOuvert.id}')">${t('reste.encaisser')}</button>` : ''}<button class="btn btn-sm" onclick="ouvrirRecu(${idsAttr(g)})">${t('recu.btn')}</button>${canEdit?`<button class="btn btn-sm" onclick="modifierTransaction(${idsAttr(g)})">${t('common.modifier')}</button>`:''}${canDel?`<button class="btn btn-sm btn-d" onclick="delTransaction(${idsAttr(g)})">${t('msg.suppr')}</button>`:''}</div></td></tr>`;
       }).join('')
     : `<tr class="empty-row"><td colspan="10">${t('msg.no_payment')}</td></tr>`;
 
@@ -8328,7 +8567,7 @@ async function loadPaiements() {
 }
 
 function openPaiementForm() {
-  document.getElementById('p-montant').value = '';
+  fixerAPayer('');
   document.getElementById('p-note').value = '';
   document.getElementById('p-type').value = 'Mensualité';
   document.getElementById('p-type-autre').value = '';
@@ -8400,6 +8639,8 @@ async function savePaiement() {
     created_by:    ME.id
   };
   if (!obj.client_id || isNaN(obj.montant) || obj.montant < 0) { showToast(t('paie.required'),'e'); return; }
+  const aPayer = parseFloat(document.getElementById('p-du').value);
+  if (aPayer > obj.montant) obj.montant_du = aPayer;
 
   // ── Vérification chevauchement de période ──
   const newType = document.getElementById('p-type').value;
@@ -8449,7 +8690,7 @@ async function savePaiement() {
   if (oldAlert) oldAlert.remove();
 
   const { data: savedPaie, error } = await sb.from('paiements').insert(obj).select('id').single();
-  if (error) { showToast(error.message,'e'); return; }
+  if (error) { showToast(/montant_du/.test(error.message) ? t('paie.sql_partiel') : error.message,'e'); return; }
 
   // Si le paiement couvre aujourd'hui → repasse le client en Actif
   const finObj = finCouverture(obj.date_paiement, obj.type);
@@ -8546,7 +8787,7 @@ function periodeRecu(p) {
   return keys.length === 1 ? nom(keys[0]) : `${nom(keys[0])} à ${nom(keys[keys.length - 1])}`;
 }
 
-async function genererRecuPdf(paies, client, encaissePar) {
+async function genererRecuPdf(paies, client, encaissePar, infoReste = null) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = 210, M = 18;
@@ -8604,14 +8845,24 @@ async function genererRecuPdf(paies, client, encaissePar) {
     'Annuel': 'Abonnement annuel', 'Inscription': "Frais d'inscription", 'Assurance': 'Assurance', 'Équipement': 'Équipement' };
   doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
   paies.forEach(p => {
-    const designation = DESIGNATIONS[p.type] || p.type || 'Paiement';
+    const ir = infoReste?.lignes[p.id];
+    const ref = ir && p.type === 'Complément' ? ir.orig : p;   // un complément porte sur la ligne d'origine
+    const designation = p.type === 'Complément'
+      ? `Reste à payer - ${DESIGNATIONS[ir?.orig.type] || ir?.orig.type || 'paiement'}` + (ir ? ` du ${fD(ir.orig.date_paiement)}` : '')
+      : DESIGNATIONS[p.type] || p.type || 'Paiement';
     const noteUtile = p.note && p.note !== designation && p.note !== "Frais d'inscription" && !/^Assurance/.test(p.note);
     const desLignes = doc.splitTextToSize(designation + (noteUtile ? ` - ${p.note}` : ''), cPer - cDes - 4);
-    const perLignes = doc.splitTextToSize(periodeRecu(p), cMnt - cPer - 32);
-    const hLigne = Math.max(11, Math.max(desLignes.length, perLignes.length) * 5 + 6);
+    const perLignes = doc.splitTextToSize(periodeRecu(ref), cMnt - cPer - 32);
+    let hLigne = Math.max(11, Math.max(desLignes.length, perLignes.length) * 5 + 6);
     doc.text(desLignes, cDes, y + 7);
     doc.text(perLignes, cPer, y + 7);
     doc.text(montantPdf(p.montant), cMnt, y + 7, { align: 'right' });
+    if (ir) {   // paiement partiel : détail sous la ligne
+      doc.setFontSize(8.5); doc.setTextColor(...gris);
+      doc.text(`À payer : ${montantPdf(ir.du)}${ir.avant ? `   |   Déjà payé : ${montantPdf(ir.avant)}` : ''}   |   Payé ce jour : ${montantPdf(p.montant)}   |   Reste : ${montantPdf(ir.reste)}`, cDes, y + hLigne + 0.5);
+      doc.setFontSize(10); doc.setTextColor(...noir);
+      hLigne += 5.5;
+    }
     y += hLigne;
     doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y);
   });
@@ -8621,6 +8872,14 @@ async function genererRecuPdf(paies, client, encaissePar) {
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
   doc.text('TOTAL PAYÉ', W - M - 76, y + 11.5);
   doc.text(montantPdf(total), cMnt, y + 11.5, { align: 'right' });
+  if (infoReste) {   // paiement partiel : reste à payer (ou soldé) bien visible
+    const solde = infoReste.reste <= 0;
+    doc.setFillColor(...(solde ? [236, 253, 245] : [254, 242, 242])); doc.rect(W - M - 80, y + 16, 80, 11, 'F');
+    doc.setTextColor(...(solde ? [21, 128, 61] : [220, 38, 38]));
+    doc.text(solde ? 'SOLDÉ' : 'RESTE À PAYER', W - M - 76, y + 23.5);
+    doc.text(montantPdf(infoReste.reste), cMnt, y + 23.5, { align: 'right' });
+    y += 12;
+  }
   y += 24;
 
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...noir);
@@ -8674,12 +8933,14 @@ async function ouvrirRecu(paiementIds) {
   }
   const client = p0.clients || {};
   let doc;
-  try { doc = await genererRecuPdf(paies, client, encaissePar); }
+  let infoReste = null;
+  try { infoReste = await infoRestesRecu(paies); } catch (_) {}
+  try { doc = await genererRecuPdf(paies, client, encaissePar, infoReste); }
   catch (e) { console.error(e); showToast(t('recu.pdf_ko'), 'e'); return; }
 
   if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
   const blobUrl = URL.createObjectURL(doc.output('blob'));
-  _recu = { doc, blobUrl, paiements: paies, numero: numeroRecu(paies), client, encaissePar };
+  _recu = { doc, blobUrl, paiements: paies, numero: numeroRecu(paies), client, encaissePar, infoReste };
   try { const l = localStorage.getItem('ticket_largeur'); if (l) document.getElementById('recu-ticket-largeur').value = l; } catch (_) {}
 
   document.getElementById('recu-title').textContent = `${t('recu.title')} ${p0.numero_recu ? _recu.numero : ''}`.trim();
@@ -8781,9 +9042,12 @@ function imprimerTicket() {
   const adherent = c.numero_adherent ? String(c.numero_adherent) : (c.id ? `ADH-${c.id.substring(0, 8).toUpperCase()}` : '');
   const mt = v => montantPdf(v);
   const lignes = paies.map(x => {
-    const des = DESIG[x.type] || x.type || 'Paiement';
-    const per = periodeRecu(x);
-    return `<div class="li"><div class="li-h"><span>${e(des)}</span><b>${mt(x.montant)}</b></div>${per && per !== '-' ? `<div class="pt">${e(per)}</div>` : ''}</div>`;
+    const ir = r.infoReste?.lignes[x.id];
+    const des = x.type === 'Complément'
+      ? `Reste à payer - ${DESIG[ir?.orig.type] || ir?.orig.type || 'paiement'}${ir ? ` du ${fD(ir.orig.date_paiement)}` : ''}`
+      : DESIG[x.type] || x.type || 'Paiement';
+    const per = periodeRecu(ir && x.type === 'Complément' ? ir.orig : x);
+    return `<div class="li"><div class="li-h"><span>${e(des)}</span><b>${mt(x.montant)}</b></div>${per && per !== '-' ? `<div class="pt">${e(per)}</div>` : ''}${ir ? `<div class="pt">À payer ${mt(ir.du)}${ir.avant ? ` · Déjà payé ${mt(ir.avant)}` : ''}</div>` : ''}</div>`;
   }).join('');
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Ticket ${e(r.numero)}</title><style>
     @page { size: ${largeur}mm auto; margin: 0; }
@@ -8817,6 +9081,7 @@ function imprimerTicket() {
     ${lignes}
     <div class="sep"></div>
     <div class="total"><span>TOTAL</span><span>${mt(total)}</span></div>
+    ${r.infoReste ? `<div class="total"><span>${r.infoReste.reste > 0 ? 'RESTE À PAYER' : 'SOLDÉ'}</span><span>${mt(r.infoReste.reste)}</span></div>` : ''}
     <div class="pt">Arrêté à la somme de : ${e(montantEnLettres(total))}.</div>
     <div class="sep"></div>
     <div class="kv"><span>Mode</span><b>${e([...new Set(paies.map(x => x.mode).filter(Boolean))].join(', ') || '-')}</b></div>
@@ -11578,7 +11843,7 @@ async function chargerRapportJour() {
   if (rp.error) { showToast(rp.error.message, 'e'); return; }
   const J = {};
   const jour = k => J[k] ??= { entrees: 0, sorties: 0, lignesE: [], lignesS: [] };
-  const typeTr = { 'Mensualité': t('paie.t_mensualite'), 'Trimestriel': t('paie.t_trimestriel'), 'Semestriel': t('paie.t_semestriel'), 'Annuel': t('paie.t_annuel'), 'Inscription': t('paie.t_inscription'), 'Assurance': t('paie.t_assurance'), 'Équipement': t('paie.t_equipement') };
+  const typeTr = { 'Mensualité': t('paie.t_mensualite'), 'Trimestriel': t('paie.t_trimestriel'), 'Semestriel': t('paie.t_semestriel'), 'Annuel': t('paie.t_annuel'), 'Inscription': t('paie.t_inscription'), 'Assurance': t('paie.t_assurance'), 'Équipement': t('paie.t_equipement'), 'Complément': t('paie.t_complement') };
   (rp.data || []).forEach(p => {
     const k = parSaisie ? jourLocal(p.created_at) : p.date_paiement; if (!k) return;
     const v = parseFloat(p.montant) || 0, o = jour(k);
