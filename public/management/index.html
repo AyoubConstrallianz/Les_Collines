@@ -423,6 +423,14 @@ tr:hover td{background:var(--blue-light)}
 .inscr-ligne .il-titre{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .inscr-ligne .il-periode{font-size:11px;color:var(--text3);margin-top:2px}
 .inscr-ligne.off{opacity:.5}
+.dv-sports{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;padding:8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)}
+.dv-sports label{display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin:0}
+.dv-ligne{display:grid;grid-template-columns:22px 1fr 110px 30px;gap:8px;align-items:center;margin-bottom:6px}
+.dv-ligne input[type=checkbox]{width:16px;height:16px;accent-color:var(--blue)}
+.dv-ligne input[type=number]{text-align:end;font-weight:700}
+.dv-ligne input:not([type=checkbox]){padding:7px 9px;font-size:13px;min-width:0;width:100%}
+.dv-ligne .btn{padding:4px 8px}
+@media (max-width:640px){.dv-ligne{grid-template-columns:20px 1fr 78px 30px;gap:6px}}
 .pe-entete{display:grid;grid-template-columns:130px 88px 88px 132px 1fr 30px;gap:8px;padding:0 10px 4px;font-size:11px;font-weight:600;color:var(--text3)}
 .pe-ligne .pe-reste{grid-column:1 / -1;font-size:11px;font-weight:700;color:var(--red);margin-top:-2px}
 .pe-ligne .pe-reste:empty{display:none}
@@ -998,6 +1006,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <select id="db-mois" style="width:auto;font-size:13px;padding:6px 12px" onchange="loadDashboard()"><option value="" data-i18n="fin.tous_mois">Tous les mois (passés et à venir)</option></select>
           <button class="btn btn-sm" onclick="dbChoisirMois(thisMonth())" data-i18n="db.cemois">Ce mois</button>
           <button class="btn btn-sm" onclick="dbChoisirMois('')" data-i18n="fin.btn_tous">Tous les mois</button>
+          <button class="btn btn-sm btn-p" onclick="ouvrirDevis()" style="margin-inline-start:auto" data-i18n="dv.btn">📝 Faire un devis</button>
         </div>
         <div id="db-assur-alert" class="al al-e" style="display:none;margin-bottom:1rem;cursor:pointer" onclick="nav('clients',document.querySelector('.nav[data-page=clients]'))"></div>
 
@@ -2027,6 +2036,41 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         </div>
       </div>
 
+      <div class="mo" id="devis-modal">
+        <div class="mo-box" style="max-width:680px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <div class="mo-title" style="margin-bottom:0"><span data-i18n="dv.title">Nouveau devis</span> <span id="dv-numero" style="font-size:13px;color:var(--text3);font-weight:500"></span></div>
+            <button class="btn btn-sm" onclick="document.getElementById('devis-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <div class="fr">
+            <div class="fg"><label data-i18n="dv.nom">Nom du client</label><input id="dv-nom" list="dv-clients" autocomplete="off" placeholder="Prénom Nom" data-i18n-ph="dv.nom_ph" onchange="devisChoixClient()"><datalist id="dv-clients"></datalist></div>
+            <div class="fg"><label data-i18n="clients.tel">Téléphone</label><input id="dv-tel" placeholder="06 00 00 00 00"></div>
+          </div>
+          <div class="fg" style="margin-bottom:10px"><label data-i18n="clients.sports">Sports pratiqués</label><div id="dv-sports" class="dv-sports"></div></div>
+          <div class="fr">
+            <div class="fg"><label data-i18n="clients.formule">Formule</label><select id="dv-formule" onchange="devisCalcul()">
+              <option value="Mensualité" data-i18n="clients.f_mensuel">Mensuel</option>
+              <option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option><option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option>
+              <option value="Annuel" data-i18n="paie.t_annuel">Annuel</option></select></div>
+            <div class="fg"><label style="display:flex;align-items:center;gap:6px;margin-top:22px;cursor:pointer"><input type="checkbox" id="dv-famille" onchange="devisCalcul()" style="width:16px;height:16px"> <span data-i18n="dv.famille">Tarif pack famille</span></label></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px" data-i18n="dv.lignes">Lignes du devis (décochez ce qui ne doit pas apparaître)</div>
+          <div id="dv-lignes"></div>
+          <button type="button" class="btn btn-sm" onclick="devisAjouter()" style="margin-bottom:10px">+ <span data-i18n="pe.ajouter">Ajouter une ligne</span></button>
+          <div class="fr">
+            <div class="fg"><label data-i18n="dv.remise">Remise (DH)</label><input id="dv-remise" type="number" min="0" placeholder="0" oninput="devisTotal()"></div>
+            <div class="fg"><label data-i18n="dv.validite">Valable (jours)</label><input id="dv-validite" type="number" min="1" value="15" oninput="devisTotal()"></div>
+          </div>
+          <div class="fg" style="margin-bottom:10px"><label data-i18n="paie.note">Note</label><input id="dv-note" placeholder="Ex. : horaires, conditions particulières (facultatif)" data-i18n-ph="dv.note_ph"></div>
+          <div id="dv-total" style="text-align:end;font-size:16px;font-weight:700"></div>
+          <div class="mo-footer">
+            <button class="btn" onclick="document.getElementById('devis-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button>
+            <button class="btn" onclick="genererDevis(true)" data-i18n="dv.telecharger">Télécharger</button>
+            <button class="btn btn-p" onclick="genererDevis(false)" data-i18n="dv.voir">Voir / imprimer le PDF</button>
+          </div>
+        </div>
+      </div>
+
       <div class="mo" id="reste-modal">
         <div class="mo-box" style="max-width:480px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
@@ -2951,6 +2995,23 @@ const I18N = {
     'paie.a_payer':      'À payer (DH)',
     'reste.a_payer':     'À payer',
     'reste.paye':        'Payé',
+    'dv.btn':            '📝 Faire un devis',
+    'dv.title':          'Nouveau devis',
+    'dv.nom':            'Nom du client',
+    'dv.nom_ph':         'Prénom Nom (client inscrit ou non)',
+    'dv.famille':        'Tarif pack famille',
+    'dv.lignes':         'Lignes du devis (décochez ce qui ne doit pas apparaître)',
+    'dv.designation':    'Désignation',
+    'dv.remise':         'Remise (DH)',
+    'dv.remise_court':   'Remise',
+    'dv.validite':       'Valable (jours)',
+    'dv.note_ph':        'Ex. : horaires, conditions particulières (facultatif)',
+    'dv.sous_total':     'Sous-total',
+    'dv.total':          'Total du devis',
+    'dv.telecharger':    'Télécharger',
+    'dv.voir':           'Voir / imprimer le PDF',
+    'dv.nom_requis':     'Indiquez le nom du client',
+    'dv.vide':           'Le devis ne contient aucune ligne avec un montant',
     'inscr.encaissement': "Encaissement à l'inscription",
     'inscr.aide':        "Décochez ce qui n'est pas payé maintenant. La date d'inscription est la date du paiement. Un seul reçu pour le tout.",
     'inscr.enreg_encaisser': 'Enregistrer et encaisser',
@@ -4246,6 +4307,23 @@ const I18N = {
     'paie.a_payer':      'المبلغ المستحق (درهم)',
     'reste.a_payer':     'المستحق',
     'reste.paye':        'المدفوع',
+    'dv.btn':            '📝 إعداد عرض أسعار',
+    'dv.title':          'عرض أسعار جديد',
+    'dv.nom':            'اسم الزبون',
+    'dv.nom_ph':         'الاسم الكامل (مسجل أو غير مسجل)',
+    'dv.famille':        'تعريفة باقة العائلة',
+    'dv.lignes':         'بنود العرض (أزل العلامة عمّا لا يجب أن يظهر)',
+    'dv.designation':    'البيان',
+    'dv.remise':         'تخفيض (درهم)',
+    'dv.remise_court':   'تخفيض',
+    'dv.validite':       'صالح (أيام)',
+    'dv.note_ph':        'مثال: الأوقات، شروط خاصة (اختياري)',
+    'dv.sous_total':     'المجموع الجزئي',
+    'dv.total':          'مجموع العرض',
+    'dv.telecharger':    'تحميل',
+    'dv.voir':           'عرض / طباعة PDF',
+    'dv.nom_requis':     'أدخل اسم الزبون',
+    'dv.vide':           'العرض لا يحتوي على أي بند بمبلغ',
     'inscr.encaissement': 'التحصيل عند التسجيل',
     'inscr.aide':        'أزل العلامة عمّا لم يُدفع الآن. تاريخ التسجيل هو تاريخ الأداء. وصل واحد للكل.',
     'inscr.enreg_encaisser': 'تسجيل وتحصيل',
@@ -6320,6 +6398,213 @@ function calculerRestes(paies) {
   (paies || []).forEach(p => { if (p.reste_de && R[p.reste_de]) { R[p.reste_de].paye += parseFloat(p.montant) || 0; R[p.reste_de].complements.push(p); } });
   Object.values(R).forEach(r => { r.reste = Math.max(0, Math.round((r.du - r.paye) * 100) / 100); });
   return R;
+}
+
+// ════════════════════════════════════════════════════════════
+// DEVIS (PDF) : pour un client inscrit ou une personne pas encore inscrite
+// ════════════════════════════════════════════════════════════
+let _devis = null;
+const DV_FORMULES = { 'Mensualité': 'Abonnement mensuel (1 mois)', 'Trimestriel': 'Abonnement trimestriel (3 mois)',
+  'Semestriel': 'Abonnement semestriel (6 mois)', 'Annuel': 'Abonnement annuel (12 mois)' };
+async function ouvrirDevis() {
+  await loadParametres();
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
+  const { data: cl } = await sb.from('clients').select('id,prenom,nom,telephone,sports,sport').order('nom');
+  const n = new Date(), p2 = x => String(x).padStart(2, '0');
+  _devis = {
+    clients: cl || [],
+    numero: `D-${String(n.getFullYear()).slice(2)}${p2(n.getMonth() + 1)}${p2(n.getDate())}-${p2(n.getHours())}${p2(n.getMinutes())}`,
+    lignes: [
+      { cle: 'abo', des: '', montant: 0, on: true },
+      { cle: 'ins', des: "Frais d'inscription", montant: 0, on: true },
+      { cle: 'assur', des: 'Assurance (1 an)', montant: 0, on: true }
+    ]
+  };
+  document.getElementById('dv-clients').innerHTML = _devis.clients.map(c => `<option value="${echapper(`${c.prenom || ''} ${c.nom || ''}`.trim())}">`).join('');
+  document.getElementById('dv-sports').innerHTML = SPORTS_CACHE.map(sp => `<label><input type="checkbox" value="${echapper(sp.nom)}" onchange="devisCalcul()" style="width:15px;height:15px;accent-color:var(--blue)"> <span><strong>${echapper(sp.nom)}</strong> <span style="color:var(--text3)">· ${fmt(sp.tarif_mensuel)}</span></span></label>`).join('');
+  ['dv-nom', 'dv-tel', 'dv-remise', 'dv-note'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('dv-validite').value = 15;
+  document.getElementById('dv-formule').value = 'Mensualité';
+  document.getElementById('dv-famille').checked = false;
+  document.getElementById('dv-numero').textContent = `N° ${_devis.numero}`;
+  devisCalcul();
+  document.getElementById('devis-modal').classList.add('open');
+  document.getElementById('dv-nom').focus();
+}
+// Client déjà inscrit choisi dans la liste : téléphone et sports repris de sa fiche
+function devisChoixClient() {
+  const v = document.getElementById('dv-nom').value.trim().toLowerCase();
+  const c = _devis.clients.find(x => `${x.prenom || ''} ${x.nom || ''}`.trim().toLowerCase() === v);
+  if (!c) return;
+  if (!document.getElementById('dv-tel').value) document.getElementById('dv-tel').value = c.telephone || '';
+  const sports = c.sports || (c.sport ? [c.sport] : []);
+  document.querySelectorAll('#dv-sports input').forEach(x => { x.checked = sports.includes(x.value); });
+  devisCalcul();
+}
+function devisLire() {
+  _devis.lignes.forEach((l, i) => {
+    const d = document.getElementById(`dv-des-${i}`);
+    if (!d) return;
+    l.des = d.value; l.montant = parseFloat(document.getElementById(`dv-mt-${i}`).value) || 0;
+    l.on = document.getElementById(`dv-on-${i}`).checked;
+  });
+}
+// Lignes automatiques (tarifs des sports choisis), sauf celles modifiées à la main
+function devisCalcul() {
+  if (!_devis) return;
+  devisLire();
+  const sports = [...document.querySelectorAll('#dv-sports input:checked')].map(x => x.value);
+  const formule = document.getElementById('dv-formule').value, famille = document.getElementById('dv-famille').checked;
+  _devis.lignes.forEach(l => {
+    if (l.cle === 'abo') {
+      if (!l.touche) l.montant = montantAbonnement(sports, formule, famille);
+      if (!l.desTouche) l.des = DV_FORMULES[formule] + (sports.length ? ` - ${sports.join(', ')}` : '') + (famille ? ' (pack famille)' : '');
+    }
+    if (l.cle === 'ins' && !l.touche) l.montant = sports.reduce((a, x) => Math.max(a, parseFloat(SPORTS_CACHE.find(y => y.nom === x)?.tarif_inscription) || 0), 0);
+    if (l.cle === 'assur' && !l.touche) l.montant = montantAssurance() || 0;
+  });
+  devisRendu();
+}
+function devisRendu() {
+  document.getElementById('dv-lignes').innerHTML = _devis.lignes.map((l, i) => `<div class="dv-ligne">
+    <input type="checkbox" id="dv-on-${i}" ${l.on ? 'checked' : ''} onchange="devisTotal()">
+    <input id="dv-des-${i}" value="${echapper(l.des)}" placeholder="${t('dv.designation')}" oninput="_devis.lignes[${i}].desTouche=true">
+    <input id="dv-mt-${i}" type="number" min="0" value="${l.montant || ''}" placeholder="0" oninput="_devis.lignes[${i}].touche=true;devisTotal()">
+    ${l.cle ? '<span></span>' : `<button type="button" class="btn btn-sm" title="${t('pe.retirer')}" onclick="devisRetirer(${i})">✕</button>`}
+  </div>`).join('');
+  devisTotal();
+}
+function devisTotal() {
+  devisLire();
+  const st = _devis.lignes.reduce((a, l) => a + (l.on ? l.montant : 0), 0);
+  const remise = Math.min(st, parseFloat(document.getElementById('dv-remise').value) || 0);
+  _devis.total = st - remise;
+  document.getElementById('dv-total').innerHTML = (remise ? `<div style="font-size:13px;font-weight:500;color:var(--text2)">${t('dv.sous_total')} : ${fmt(st)} · ${t('dv.remise_court')} : − ${fmt(remise)}</div>` : '')
+    + `${t('dv.total')} : ${fmt(_devis.total)}`;
+}
+function devisAjouter() {
+  devisLire();
+  _devis.lignes.push({ cle: null, des: '', montant: 0, on: true });
+  devisRendu();
+  document.getElementById(`dv-des-${_devis.lignes.length - 1}`).focus();
+}
+function devisRetirer(i) { devisLire(); _devis.lignes.splice(i, 1); devisRendu(); }
+
+async function genererDevis(telecharger) {
+  if (!_devis) return;
+  if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  devisTotal();
+  const nom = document.getElementById('dv-nom').value.trim();
+  if (!nom) { showToast(t('dv.nom_requis'), 'e'); document.getElementById('dv-nom').focus(); return; }
+  const lignes = _devis.lignes.filter(l => l.on && l.montant > 0 && l.des.trim());
+  if (!lignes.length) { showToast(t('dv.vide'), 'e'); return; }
+  const st = lignes.reduce((a, l) => a + l.montant, 0);
+  const remise = Math.min(st, parseFloat(document.getElementById('dv-remise').value) || 0);
+  const jours = Math.max(1, parseInt(document.getElementById('dv-validite').value, 10) || 15);
+  const [y, m, d] = today().split('-').map(Number);
+  const infos = { numero: _devis.numero, date: today(), validite: isoLocal(new Date(y, m - 1, d + jours)), nom,
+    tel: document.getElementById('dv-tel').value.trim(), lignes, remise, total: st - remise, note: document.getElementById('dv-note').value.trim(),
+    sports: [...document.querySelectorAll('#dv-sports input:checked')].map(x => x.value) };
+  // Onglet ouvert tout de suite (sinon le navigateur bloque la fenêtre ouverte après le calcul)
+  const onglet = telecharger ? null : window.open('', '_blank');
+  let doc;
+  try { doc = await genererDevisPdf(infos); }
+  catch (e) { console.error(e); onglet?.close(); showToast(t('recu.pdf_ko'), 'e'); return; }
+  const fichier = `Devis-${infos.numero}-${nom.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-')}.pdf`;
+  if (onglet) onglet.location.href = URL.createObjectURL(doc.output('blob'));
+  else doc.save(fichier);
+  await logAudit('CREATE', 'devis', `Devis ${infos.numero} ${nom} — ${fmt(infos.total)}`);
+}
+
+async function genererDevisPdf(dv) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, M = 18;
+  const bleu = [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42];
+  const fD = s => s ? s.split('-').reverse().join('/') : '-';
+
+  // En-tête association (comme le reçu)
+  const logo = await chargerLogoRecu();
+  if (logo) doc.addImage(logo, 'PNG', M, 14, 24, 24);
+  const xTxt = logo ? M + 29 : M;
+  doc.setTextColor(...noir); doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+  doc.text(RECU_ASSO.nom, xTxt, 21);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+  doc.text(RECU_ASSO.slogan, xTxt, 26.5);
+  doc.text(RECU_ASSO.adresse, xTxt, 31);
+  doc.text(`Tél. ${RECU_ASSO.tel}  |  ${RECU_ASSO.email}`, xTxt, 35.5);
+  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+  doc.text('DEVIS', W - M, 21, { align: 'right' });
+  doc.setTextColor(...noir); doc.setFontSize(10);
+  doc.text(`N° ${dv.numero}`, W - M, 28, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
+  doc.text(`Date : ${fD(dv.date)}`, W - M, 33, { align: 'right' });
+  doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 43, W - M, 43);
+
+  // Destinataire
+  doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
+  doc.roundedRect(M, 50, W - 2 * M, 26, 2, 2, 'FD');
+  doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text('DEVIS ÉTABLI POUR', M + 5, 57);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...noir);
+  doc.text(dv.nom, M + 5, 64);
+  doc.setFontSize(9.5); doc.setTextColor(...bleu);
+  doc.text(`Valable jusqu'au ${fD(dv.validite)}`, W - M - 5, 57, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+  doc.text([dv.tel ? `Tél. : ${dv.tel}` : '', dv.sports.length ? `Sport(s) : ${dv.sports.join(', ')}` : ''].filter(Boolean).join('     ') || '-', M + 5, 71);
+
+  // Tableau
+  let y = 86;
+  const cDes = M + 4, cMnt = W - M - 4;
+  doc.setFillColor(...bleu); doc.rect(M, y, W - 2 * M, 9, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+  doc.text('Désignation', cDes, y + 6); doc.text('Montant', cMnt, y + 6, { align: 'right' });
+  y += 9;
+  doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  dv.lignes.forEach(l => {
+    const des = doc.splitTextToSize(l.des.trim(), cMnt - cDes - 40);
+    const h = Math.max(11, des.length * 5 + 6);
+    doc.text(des, cDes, y + 7);
+    doc.text(montantPdf(l.montant), cMnt, y + 7, { align: 'right' });
+    y += h;
+    doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y);
+  });
+
+  // Totaux
+  y += 4;
+  if (dv.remise > 0) {
+    doc.setFontSize(10); doc.setTextColor(...gris);
+    doc.text('Sous-total', W - M - 76, y + 5); doc.text(montantPdf(dv.total + dv.remise), cMnt, y + 5, { align: 'right' });
+    doc.text('Remise', W - M - 76, y + 11); doc.text(`- ${montantPdf(dv.remise)}`, cMnt, y + 11, { align: 'right' });
+    y += 14;
+  }
+  doc.setFillColor(239, 246, 255); doc.rect(W - M - 80, y, 80, 11, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
+  doc.text('TOTAL', W - M - 76, y + 7.5);
+  doc.text(montantPdf(dv.total), cMnt, y + 7.5, { align: 'right' });
+  y += 20;
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...noir);
+  doc.text(doc.splitTextToSize(`Arrêté le présent devis à la somme de : ${montantEnLettres(dv.total)}.`, W - 2 * M), M, y);
+  y += 9;
+  doc.setFontSize(9); doc.setTextColor(...gris);
+  const conditions = [
+    `Devis valable jusqu'au ${fD(dv.validite)}.`,
+    "Le montant est à régler à l'inscription. Un reçu est remis pour chaque paiement.",
+    ...(dv.note ? [dv.note] : [])
+  ];
+  conditions.forEach(c => { const l = doc.splitTextToSize(c, W - 2 * M); doc.text(l, M, y); y += l.length * 4.6 + 1; });
+
+  // Cachet
+  doc.setDrawColor(203, 213, 225); doc.setLineDashPattern([1.2, 1.2], 0);
+  doc.roundedRect(W - M - 70, y + 6, 70, 30, 2, 2, 'S');
+  doc.setLineDashPattern([], 0);
+  doc.setFontSize(8.5); doc.text('Cachet et signature', W - M - 35, y + 12, { align: 'center' });
+
+  doc.setDrawColor(226, 232, 240); doc.line(M, 280, W - M, 280);
+  doc.setFontSize(8); doc.setTextColor(...gris);
+  doc.text(`${RECU_ASSO.nom} - ${RECU_ASSO.adresse} - Merci de votre confiance`, W / 2, 285, { align: 'center' });
+  doc.setProperties({ title: `Devis ${dv.numero}`, author: 'Association Les Collines' });
+  return doc;
 }
 
 // Formulaire de paiement : « À payer » (tarif, modifiable), « Montant payé », « Reste » calculé
