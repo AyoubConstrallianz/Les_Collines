@@ -3046,6 +3046,7 @@ const I18N = {
     'rj.note':           'Cliquez sur un jour pour voir le détail. Entrées = paiements des clients + ventes de la boutique (date de la vente, comptées en espèces). Sorties = charges (date de la charge) + salaires (jour où le salaire a été enregistré).',
     'rj.boutique':       'Boutique',
     'rj.dont_boutique':  'dont boutique',
+    'rj.boutique_ko':    'Ventes de la boutique non lues',
     'rj.entrees':        'Entrées',
     'rj.sorties':        'Sorties',
     'rj.solde':          'Solde de la période',
@@ -4362,6 +4363,7 @@ const I18N = {
     'rj.note':           'اضغط على يوم لرؤية التفاصيل. المداخيل = أداءات الزبناء + مبيعات المتجر (تاريخ البيع، نقدا). المصاريف = التكاليف + الأجور (يوم تسجيل الأجر).',
     'rj.boutique':       'المتجر',
     'rj.dont_boutique':  'منها المتجر',
+    'rj.boutique_ko':    'تعذرت قراءة مبيعات المتجر',
     'rj.entrees':        'المداخيل',
     'rj.sorties':        'المصاريف',
     'rj.solde':          'رصيد الفترة',
@@ -12193,6 +12195,7 @@ async function chargerRapportJour() {
     o.lignesS.push({ heure: '', qui: c.libelle || '—', quoi: c.categorie || t('rj.charge'), mode: c.mode || 'Espèces', note: '', montant: v });
   });
   // Boutique : ventes au jour de la vente (quantité × prix de vente)
+  if (rv.error) showToast(`${t('rj.boutique_ko')} : ${rv.error.message}`, 'e');
   (rv.error ? [] : rv.data || []).forEach(x => {
     if (!x.date_vente) return;
     const q = parseInt(x.quantite, 10) || 1, v = q * (parseFloat(x.prix_vente) || 0), o = jour(x.date_vente);
