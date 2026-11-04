@@ -6519,90 +6519,127 @@ async function genererDevis(telecharger) {
 async function genererDevisPdf(dv) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const W = 210, M = 18;
-  const bleu = [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42];
+  const W = 210, H = 297, M = 22;
+  const or = [176, 141, 87], noir = [20, 20, 20], gris = [110, 110, 110], creme = [250, 247, 240];
   const fD = s => s ? s.split('-').reverse().join('/') : '-';
+  // Texte espacé (lettres écartées), centré ou aligné à droite
+  const espace = (txt, x, y, cs, align = 'center') => {
+    const w = doc.getTextWidth(txt) + cs * (txt.length - 1);
+    doc.text(txt, align === 'center' ? x - w / 2 : align === 'right' ? x - w : x, y, { charSpace: cs });
+  };
+  const cadre = () => {
+    doc.setDrawColor(...or); doc.setLineWidth(0.5); doc.rect(8, 8, W - 16, H - 16);
+    doc.setLineWidth(0.15); doc.rect(10, 10, W - 20, H - 20);
+  };
+  cadre();
 
-  // En-tête association (comme le reçu)
-  const logo = await chargerLogoRecu();
-  if (logo) doc.addImage(logo, 'PNG', M, 14, 24, 24);
-  const xTxt = logo ? M + 29 : M;
-  doc.setTextColor(...noir); doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
-  doc.text(RECU_ASSO.nom, xTxt, 21);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
-  doc.text(RECU_ASSO.slogan, xTxt, 26.5);
-  doc.text(RECU_ASSO.adresse, xTxt, 31);
-  doc.text(`Tél. ${RECU_ASSO.tel}  |  ${RECU_ASSO.email}`, xTxt, 35.5);
-  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-  doc.text('DEVIS', W - M, 21, { align: 'right' });
-  doc.setTextColor(...noir); doc.setFontSize(10);
-  doc.text(`N° ${dv.numero}`, W - M, 28, { align: 'right' });
-  doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
-  doc.text(`Date : ${fD(dv.date)}`, W - M, 33, { align: 'right' });
-  doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 43, W - M, 43);
+  // Logo noir du reçu, centré
+  let y = 17;
+  try {
+    const img = await loadImageAsync('/images/logo-ticket.png');
+    const lw = 72, lh = lw * img.naturalHeight / img.naturalWidth;
+    doc.addImage(img, 'PNG', (W - lw) / 2, y, lw, lh); y += lh + 5;
+  } catch (_) {
+    doc.setFont('times', 'bold'); doc.setFontSize(20); doc.setTextColor(...noir);
+    espace(RECU_ASSO.nom, W / 2, y + 8, 1); y += 14;
+  }
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gris);
+  espace(RECU_ASSO.adresse.toUpperCase(), W / 2, y, 0.4); y += 4.2;
+  espace(`TÉL. ${RECU_ASSO.tel}   ·   ${RECU_ASSO.email}`, W / 2, y, 0.25); y += 7;
 
-  // Destinataire
-  doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
-  doc.roundedRect(M, 50, W - 2 * M, 26, 2, 2, 'FD');
-  doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text('DEVIS ÉTABLI POUR', M + 5, 57);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...noir);
-  doc.text(dv.nom, M + 5, 64);
-  doc.setFontSize(9.5); doc.setTextColor(...bleu);
-  doc.text(`Valable jusqu'au ${fD(dv.validite)}`, W - M - 5, 57, { align: 'right' });
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
-  doc.text([dv.tel ? `Tél. : ${dv.tel}` : '', dv.sports.length ? `Sport(s) : ${dv.sports.join(', ')}` : ''].filter(Boolean).join('     ') || '-', M + 5, 71);
+  // Filet doré et titre
+  doc.setDrawColor(...or); doc.setLineWidth(0.3);
+  doc.line(M, y, W / 2 - 31, y); doc.line(W / 2 + 31, y, W - M, y);
+  doc.setFillColor(...or); doc.circle(W / 2 - 27.5, y, 0.7, 'F'); doc.circle(W / 2 + 27.5, y, 0.7, 'F');
+  doc.setFont('times', 'bold'); doc.setFontSize(24); doc.setTextColor(...noir);
+  espace('DEVIS', W / 2, y + 3, 3);
+  y += 9;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...or);
+  espace(`N° ${dv.numero}`, W / 2, y, 0.6);
+  y += 9;
+
+  // Destinataire / dates
+  const hBloc = 27;
+  doc.setFillColor(...creme); doc.rect(M, y, W - 2 * M, hBloc, 'F');
+  doc.setDrawColor(...or); doc.setLineWidth(0.4); doc.line(M, y, W - M, y); doc.line(M, y + hBloc, W - M, y + hBloc);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(...or);
+  espace('ÉTABLI POUR', M + 6, y + 7, 0.8, 'left');
+  espace('DATE', W - M - 6, y + 7, 0.8, 'right');
+  espace("VALABLE JUSQU'AU", W - M - 6, y + 17, 0.8, 'right');
+  doc.setFont('times', 'bold'); doc.setFontSize(15); doc.setTextColor(...noir);
+  doc.text(dv.nom, M + 6, y + 14.5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+  doc.text(fD(dv.date), W - M - 6, y + 12, { align: 'right' });
+  doc.text(fD(dv.validite), W - M - 6, y + 22, { align: 'right' });
+  doc.setFontSize(8.5); doc.setTextColor(...gris);
+  doc.text([dv.tel ? `Tél. ${dv.tel}` : '', dv.sports.length ? `Sport(s) : ${dv.sports.join(', ')}` : ''].filter(Boolean).join('     ') || ' ', M + 6, y + 21.5);
+  y += hBloc + 10;
 
   // Tableau
-  let y = 86;
-  const cDes = M + 4, cMnt = W - M - 4;
-  doc.setFillColor(...bleu); doc.rect(M, y, W - 2 * M, 9, 'F');
-  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
-  doc.text('Désignation', cDes, y + 6); doc.text('Montant', cMnt, y + 6, { align: 'right' });
-  y += 9;
-  doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  dv.lignes.forEach(l => {
+  const cDes = M + 6, cMnt = W - M - 6;
+  doc.setFillColor(...noir); doc.rect(M, y, W - 2 * M, 9.5, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
+  espace('DÉSIGNATION', cDes, y + 6.2, 1, 'left');
+  espace('MONTANT', cMnt, y + 6.2, 1, 'right');
+  y += 9.5;
+  dv.lignes.forEach((l, k) => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
     const des = doc.splitTextToSize(l.des.trim(), cMnt - cDes - 40);
     const h = Math.max(11, des.length * 5 + 6);
-    doc.text(des, cDes, y + 7);
-    doc.text(montantPdf(l.montant), cMnt, y + 7, { align: 'right' });
+    if (k % 2) { doc.setFillColor(...creme); doc.rect(M, y, W - 2 * M, h, 'F'); }
+    doc.setTextColor(...noir); doc.text(des, cDes, y + 7);
+    doc.setFont('helvetica', 'bold'); doc.text(montantPdf(l.montant), cMnt, y + 7, { align: 'right' });
     y += h;
-    doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y);
+    doc.setDrawColor(...or); doc.setLineWidth(0.15); doc.line(M, y, W - M, y);
   });
 
   // Totaux
-  y += 4;
+  y += 5;
+  const xLib = W - M - 86;
   if (dv.remise > 0) {
-    doc.setFontSize(10); doc.setTextColor(...gris);
-    doc.text('Sous-total', W - M - 76, y + 5); doc.text(montantPdf(dv.total + dv.remise), cMnt, y + 5, { align: 'right' });
-    doc.text('Remise', W - M - 76, y + 11); doc.text(`- ${montantPdf(dv.remise)}`, cMnt, y + 11, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...gris);
+    doc.text('Sous-total', xLib + 6, y + 4); doc.text(montantPdf(dv.total + dv.remise), cMnt, y + 4, { align: 'right' });
+    doc.text('Remise', xLib + 6, y + 10); doc.text(`- ${montantPdf(dv.remise)}`, cMnt, y + 10, { align: 'right' });
     y += 14;
   }
-  doc.setFillColor(239, 246, 255); doc.rect(W - M - 80, y, 80, 11, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
-  doc.text('TOTAL', W - M - 76, y + 7.5);
-  doc.text(montantPdf(dv.total), cMnt, y + 7.5, { align: 'right' });
-  y += 20;
+  doc.setFillColor(...noir); doc.rect(xLib, y, W - M - xLib, 13, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...or);
+  espace('TOTAL', xLib + 6, y + 8.3, 1.5, 'left');
+  doc.setFontSize(13); doc.setTextColor(255, 255, 255);
+  doc.text(montantPdf(dv.total), cMnt, y + 8.6, { align: 'right' });
+  y += 21;
 
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...noir);
-  doc.text(doc.splitTextToSize(`Arrêté le présent devis à la somme de : ${montantEnLettres(dv.total)}.`, W - 2 * M), M, y);
-  y += 9;
-  doc.setFontSize(9); doc.setTextColor(...gris);
-  const conditions = [
-    `Devis valable jusqu'au ${fD(dv.validite)}.`,
-    "Le montant est à régler à l'inscription. Un reçu est remis pour chaque paiement.",
-    ...(dv.note ? [dv.note] : [])
-  ];
-  conditions.forEach(c => { const l = doc.splitTextToSize(c, W - 2 * M); doc.text(l, M, y); y += l.length * 4.6 + 1; });
+  doc.setFont('times', 'italic'); doc.setFontSize(10.5); doc.setTextColor(...noir);
+  const lettres = doc.splitTextToSize(`Arrêté le présent devis à la somme de ${montantEnLettres(dv.total)}.`, W - 2 * M);
+  doc.text(lettres, M, y); y += lettres.length * 5 + 4;
 
-  // Cachet
-  doc.setDrawColor(203, 213, 225); doc.setLineDashPattern([1.2, 1.2], 0);
-  doc.roundedRect(W - M - 70, y + 6, 70, 30, 2, 2, 'S');
-  doc.setLineDashPattern([], 0);
-  doc.setFontSize(8.5); doc.text('Cachet et signature', W - M - 35, y + 12, { align: 'center' });
+  // Conditions
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...gris);
+  [`Devis valable jusqu'au ${fD(dv.validite)}.`, "Le montant est à régler à l'inscription. Un reçu est remis pour chaque paiement.", ...(dv.note ? [dv.note] : [])]
+    .forEach(c => {
+      const l = doc.splitTextToSize(c, W - 2 * M - 5);
+      doc.setFillColor(...or); doc.circle(M + 1, y - 1.1, 0.6, 'F');
+      doc.text(l, M + 4, y); y += l.length * 4.4 + 1.2;
+    });
 
-  doc.setDrawColor(226, 232, 240); doc.line(M, 280, W - M, 280);
-  doc.setFontSize(8); doc.setTextColor(...gris);
-  doc.text(`${RECU_ASSO.nom} - ${RECU_ASSO.adresse} - Merci de votre confiance`, W / 2, 285, { align: 'center' });
+  // Signatures (nouvelle page si le devis est long)
+  if (y + 42 > H - 30) { doc.addPage(); cadre(); y = 25; }
+  y += 6;
+  const lb = 74, hb = 30;
+  [[M, 'BON POUR ACCORD', 'Signature du client'], [W - M - lb, "CACHET DE L'ASSOCIATION", 'Cachet et signature']].forEach(([x, titre, sous]) => {
+    doc.setDrawColor(...or); doc.setLineWidth(0.3); doc.rect(x, y, lb, hb);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(...or);
+    espace(titre, x + lb / 2, y + 6, 0.7);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gris);
+    doc.text(sous, x + lb / 2, y + 10.5, { align: 'center' });
+  });
+
+  // Pied de page
+  doc.setDrawColor(...or); doc.setLineWidth(0.3); doc.line(M, H - 24, W - M, H - 24);
+  doc.setFont('times', 'italic'); doc.setFontSize(10); doc.setTextColor(...noir);
+  doc.text('Merci de votre confiance', W / 2, H - 18.5, { align: 'center' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...gris);
+  espace(`${RECU_ASSO.nom}  ·  ${RECU_ASSO.slogan.toUpperCase()}`, W / 2, H - 14, 0.5);
   doc.setProperties({ title: `Devis ${dv.numero}`, author: 'Association Les Collines' });
   return doc;
 }
