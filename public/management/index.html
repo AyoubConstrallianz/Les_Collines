@@ -3043,7 +3043,9 @@ const I18N = {
     'rj.ce_mois':        'Ce mois',
     'rj.base_saisie':    'Paiements au jour de l\'encaissement (saisie)',
     'rj.base_date':      'Paiements à la date du paiement',
-    'rj.note':           'Cliquez sur un jour pour voir le détail. Entrées = paiements des clients. Sorties = charges (date de la charge) + salaires (jour où le salaire a été enregistré).',
+    'rj.note':           'Cliquez sur un jour pour voir le détail. Entrées = paiements des clients + ventes de la boutique (date de la vente, comptées en espèces). Sorties = charges (date de la charge) + salaires (jour où le salaire a été enregistré).',
+    'rj.boutique':       'Boutique',
+    'rj.dont_boutique':  'dont boutique',
     'rj.entrees':        'Entrées',
     'rj.sorties':        'Sorties',
     'rj.solde':          'Solde de la période',
@@ -4357,7 +4359,9 @@ const I18N = {
     'rj.ce_mois':        'هذا الشهر',
     'rj.base_saisie':    'الأداءات حسب يوم التحصيل (التسجيل)',
     'rj.base_date':      'الأداءات حسب تاريخ الأداء',
-    'rj.note':           'اضغط على يوم لرؤية التفاصيل. المداخيل = أداءات الزبناء. المصاريف = التكاليف + الأجور (يوم تسجيل الأجر).',
+    'rj.note':           'اضغط على يوم لرؤية التفاصيل. المداخيل = أداءات الزبناء + مبيعات المتجر (تاريخ البيع، نقدا). المصاريف = التكاليف + الأجور (يوم تسجيل الأجر).',
+    'rj.boutique':       'المتجر',
+    'rj.dont_boutique':  'منها المتجر',
     'rj.entrees':        'المداخيل',
     'rj.sorties':        'المصاريف',
     'rj.solde':          'رصيد الفترة',
@@ -12162,17 +12166,18 @@ async function chargerRapportJour() {
   const parSaisie = document.getElementById('rj-base').value === 'saisie';
   const jourLocal = ts => ts ? isoLocal(new Date(ts)) : null;
   const heure = ts => ts ? new Date(ts).toTimeString().slice(0, 5) : '';
-  const [rp, rc, rs] = await Promise.all([
+  const [rp, rc, rs, rv] = await Promise.all([
     fetchAllRows(() => {
       const q = sb.from('paiements').select('id,montant,date_paiement,type,mode,note,created_at,clients(prenom,nom)');
       return (parSaisie ? q.gte('created_at', debutJour(du)).lt('created_at', finISO) : q.gte('date_paiement', du).lte('date_paiement', au)).order('id');
     }),
     fetchAllRows(() => sb.from('charges').select('*').gte('date_charge', du).lte('date_charge', au).order('id')),
-    fetchAllRows(() => sb.from('salaires_paie').select('id,montant,mois,mode,created_at,employes(prenom,nom)').gte('created_at', debutJour(du)).lt('created_at', finISO).order('id'))
+    fetchAllRows(() => sb.from('salaires_paie').select('id,montant,mois,mode,created_at,employes(prenom,nom)').gte('created_at', debutJour(du)).lt('created_at', finISO).order('id')),
+    fetchAllRows(() => sb.from('ventes').select('*,clients(prenom,nom)').gte('date_vente', du).lte('date_vente', au).order('id'))
   ]);
   if (rp.error) { showToast(rp.error.message, 'e'); return; }
   const J = {};
-  const jour = k => J[k] ??= { entrees: 0, sorties: 0, lignesE: [], lignesS: [] };
+  const jour = k => J[k] ??= { entrees: 0, sorties: 0, boutique: 0, lignesE: [], lignesS: [] };
   const typeTr = { 'Mensualité': t('paie.t_mensualite'), 'Trimestriel': t('paie.t_trimestriel'), 'Semestriel': t('paie.t_semestriel'), 'Annuel': t('paie.t_annuel'), 'Inscription': t('paie.t_inscription'), 'Assurance': t('paie.t_assurance'), 'Équipement': t('paie.t_equipement'), 'Complément': t('paie.t_complement') };
   (rp.data || []).forEach(p => {
     const k = parSaisie ? jourLocal(p.created_at) : p.date_paiement; if (!k) return;
@@ -12186,6 +12191,16 @@ async function chargerRapportJour() {
     const v = parseFloat(c.montant) || 0, o = jour(c.date_charge);
     o.sorties += v;
     o.lignesS.push({ heure: '', qui: c.libelle || '—', quoi: c.categorie || t('rj.charge'), mode: c.mode || 'Espèces', note: '', montant: v });
+  });
+  // Boutique : ventes au jour de la vente (quantité × prix de vente)
+  (rv.error ? [] : rv.data || []).forEach(x => {
+    if (!x.date_vente) return;
+    const q = parseInt(x.quantite, 10) || 1, v = q * (parseFloat(x.prix_vente) || 0), o = jour(x.date_vente);
+    if (!v) return;
+    o.entrees += v; o.boutique += v;
+    const client = x.clients ? `${x.clients.prenom || ''} ${x.clients.nom || ''}`.trim() : (x.client_nom || '');
+    o.lignesE.push({ heure: heure(x.created_at), qui: `${q > 1 ? q + ' × ' : ''}${x.article || t('rj.boutique')}`, quoi: t('rj.boutique'),
+      mode: '', note: client, montant: v, boutique: true });
   });
   // Salaires : pas de date de versement, on retient le jour où ils ont été enregistrés
   (rs.error ? [] : rs.data || []).forEach(x => {
@@ -12202,10 +12217,10 @@ async function chargerRapportJour() {
 function rjBasculer(k) { _rj.ouvert = _rj.ouvert === k ? null : k; afficherRapportJour(); }
 function afficherRapportJour() {
   const J = _rj.jours, jours = Object.keys(J).sort().reverse();
-  const tot = jours.reduce((a, k) => ({ e: a.e + J[k].entrees, s: a.s + J[k].sorties }), { e: 0, s: 0 });
+  const tot = jours.reduce((a, k) => ({ e: a.e + J[k].entrees, s: a.s + J[k].sorties, b: a.b + (J[k].boutique || 0) }), { e: 0, s: 0, b: 0 });
   const sol = tot.e - tot.s;
   document.getElementById('rj-totaux').innerHTML = `
-    <div class="sc"><div class="sc-label">${t('rj.entrees')}</div><div class="sc-val" style="color:var(--green)">${fmt(tot.e)}</div></div>
+    <div class="sc"><div class="sc-label">${t('rj.entrees')}</div><div class="sc-val" style="color:var(--green)">${fmt(tot.e)}</div>${tot.b ? `<div class="sc-sub">${t('rj.dont_boutique')} : ${fmt(tot.b)}</div>` : ''}</div>
     <div class="sc"><div class="sc-label">${t('rj.sorties')}</div><div class="sc-val" style="color:var(--red)">${fmt(tot.s)}</div></div>
     <div class="sc"><div class="sc-label">${t('rj.solde')}</div><div class="sc-val" style="color:${sol < 0 ? 'var(--red)' : 'var(--green)'}">${fmt(sol)}</div></div>`;
   const nomJour = k => { const [y, m, d] = k.split('-').map(Number); const s = new Date(y, m - 1, d).toLocaleDateString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { weekday: 'long' }); return s.charAt(0).toUpperCase() + s.slice(1); };
@@ -12220,7 +12235,7 @@ function afficherRapportJour() {
       const o = J[k], s = o.entrees - o.sorties, ouvert = _rj.ouvert === k;
       return `<tr style="cursor:pointer${ouvert ? ';background:var(--bg3)' : ''}" onclick="rjBasculer('${k}')">
         <td style="white-space:nowrap"><span style="display:inline-block;width:12px;color:var(--text3)">${ouvert ? '▾' : '▸'}</span> <strong>${dateFr(k)}</strong> <span style="font-size:11px;color:var(--text3)">${nomJour(k)}</span>${k > today() ? ` <span class="badge b-w" style="font-size:10px">${t('fin.a_venir')}</span>` : ''}</td>
-        <td style="text-align:end;color:var(--green);font-weight:600">${o.entrees ? fmt(o.entrees) : '—'}</td>
+        <td style="text-align:end;color:var(--green);font-weight:600">${o.entrees ? fmt(o.entrees) : '—'}${o.boutique ? `<div style="font-size:10px;font-weight:400;color:var(--text3)">${t('rj.dont_boutique')} ${fmt(o.boutique)}</div>` : ''}</td>
         <td style="text-align:end;color:var(--red);font-weight:600">${o.sorties ? fmt(o.sorties) : '—'}</td>
         <td style="text-align:end;font-weight:700;color:${s < 0 ? 'var(--red)' : 'var(--text)'}">${fmt(s)}</td>
         <td style="text-align:center;color:var(--text2)">${o.lignesE.length + o.lignesS.length}</td></tr>`
@@ -12239,11 +12254,11 @@ function imprimerRapportJour() {
   const fD = d => { const [y, m, j] = String(d || '').split('-'); return j ? `${j}/${m}/${y}` : ''; };
   const nomJour = k => { const [y, m, d] = k.split('-').map(Number); const x = new Date(y, m - 1, d).toLocaleDateString('fr-FR', { weekday: 'long' }); return x.charAt(0).toUpperCase() + x.slice(1); };
   const maint = new Date(), imprime = `${fD(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
-  const tot = { e: 0, s: 0 }, parMode = {}, especes = { e: 0, s: 0 };
+  const tot = { e: 0, s: 0, b: 0 }, parMode = {}, especes = { e: 0, s: 0 };
   const ligne = l => `<div class="li"><div class="kv"><span>${l.heure ? `${e(l.heure)} ` : ''}${e(l.qui)}</span><b>${mt(l.montant)}</b></div><div class="pt">${e(l.quoi)}${l.mode ? ` · ${e(l.mode)}` : ''}${l.note ? ` · ${e(l.note)}` : ''}</div></div>`;
   const blocs = jours.map(k => {
     const o = J[k];
-    tot.e += o.entrees; tot.s += o.sorties;
+    tot.e += o.entrees; tot.s += o.sorties; tot.b += o.boutique || 0;
     o.lignesE.forEach(l => { const m = l.mode || 'Espèces'; parMode[m] = (parMode[m] || 0) + l.montant; if (m === 'Espèces') especes.e += l.montant; });
     o.lignesS.forEach(l => { if ((l.mode || 'Espèces') === 'Espèces') especes.s += l.montant; });
     return `<div class="jour">${e(nomJour(k))} ${fD(k)}</div>
@@ -12281,6 +12296,7 @@ function imprimerRapportJour() {
     ${blocs || `<div class="c">Aucune entrée ni sortie</div><div class="sep"></div>`}
     ${jours.length > 1 ? `<div class="c titre">TOTAL DE LA PÉRIODE</div>` : ''}
     <div class="total"><span>Entrées</span><span>${mt(tot.e)}</span></div>
+    ${tot.b ? `<div class="kv pt"><span>dont boutique</span><span>${mt(tot.b)}</span></div>` : ''}
     <div class="total"><span>Sorties</span><span>${mt(tot.s)}</span></div>
     <div class="total"><span>SOLDE</span><span>${mt(tot.e - tot.s)}</span></div>
     ${Object.keys(parMode).length ? `<div class="sep"></div><div class="st">Entrées par mode</div>${Object.entries(parMode).map(([m, v]) => `<div class="kv"><span>${e(m)}</span><b>${mt(v)}</b></div>`).join('')}
