@@ -1161,37 +1161,55 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div class="fr"><div class="fg"><label data-i18n="clients.num_adh">N° adhérent</label><input id="c-num" type="number" min="1" step="1" inputmode="numeric" placeholder="1234"></div></div>
           <div class="fr"><div class="fg"><label data-i18n="clients.cin">CIN</label><input id="c-cin" placeholder="AB123456"></div><div class="fg"><label data-i18n="clients.email">E-mail</label><input id="c-email" type="email" placeholder="exemple@email.com"></div></div>
           <div class="fr"><div class="fg"><label data-i18n="clients.dob">Date de naissance</label><input id="c-dob" type="date"></div><div class="fg"><label data-i18n="clients.sexe">Sexe</label><select id="c-sexe"><option value="Homme" data-i18n="clients.homme">Homme</option><option value="Femme" data-i18n="clients.femme">Femme</option></select></div></div>
-          <div class="fr"><div class="fg"><label data-i18n="clients.date_insc">Date d'inscription</label><input id="c-date" type="date"></div><div class="fg"></div></div>
+          <div class="fr"><div class="fg"><label data-i18n="clients.date_insc">Date d'inscription</label><input id="c-date" type="date" onchange="if(document.getElementById('c-tarif-preview').style.display!=='none')majTotalInscription()"></div><div class="fg"></div></div>
           <div class="fg" style="margin-bottom:10px">
             <label><span data-i18n="clients.sports">Sports pratiqués</span> <span style="color:var(--text3);font-weight:400" data-i18n="clients.sports_hint">(sélectionnez un ou plusieurs)</span></label>
             <div id="c-sports-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-top:6px;padding:10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)"></div>
           </div>
           <div class="fg" id="c-famille-wrap" style="margin-bottom:10px;display:none"><label><span data-i18n="fm.famille">Famille</span> <span style="font-weight:400;color:var(--text3)" data-i18n="fm.famille_aide">(pack famille : tarif famille à partir de 2 membres actifs)</span></label>
             <select id="c-famille-sel" onchange="choixFamilleFormulaire(this)"></select></div>
-          <div id="c-tarif-preview" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--blue-bg);border-radius:var(--r);font-size:13px;border:1px solid rgba(59,130,246,.2)">
-            <div class="tarif-grid">
-              <div class="fg" id="c-formule-wrap">
-                <label style="color:var(--blue-text)" data-i18n="clients.formule">Formule</label>
-                <select id="c-formule" onchange="document.getElementById('c-mensuel-custom').dataset.touche='';updateTarifPreview()" style="font-size:13px;padding:6px 10px">
-                  <option value="Mensualité" data-i18n="clients.f_mensuel">Mensuel</option>
-                  <option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option><option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option>
-                  <option value="Annuel" data-i18n="paie.t_annuel">Annuel</option>
-                </select>
+          <!-- Encaissement à l'inscription (nouveau client) : tout se fait ici, un seul reçu -->
+          <div id="c-tarif-preview" style="display:none;margin-bottom:10px;padding:12px 14px;background:var(--blue-bg);border-radius:var(--r);font-size:13px;border:1px solid rgba(59,130,246,.2)">
+            <div style="font-weight:700;color:var(--blue-text);margin-bottom:2px" data-i18n="inscr.encaissement">Encaissement à l'inscription</div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:10px" data-i18n="inscr.aide">Décochez ce qui n'est pas payé maintenant. La date d'inscription est la date du paiement. Un seul reçu pour le tout.</div>
+            <div class="inscr-entete"><span></span><span></span><span data-i18n="reste.a_payer">À payer</span><span data-i18n="reste.paye">Payé</span></div>
+            <div class="inscr-ligne" id="il-abo">
+              <input type="checkbox" id="inscr-abo-check" checked onchange="majTotalInscription()">
+              <div>
+                <div class="il-titre"><span data-i18n="clients.abonnement_court">Abonnement</span>
+                  <select id="inscr-formule" onchange="document.getElementById('inscr-abo-montant').dataset.touche='';updateTarifPreview()" style="width:auto;font-size:12px;padding:3px 8px">
+                    <option value="Mensualité" data-i18n="clients.f_mensuel">Mensuel</option>
+                    <option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option><option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option>
+                    <option value="Annuel" data-i18n="paie.t_annuel">Annuel</option>
+                  </select>
+                </div>
+                <div class="il-periode" id="inscr-abo-periode"></div>
+                <div class="il-reste" id="inscr-abo-reste"></div>
               </div>
-              <div class="fg">
-                <label style="color:var(--blue-text)"><span id="c-abo-label" data-i18n="clients.abonnement">Abonnement (DH)</span> <span style="font-weight:400;font-size:10px" data-i18n="clients.modifiable">modifiable</span></label>
-                <input type="number" id="c-mensuel-custom" min="0" oninput="this.dataset.touche='1';updateTarifPreview()" class="tarif-input">
-              </div>
-              <div class="fg">
-                <label style="color:var(--blue-text)"><span data-i18n="clients.frais_inscr">Frais inscription (DH)</span> <span style="font-weight:400;font-size:10px" data-i18n="clients.modifiable">modifiable</span></label>
-                <input type="number" id="c-inscr-custom" min="0" oninput="this.dataset.touche='1';updateTarifPreview()" class="tarif-input">
-              </div>
-              <div class="fg">
-                <label style="color:var(--blue-text)"><span data-i18n="clients.frais_assur">Frais d'assurance (DH)</span> <span style="font-weight:400;font-size:10px" id="c-assur-saison"></span></label>
-                <input type="number" id="c-assur-custom" min="0" oninput="this.dataset.touche='1';updateTarifPreview()" class="tarif-input">
-              </div>
+              <input id="inscr-abo-montant" type="number" min="0" oninput="this.dataset.touche='1';majTotalInscription()">
+              <input id="inscr-abo-paye" type="number" min="0" oninput="this.dataset.touche='1';majTotalInscription()" style="font-weight:700">
             </div>
-            <div id="c-tarif-total" style="margin-top:8px;text-align:end;font-weight:700;color:var(--blue-text)"></div>
+            <div class="inscr-ligne" id="il-ins">
+              <input type="checkbox" id="inscr-ins-check" checked onchange="majTotalInscription()">
+              <div><div class="il-titre" data-i18n="paie.frais_inscr">Frais d'inscription</div><div class="il-reste" id="inscr-ins-reste"></div></div>
+              <input id="inscr-montant" type="number" min="0" oninput="this.dataset.touche='1';majTotalInscription()">
+              <input id="inscr-ins-paye" type="number" min="0" oninput="this.dataset.touche='1';majTotalInscription()" style="font-weight:700">
+            </div>
+            <div class="inscr-ligne" id="il-assur">
+              <input type="checkbox" id="inscr-assur-check" checked onchange="majTotalInscription()">
+              <div>
+                <div class="il-titre" data-i18n="paie.frais_assur">Assurance (1 an)</div>
+                <div class="il-periode" id="inscr-assur-periode"></div>
+                <div class="il-reste" id="inscr-assur-reste"></div>
+              </div>
+              <input id="inscr-assur-montant" type="number" min="0" oninput="this.dataset.touche='1';majTotalInscription()">
+              <input id="inscr-assur-paye" type="number" min="0" oninput="this.dataset.touche='1';majTotalInscription()" style="font-weight:700">
+            </div>
+            <div class="fr" style="margin:6px 0 0">
+              <div class="fg" style="margin-bottom:0"><label data-i18n="paie.inscr_mode">Mode de paiement</label><select id="inscr-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
+              <div class="fg" style="margin-bottom:0"><label data-i18n="paie.note">Note</label><input id="inscr-note" placeholder="Commentaire sur le paiement (facultatif)" data-i18n-ph="paie.note_ph"></div>
+            </div>
+            <div id="inscr-total" style="text-align:end;font-size:15px;font-weight:700;margin-top:10px"></div>
           </div>
           <div class="fr"><div class="fg"><label data-i18n="clients.statut">Statut</label><select id="c-statut"><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option><option value="En attente" data-i18n="clients.attente">En attente de validation</option></select></div></div>
           <div class="mo-footer"><button class="btn" onclick="closeClientForm()" data-i18n="common.annuler">Annuler</button><button class="btn btn-p" id="btn-save-client" onclick="saveClient()" data-i18n="common.enregistrer">Enregistrer</button></div>
@@ -2098,58 +2116,6 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         </div>
       </div>
 
-      <div class="mo" id="inscr-modal">
-        <div class="mo-box" style="max-width:580px">
-          <div class="mo-title" data-i18n="paie.inscr_title2">Encaissement de l'inscription</div>
-          <div class="al al-i" style="margin-bottom:1rem" data-i18n="paie.inscr_msg2">Le client vient d'être créé. Vérifiez les montants puis encaissez : tout sera enregistré en une seule transaction, avec un seul reçu.</div>
-          <div id="inscr-detail" style="margin-bottom:12px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);font-size:13px"></div>
-
-          <div class="inscr-entete"><span></span><span></span><span data-i18n="reste.a_payer">À payer</span><span data-i18n="reste.paye">Payé</span></div>
-          <div class="inscr-ligne" id="il-abo">
-            <input type="checkbox" id="inscr-abo-check" checked onchange="majTotalInscription()">
-            <div>
-              <div class="il-titre"><span data-i18n="clients.abonnement_court">Abonnement</span>
-                <select id="inscr-formule" onchange="changerFormuleInscription()" style="width:auto;font-size:12px;padding:3px 8px">
-                  <option value="Mensualité" data-i18n="clients.f_mensuel">Mensuel</option>
-                  <option value="Trimestriel" data-i18n="paie.t_trimestriel">Trimestriel (3 mois)</option><option value="Semestriel" data-i18n="paie.t_semestriel">Semestriel (6 mois)</option>
-                  <option value="Annuel" data-i18n="paie.t_annuel">Annuel</option>
-                </select>
-              </div>
-              <div class="il-periode" id="inscr-abo-periode"></div>
-              <div class="il-reste" id="inscr-abo-reste"></div>
-            </div>
-            <input id="inscr-abo-montant" type="number" min="0" oninput="majTotalInscription()">
-            <input id="inscr-abo-paye" type="number" min="0" oninput="this.dataset.touche='1';majTotalInscription()" style="font-weight:700">
-          </div>
-          <div class="inscr-ligne" id="il-ins">
-            <input type="checkbox" id="inscr-ins-check" checked onchange="majTotalInscription()">
-            <div><div class="il-titre" data-i18n="paie.frais_inscr">Frais d'inscription</div><div class="il-reste" id="inscr-ins-reste"></div></div>
-            <input id="inscr-montant" type="number" min="0" oninput="majTotalInscription()">
-            <input id="inscr-ins-paye" type="number" min="0" oninput="this.dataset.touche='1';majTotalInscription()" style="font-weight:700">
-          </div>
-          <div class="inscr-ligne" id="il-assur">
-            <input type="checkbox" id="inscr-assur-check" checked onchange="majTotalInscription()">
-            <div>
-              <div class="il-titre" data-i18n="paie.frais_assur">Assurance (1 an)</div>
-              <div class="il-periode" id="inscr-assur-periode"></div>
-              <div class="il-reste" id="inscr-assur-reste"></div>
-            </div>
-            <input id="inscr-assur-montant" type="number" min="0" oninput="majTotalInscription()">
-            <input id="inscr-assur-paye" type="number" min="0" oninput="this.dataset.touche='1';majTotalInscription()" style="font-weight:700">
-          </div>
-
-          <div class="fr" style="margin-top:6px;align-items:end">
-            <div class="fg" style="margin-bottom:0"><label data-i18n="paie.inscr_mode">Mode de paiement</label><select id="inscr-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
-            <div class="fg" style="margin-bottom:0"><label data-i18n="paie.inscr_date">Date d'inscription et du paiement</label><input id="inscr-date" type="date" onchange="majTotalInscription()"></div>
-          </div>
-          <div class="fg" style="margin:10px 0 0"><label data-i18n="paie.note">Note</label><textarea id="inscr-note" rows="2" placeholder="Commentaire sur le paiement (facultatif)" data-i18n-ph="paie.note_ph" style="width:100%;font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)"></textarea></div>
-          <div id="inscr-total" style="text-align:end;font-size:16px;font-weight:700;margin-top:10px"></div>
-          <div class="mo-footer">
-            <button class="btn" onclick="fermerInscription()" data-i18n="paie.inscr_later">Plus tard</button>
-            <button class="btn btn-p" id="btn-inscr-encaisser" onclick="confirmerInscription()" data-i18n="paie.inscr_encaisser">Encaisser</button>
-          </div>
-        </div>
-      </div>
 
       <div class="mo" id="note-modal">
         <div class="mo-box" style="max-width:400px">
@@ -2974,6 +2940,9 @@ const I18N = {
     'paie.a_payer':      'À payer (DH)',
     'reste.a_payer':     'À payer',
     'reste.paye':        'Payé',
+    'inscr.encaissement': "Encaissement à l'inscription",
+    'inscr.aide':        "Décochez ce qui n'est pas payé maintenant. La date d'inscription est la date du paiement. Un seul reçu pour le tout.",
+    'inscr.enreg_encaisser': 'Enregistrer et encaisser',
     'reste.non_encaisse': 'Non encaissé maintenant',
     'paie.montant_paye': 'Montant payé (DH)',
     'paie.reste':        'Reste à payer',
@@ -4266,6 +4235,9 @@ const I18N = {
     'paie.a_payer':      'المبلغ المستحق (درهم)',
     'reste.a_payer':     'المستحق',
     'reste.paye':        'المدفوع',
+    'inscr.encaissement': 'التحصيل عند التسجيل',
+    'inscr.aide':        'أزل العلامة عمّا لم يُدفع الآن. تاريخ التسجيل هو تاريخ الأداء. وصل واحد للكل.',
+    'inscr.enreg_encaisser': 'تسجيل وتحصيل',
     'reste.non_encaisse': 'غير محصل الآن',
     'paie.montant_paye': 'المبلغ المدفوع (درهم)',
     'paie.reste':        'الباقي للأداء',
@@ -5843,7 +5815,7 @@ new MutationObserver(() => { cancelAnimationFrame(_etiqTimer); _etiqTimer = requ
 
 document.addEventListener('DOMContentLoaded', () => {
   // Sortir ces modales de leur page pour pouvoir les ouvrir depuis n'importe quelle page
-  const modalHost = document.getElementById('inscr-modal').parentElement;
+  const modalHost = document.getElementById('note-modal').parentElement;
   ['client-form-modal','paiement-choix-modal','paiement-form-modal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) modalHost.appendChild(el);
@@ -6548,26 +6520,24 @@ function getSelectedSports() {
 
 function updateTarifPreview() {
   const sports = getSelectedSports();
-  if (!sports.length) { document.getElementById('c-tarif-preview').style.display='none'; return; }
   const nouveau = !document.getElementById('c-id').value;
-  const formule = nouveau ? document.getElementById('c-formule').value : 'Mensualité';
+  // Encaissement à l'inscription : seulement pour un nouveau client
+  document.getElementById('c-tarif-preview').style.display = nouveau && sports.length ? 'block' : 'none';
+  if (!nouveau || !sports.length) { majBoutonClient(0); return; }
+  const formule = document.getElementById('inscr-formule').value;
   const inscription = sports.reduce((a,s)=>Math.max(a, parseFloat(SPORTS_CACHE.find(x=>x.nom===s)?.tarif_inscription)||0), 0);
   // Les montants modifiés à la main ne sont pas recalculés
-  const set = (id, v) => { const el = document.getElementById(id); if (el.dataset.touche !== '1') el.value = v; };
-  set('c-mensuel-custom', montantAbonnement(sports, formule, famillePreviewForm()));
-  set('c-inscr-custom', inscription);
-  set('c-assur-custom', montantAssurance() || 0);
-  document.getElementById('c-abo-label').textContent = nouveau ? t('clients.abonnement') : t('clients.mensualite');
-  document.getElementById('c-assur-saison').textContent = `${t('clients.modifiable')} · ${t('paie.un_an')}`;
-  // Formule, inscription et assurance ne servent qu'à l'inscription d'un nouveau client
-  ['c-formule-wrap'].forEach(id => document.getElementById(id).style.display = nouveau ? '' : 'none');
-  document.getElementById('c-inscr-custom').closest('.fg').style.display = nouveau ? '' : 'none';
-  document.getElementById('c-assur-custom').closest('.fg').style.display = nouveau ? '' : 'none';
-  const v = id => parseFloat(document.getElementById(id).value) || 0;
-  document.getElementById('c-tarif-total').textContent = nouveau
-    ? `${t('paie.total_a_encaisser')} : ${fmt(v('c-mensuel-custom') + v('c-inscr-custom') + v('c-assur-custom'))}` : '';
-  // Modification d'une fiche : pas de cadre tarif (le montant ne sert qu'à l'inscription d'un nouveau client)
-  document.getElementById('c-tarif-preview').style.display = nouveau ? 'block' : 'none';
+  const set = (id, v) => { const el = document.getElementById(id); if (el.dataset.touche !== '1') el.value = v || ''; };
+  set('inscr-abo-montant', montantAbonnement(sports, formule, famillePreviewForm()));
+  set('inscr-montant', inscription);
+  set('inscr-assur-montant', montantAssurance() || 0);
+  majTotalInscription();
+}
+
+// Bouton du formulaire client : « Enregistrer et encaisser 550 DH » pour un nouveau client qui paie
+function majBoutonClient(total) {
+  const nouveau = !document.getElementById('c-id').value;
+  document.getElementById('btn-save-client').textContent = nouveau && total > 0 ? `${t('inscr.enreg_encaisser')} ${fmt(total)}` : t('common.enregistrer');
 }
 
 let _clientsForSelect = [];
@@ -7004,57 +6974,28 @@ async function saveClient() {
 
   await logAudit(id?'UPDATE':'CREATE','clients',`${obj.prenom} ${obj.nom} — ${sports.join(', ')}`);
   showToast(id?t('clients.modified'):t('clients.added'),'s');
-  const fromPaiement = window._paieNouveauClient;
-  const montantsSaisis = {
-    formule: document.getElementById('c-formule').value,
-    abonnement: document.getElementById('c-mensuel-custom').value,
-    inscr: document.getElementById('c-inscr-custom').value,
-    assur: document.getElementById('c-assur-custom').value
-  };
+  // Nouveau client : encaissement saisi dans le même formulaire (lu avant la remise à zéro du formulaire)
+  const encaissement = !id ? lignesEncaissementInscription() : null;
   closeClientForm(); loadClients(); loadImpayes();
-
-  // Pour un nouveau client : proposer paiement inscription
-  if (!id && saved) {
-    if (fromPaiement) window._paieClientCree = saved;
-    await loadParametres();
-    if (!ouvrirInscriptionModal(saved, montantsSaisis)) finPaiementNouveauClient();
-  }
+  if (!id && saved && encaissement?.lignes.length) await encaisserInscription(saved, encaissement);
 }
 
-function ouvrirInscriptionModal(client, montantsSaisis = {}) {
-  const sports = client.sports || (client.sport ? [client.sport] : []);
-  const saisi = k => montantsSaisis[k] !== undefined && montantsSaisis[k] !== '' ? parseFloat(montantsSaisis[k]) || 0 : null;
-
-  const formule = montantsSaisis.formule || 'Mensualité';
-  const abo   = saisi('abonnement') ?? montantAbonnement(sports, formule, tarifFamilleApplicable(client));
-  const inscr = saisi('inscr') ?? sports.reduce((a,s)=>Math.max(a, parseFloat(SPORTS_CACHE.find(x=>x.nom===s)?.tarif_inscription)||0), 0);
-  const assur = saisi('assur') ?? montantAssurance();
-  if (!abo && !inscr && !assur) return false;
-
-  window._inscrClient = client;
-  document.getElementById('inscr-detail').innerHTML = `
-    <div style="font-weight:600">${client.prenom} ${client.nom}</div>
-    <div style="font-size:12px;color:var(--text2);margin-top:2px">${sports.join(', ') || '—'}</div>`;
-  document.getElementById('inscr-formule').value = formule;
-  document.getElementById('inscr-date').value = client.date_inscription || today();
-  document.getElementById('inscr-note').value = '';
-  document.getElementById('inscr-abo-montant').value = abo || '';
-  document.getElementById('inscr-montant').value = inscr || '';
-  document.getElementById('inscr-assur-montant').value = assur || '';
-  ['abo', 'ins', 'assur'].forEach(k => { document.getElementById(`inscr-${k}-paye`).dataset.touche = ''; });
-  document.getElementById('inscr-abo-check').checked = abo > 0;
-  document.getElementById('inscr-ins-check').checked = inscr > 0;
-  document.getElementById('inscr-assur-check').checked = assur > 0;
-  majTotalInscription();
-  document.getElementById('inscr-modal').classList.add('open');
-  return true;
-}
-
-function changerFormuleInscription() {
-  const c = window._inscrClient;
-  const sports = c?.sports || (c?.sport ? [c.sport] : []);
-  document.getElementById('inscr-abo-montant').value = montantAbonnement(sports, document.getElementById('inscr-formule').value, tarifFamilleApplicable(c)) || '';
-  majTotalInscription();
+// Lignes à encaisser (abonnement, inscription, assurance) : montant payé ; s'il est inférieur
+// au montant à payer, le reste est suivi (montant_du, script 39). Payé 0 = pas encaissé maintenant.
+function lignesEncaissementInscription() {
+  const val = id => parseFloat(document.getElementById(id).value) || 0;
+  const on  = k => document.getElementById(`inscr-${k}-check`).checked;
+  const note = document.getElementById('inscr-note').value.trim();
+  const lignes = [];
+  const ligne = (k, idDu, champs) => {
+    const du = val(idDu), paye = val(`inscr-${k}-paye`);
+    if (!on(k) || !(paye > 0)) return;
+    lignes.push({ ...champs, montant: paye, ...(du > paye ? { montant_du: du } : {}) });
+  };
+  ligne('abo', 'inscr-abo-montant', { type: document.getElementById('inscr-formule').value, note });
+  ligne('ins', 'inscr-montant', { type: 'Inscription', note: note || 'Frais d\'inscription' });
+  ligne('assur', 'inscr-assur-montant', { type: 'Assurance', note: note || 'Assurance 1 an' });
+  return { lignes, mode: document.getElementById('inscr-mode').value };
 }
 
 function majTotalInscription() {
@@ -7074,7 +7015,7 @@ function majTotalInscription() {
     if (on && vP > 0) { total += vP; totalDu += Math.max(vDu, vP); }
   });
   // Périodes : à partir de la date d'inscription / du paiement
-  const d = document.getElementById('inscr-date').value || today();
+  const d = document.getElementById('c-date').value || today();
   const mois = DUREE_ABONNEMENT[document.getElementById('inscr-formule').value] || 1;
   const [y, m, j] = d.split('-').map(Number);
   document.getElementById('inscr-abo-periode').textContent = `${dateFr(d)} → ${dateFr(isoLocal(new Date(y, m - 1 + mois, j - 1)))}`;
@@ -7082,58 +7023,20 @@ function majTotalInscription() {
   document.getElementById('inscr-total').innerHTML = totalDu > total
     ? `${t('paie.total_a_encaisser')} : ${fmt(total)} <span style="color:var(--red);margin-inline-start:10px">${t('paie.reste')} : ${fmt(totalDu - total)}</span>`
     : `${t('paie.total_a_encaisser')} : ${fmt(total)}`;
-  document.getElementById('btn-inscr-encaisser').disabled = total <= 0;
+  majBoutonClient(total);
 }
 
-function fermerInscription() {
-  document.getElementById('inscr-modal').classList.remove('open');
-  finPaiementNouveauClient();
-}
-
-async function confirmerInscription() {
-  const client = window._inscrClient;
-  if (!client) return;
-  const val = id => parseFloat(document.getElementById(id).value) || 0;
-  const on  = k => document.getElementById(`inscr-${k}-check`).checked;
-  const mode = document.getElementById('inscr-mode').value;
-  const formule = document.getElementById('inscr-formule').value;
-  const dateInscr = document.getElementById('inscr-date').value || client.date_inscription || today();
-  const base = { client_id: client.id, date_paiement: dateInscr, mode, created_by: ME.id };
-  const note = document.getElementById('inscr-note').value.trim();
-
-  // Une ligne par mouvement (stats propres), toutes rattachées à la même transaction (un seul reçu)
-  // Montant payé ; s'il est inférieur au montant à payer, le reste est suivi (montant_du, script 39)
-  const ligne = (k, idDu, champs) => {
-    const du = val(idDu), paye = val(`inscr-${k}-paye`);
-    if (!on(k) || !(paye > 0)) return;
-    lignes.push({ ...base, ...champs, montant: paye, ...(du > paye ? { montant_du: du } : {}) });
-  };
-  const lignes = [];
-  ligne('abo', 'inscr-abo-montant', { type: formule, note });
-  ligne('ins', 'inscr-montant', { type: 'Inscription', note: note || 'Frais d\'inscription' });
-  ligne('assur', 'inscr-assur-montant', { type: 'Assurance', note: note || 'Assurance 1 an' });
-  if (!lignes.length) return;
-  const total = lignes.reduce((a, l) => a + l.montant, 0);
-
-  const btn = document.getElementById('btn-inscr-encaisser');
-  btn.disabled = true;
-  const res = await insererTransaction(lignes);
-  btn.disabled = false;
+// Enregistre l'encaissement de l'inscription (une transaction, un reçu) ; client Actif
+async function encaisserInscription(client, { lignes, mode }) {
+  const base = { client_id: client.id, date_paiement: client.date_inscription || today(), mode, created_by: ME.id };
+  const res = await insererTransaction(lignes.map(l => ({ ...base, ...l })));
   if (res.error) { showToast(/montant_du/.test(res.error.message) ? t('paie.sql_partiel') : res.error.message, 'e'); return; }
-
-  // Paiement à l'inscription → client Actif ; date d'inscription = date des paiements
-  await sb.from('clients').update({ statut: 'Actif', date_inscription: dateInscr, updated_at: new Date().toISOString() }).eq('id', client.id);
-  if (dateInscr !== client.date_inscription) loadClients();
+  const total = lignes.reduce((a, l) => a + l.montant, 0);
+  await sb.from('clients').update({ statut: 'Actif', updated_at: new Date().toISOString() }).eq('id', client.id);
   await logAudit('CREATE','paiements',`Inscription ${client.prenom} ${client.nom} — ${fmt(total)}`);
-  document.getElementById('inscr-modal').classList.remove('open');
   showToast(t('clients.inscr_saved').replace('%s', fmt(total)), 's');
-  loadImpayes();
+  loadClients(); loadImpayes();
   if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
-
-  // L'abonnement a été encaissé : le parcours « nouveau paiement » est terminé
-  const aboPaye = lignes.some(l => DUREE_ABONNEMENT[l.type]);
-  if (aboPaye) window._paieClientCree = null;
-  window._recuApres = aboPaye ? null : finPaiementNouveauClient;
   ouvrirRecu(res.ids);
 }
 
@@ -7597,6 +7500,7 @@ function editClient(c) {
   const selectedSports = c.sports || (c.sport ? [c.sport] : []);
   loadSportsCheckboxes(selectedSports);
   document.getElementById('client-form-title').textContent = t('clients.edit_title');
+  majBoutonClient(0);
   document.getElementById('client-form-modal').classList.add('open');
 }
 
@@ -7630,9 +7534,13 @@ function resetClientForm() {
   window._clientEditFamilleConnu = false;
   window._clientEditFamIdConnu = false;
   const cf = document.getElementById('c-famille-sel'); if (cf) cf.value = '';
-  ['c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i => document.getElementById(i).dataset.touche = '');
-  document.getElementById('c-formule').value = 'Mensualité';
-  ['c-id','c-prenom','c-nom','c-tel','c-tel2','c-email','c-num','c-cin','c-dob','c-date','c-mensuel-custom','c-inscr-custom','c-assur-custom'].forEach(i=>{
+  ['inscr-abo-montant','inscr-montant','inscr-assur-montant','inscr-abo-paye','inscr-ins-paye','inscr-assur-paye'].forEach(i => { const el = document.getElementById(i); el.dataset.touche = ''; el.value = ''; });
+  ['abo','ins','assur'].forEach(k => { document.getElementById(`inscr-${k}-check`).checked = true; });
+  document.getElementById('inscr-formule').value = 'Mensualité';
+  document.getElementById('inscr-mode').value = 'Espèces';
+  document.getElementById('inscr-note').value = '';
+  majBoutonClient(0);
+  ['c-id','c-prenom','c-nom','c-tel','c-tel2','c-email','c-num','c-cin','c-dob','c-date'].forEach(i=>{
     const el = document.getElementById(i); if(el) el.value='';
   });
   document.getElementById('client-form-title').textContent = t('clients.new');
@@ -10756,7 +10664,7 @@ async function choixFamilleFormulaire(sel) {
     remplirSelectFamille(data.id);
     showToast(t('fm.famille_creee'), 's');
   }
-  document.getElementById('c-mensuel-custom').dataset.touche = '';
+  document.getElementById('inscr-abo-montant').dataset.touche = '';
   updateTarifPreview();
 }
 
