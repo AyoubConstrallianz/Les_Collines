@@ -1239,6 +1239,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
             <button class="btn" onclick="openImport()" style="white-space:nowrap;display:none" id="btn-import"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> <span data-i18n="imp.btn">Importer Excel</span></button>
             <button class="btn" onclick="openDoublons()" style="white-space:nowrap;display:none" id="btn-doublons"><span data-i18n="doublons.btn">Doublons</span> <span class="badge b-w" id="doublons-count">0</span></button>
             <button class="btn" onclick="ouvrirInscriptionFamille()" style="white-space:nowrap;display:none" id="btn-famille" data-i18n="fm.btn_inscription">+ Inscription famille</button>
+            <button class="btn" onclick="ouvrirListeDisciplines()" style="white-space:nowrap" data-i18n="ld.btn">🖨️ Liste par discipline</button>
             <input id="sc-q" placeholder="Rechercher..." oninput="loadClients()" style="flex:1;max-width:260px">
             <select id="sc-sport" onchange="loadClients()"><option value="" data-i18n="select.all_sports">Tous les sports</option></select>
             <select id="sc-stat" onchange="loadClients()"><option value="" data-i18n="clients.tous_statuts">Tous statuts</option><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option><option value="En attente" data-i18n="clients.attente">En attente de validation</option></select>
@@ -2033,6 +2034,26 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div class="sg" id="bilan-totaux" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
           <div style="overflow-x:auto"><table id="bilan-table" class="bilan-table"></table></div>
           <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="bilan.note">Entrées = paiements encaissés dans le mois (date du paiement). Sorties = charges du mois (date de la charge) + salaires du mois concerné.</p>
+        </div>
+      </div>
+
+      <div class="mo" id="ld-modal">
+        <div class="mo-box" style="max-width:440px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <div class="mo-title" style="margin-bottom:0" data-i18n="ld.title">Liste des adhérents par discipline</div>
+            <button class="btn btn-sm" onclick="document.getElementById('ld-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px" data-i18n="ld.aide">Tableau N° adhérent, Nom, Prénom, trié par nom de famille. Un adhérent inscrit dans plusieurs disciplines apparaît dans chacune.</p>
+          <div class="fg"><label data-i18n="ld.discipline">Discipline</label><select id="ld-sport"></select></div>
+          <div class="fg"><label data-i18n="clients.statut">Statut</label><select id="ld-statut">
+            <option value="actifs" data-i18n="ld.actifs">Clients actifs</option>
+            <option value="actifs_inactifs" data-i18n="ld.actifs_inactifs">Actifs et inactifs</option>
+            <option value="tous" data-i18n="ld.tous">Tous les clients</option></select></div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="ld-page" checked style="width:16px;height:16px"> <span data-i18n="ld.une_page">Chaque discipline sur une nouvelle page</span></label>
+          <div class="mo-footer">
+            <button class="btn" onclick="document.getElementById('ld-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button>
+            <button class="btn btn-p" id="btn-ld" onclick="imprimerListeDisciplines()" data-i18n="ld.imprimer">🖨️ Imprimer (PDF A4)</button>
+          </div>
         </div>
       </div>
 
@@ -2997,6 +3018,17 @@ const I18N = {
     'reste.a_payer':     'À payer',
     'reste.paye':        'Payé',
     'dv.btn':            '📝 Faire un devis',
+    'ld.btn':            '🖨️ Liste par discipline',
+    'ld.title':          'Liste des adhérents par discipline',
+    'ld.aide':           'Tableau N° adhérent, Nom, Prénom, trié par nom de famille. Un adhérent inscrit dans plusieurs disciplines apparaît dans chacune.',
+    'ld.discipline':     'Discipline',
+    'ld.toutes':         'Toutes les disciplines',
+    'ld.actifs':         'Clients actifs',
+    'ld.actifs_inactifs': 'Actifs et inactifs',
+    'ld.tous':           'Tous les clients',
+    'ld.une_page':       'Chaque discipline sur une nouvelle page',
+    'ld.imprimer':       '🖨️ Imprimer (PDF A4)',
+    'ld.vide':           'Aucun adhérent pour ce choix',
     'dv.banque':         'Coordonnées bancaires',
     'dv.banque_aide':    '(gardées pour les prochains devis)',
     'dv.title':          'Nouveau devis',
@@ -4314,6 +4346,17 @@ const I18N = {
     'reste.a_payer':     'المستحق',
     'reste.paye':        'المدفوع',
     'dv.btn':            '📝 إعداد عرض أسعار',
+    'ld.btn':            '🖨️ اللائحة حسب الرياضة',
+    'ld.title':          'لائحة المنخرطين حسب الرياضة',
+    'ld.aide':           'جدول: رقم المنخرط، الاسم العائلي، الاسم الشخصي، مرتب حسب الاسم العائلي. المنخرط في عدة رياضات يظهر في كل واحدة.',
+    'ld.discipline':     'الرياضة',
+    'ld.toutes':         'كل الرياضات',
+    'ld.actifs':         'الزبناء النشطون',
+    'ld.actifs_inactifs': 'النشطون وغير النشطين',
+    'ld.tous':           'كل الزبناء',
+    'ld.une_page':       'كل رياضة في صفحة جديدة',
+    'ld.imprimer':       '🖨️ طباعة (PDF A4)',
+    'ld.vide':           'لا يوجد منخرطون لهذا الاختيار',
     'dv.banque':         'المعلومات البنكية',
     'dv.banque_aide':    '(تُحفظ للعروض القادمة)',
     'dv.title':          'عرض أسعار جديد',
@@ -8662,6 +8705,107 @@ async function imprimerListeDeclaration() {
   if (onglet) onglet.location.href = url;
   else doc.save(`declaration-assurance-${today()}.pdf`);
   logAudit('PRINT', 'clients', `Liste déclaration assurance (${liste.length})`);
+}
+
+// ── Liste des adhérents par discipline (PDF A4) : N° adhérent, NOM, Prénom, triés par nom ──
+async function ouvrirListeDisciplines() {
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
+  document.getElementById('ld-sport').innerHTML = `<option value="">${t('ld.toutes')}</option>`
+    + SPORTS_CACHE.map(sp => `<option value="${echapper(sp.nom)}">${echapper(sp.nom)}</option>`).join('');
+  document.getElementById('ld-modal').classList.add('open');
+}
+
+async function imprimerListeDisciplines() {
+  if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  const choix = document.getElementById('ld-sport').value, statut = document.getElementById('ld-statut').value;
+  const parPage = document.getElementById('ld-page').checked;
+  // Onglet ouvert tout de suite (sinon bloqué comme fenêtre surgissante), rempli quand le PDF est prêt
+  const onglet = window.open('', '_blank');
+  const btn = document.getElementById('btn-ld'); btn.disabled = true;
+  const { data, error } = await fetchAllRows(() => sb.from('clients').select('*').order('id'));
+  btn.disabled = false;
+  if (error) { onglet?.close(); showToast(error.message, 'e'); return; }
+  const garder = c => statut === 'tous' || c.statut === 'Actif' || (statut === 'actifs_inactifs' && c.statut === 'Inactif');
+  const clients = (data || []).filter(garder);
+  const cmp = (a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr', { sensitivity: 'base' }) || (a.prenom || '').localeCompare(b.prenom || '', 'fr', { sensitivity: 'base' });
+  const sportsDe = c => c.sports || (c.sport ? [c.sport] : []);
+  // Groupes : une discipline (ou toutes, dans l'ordre des sports), puis « Sans discipline »
+  const noms = choix ? [choix] : [...new Set([...SPORTS_CACHE.map(x => x.nom), ...clients.flatMap(sportsDe)])];
+  const groupes = noms.map(n => ({ nom: n, liste: clients.filter(c => sportsDe(c).includes(n)).sort(cmp) })).filter(g => g.liste.length);
+  if (!choix) { const sans = clients.filter(c => !sportsDe(c).length).sort(cmp); if (sans.length) groupes.push({ nom: 'Sans discipline', liste: sans }); }
+  if (!groupes.length) { onglet?.close(); showToast(t('ld.vide'), 'e'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, H = 297, M = 15, bas = H - 14;
+  const cols = [{ t: 'N° ADHÉRENT', w: 32, c: true }, { t: 'NOM', w: 74 }, { t: 'PRÉNOM', w: 74 }];
+  const le = dateFr(today());
+  const libStatut = { actifs: 'adhérents actifs', actifs_inactifs: 'adhérents actifs et inactifs', tous: 'tous les adhérents' }[statut];
+  let y = M;
+  let logo = null;
+  try { logo = await loadImageAsync('/images/logo-ticket.png'); } catch (_) {}
+  const enTetePage = () => {
+    y = M;
+    if (logo) { const lw = 50, lh = lw * logo.naturalHeight / logo.naturalWidth; doc.addImage(logo, 'PNG', (W - lw) / 2, y, lw, lh); y += lh + 4; }
+    doc.setTextColor(0); doc.setLineWidth(0.6); doc.line(M, y, W - M, y);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.text('LISTE DES ADHÉRENTS', W / 2, y + 7.5, { align: 'center' });
+    y += 10.5; doc.line(M, y, W - M, y);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+    doc.text(`${RECU_ASSO.nom} — ${libStatut} — liste du ${le}`, W / 2, y + 5.5, { align: 'center' });
+    y += 11;
+  };
+  const enteteTableau = () => {
+    doc.setLineWidth(0.3); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+    let x = M;
+    // Couleur de fond remise à chaque case : jsPDF écrit le texte avec la couleur de remplissage
+    cols.forEach(col => { doc.setFillColor(225, 225, 225); doc.rect(x, y, col.w, 8, 'FD'); doc.setTextColor(0); doc.text(col.t, col.c ? x + col.w / 2 : x + 2.5, y + 5.4, col.c ? { align: 'center' } : {}); x += col.w; });
+    y += 8; doc.setFont('helvetica', 'normal');
+  };
+  const titreGroupe = (g, suite) => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(0);
+    doc.text(g.nom.toUpperCase() + (suite ? ' (suite)' : ''), M, y + 5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(90);
+    doc.text(`${g.liste.length} adhérent${g.liste.length > 1 ? 's' : ''}`, W - M, y + 5, { align: 'right' });
+    doc.setTextColor(0); y += 8;
+    enteteTableau();
+  };
+
+  enTetePage();
+  groupes.forEach((g, gi) => {
+    if (gi > 0) {
+      if (parPage) { doc.addPage(); enTetePage(); }
+      else { y += 6; if (y + 30 > bas) { doc.addPage(); y = M; } }
+    }
+    titreGroupe(g, false);
+    g.liste.forEach((c, k) => {
+      const vals = [c.numero_adherent != null && c.numero_adherent !== '' ? String(c.numero_adherent) : '—', (c.nom || '').toUpperCase(), c.prenom || ''];
+      const lignes = vals.map((v, i) => doc.splitTextToSize(v, cols[i].w - 5));
+      const h = Math.max(7, ...lignes.map(l => l.length * 4.4 + 2.6));
+      if (y + h > bas) { doc.addPage(); y = M; titreGroupe(g, true); }
+      let x = M;
+      doc.setFontSize(10);
+      cols.forEach((col, i) => {
+        if (k % 2) { doc.setFillColor(245, 245, 245); doc.rect(x, y, col.w, h, 'F'); }
+        doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(x, y, col.w, h);
+        doc.setTextColor(0); doc.setFont('helvetica', i === 1 ? 'bold' : 'normal');
+        doc.text(lignes[i], col.c ? x + col.w / 2 : x + 2.5, y + 4.8, col.c ? { align: 'center' } : {});
+        x += col.w;
+      });
+      y += h;
+    });
+  });
+
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++) {
+    doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110);
+    doc.text(`Page ${i} / ${n}`, W / 2, H - 6, { align: 'center' }); doc.setTextColor(0);
+  }
+  doc.setProperties({ title: `Liste des adhérents ${choix || 'par discipline'} ${le}` });
+  const url = URL.createObjectURL(doc.output('blob'));
+  if (onglet) onglet.location.href = url;
+  else doc.save(`adherents-${(choix || 'disciplines').replace(/[^A-Za-z0-9]+/g, '-')}-${today()}.pdf`);
+  document.getElementById('ld-modal').classList.remove('open');
+  logAudit('PRINT', 'clients', `Liste par discipline : ${choix || 'toutes'} (${groupes.reduce((a, g) => a + g.liste.length, 0)} lignes)`);
 }
 
 // Marque des paiements d'assurance comme déclarés (date du jour) ou non déclarés (declare = false)
