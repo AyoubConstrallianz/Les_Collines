@@ -411,7 +411,10 @@ tr:hover td{background:var(--blue-light)}
 .fiche-enc-table{font-size:12px}
 .fiche-enc-table th{padding:7px 10px;position:sticky;top:0;z-index:1}
 .fiche-enc-table td{padding:7px 10px;vertical-align:top}
-.fiche-enc-table td:nth-child(3){min-width:230px}
+.fiche-enc-table td:nth-child(3){min-width:190px}
+.fiche-enc-table .fiche-actions{display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.fiche-enc-table .fiche-actions .btn{justify-content:center;white-space:nowrap}
+#rel-table td,#rel-table th{padding:7px 9px;font-size:12px;vertical-align:top}
 .tarif-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:end}
 .tarif-grid .fg{margin-bottom:0}
 .tarif-input{font-size:13px;padding:6px 10px;border:1px solid rgba(59,130,246,.2);border-radius:var(--r);background:var(--bg2);width:100%}
@@ -657,7 +660,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .mo{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(6px);z-index:300;align-items:flex-start;justify-content:center;padding-top:5vh;overflow-y:auto}
 .mo.open{display:flex}
 /* Fenêtres ouvertes par-dessus la fiche client */
-#recu-modal,#paie-edit-modal,#doublon-alert-modal{z-index:320}
+#recu-modal,#paie-edit-modal,#doublon-alert-modal,#reste-modal,#rel-modal{z-index:320}
 .mo-box{background:var(--bg2);border-radius:var(--r-xl);padding:1.75rem;width:92%;max-width:600px;border:1px solid var(--border);margin-bottom:2rem;box-shadow:var(--shadow-lg);animation:modalIn .25s var(--ease)}
 @keyframes modalIn{from{opacity:0;transform:translateY(-12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 .mo-title{font-size:17px;font-weight:700;margin-bottom:1.25rem;color:var(--text);letter-spacing:-.2px}
@@ -2037,6 +2040,28 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
         </div>
       </div>
 
+      <div class="mo" id="rel-modal">
+        <div class="mo-box" style="max-width:720px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <div class="mo-title" style="margin-bottom:0" data-i18n="rel.title">Relevé des paiements</div>
+            <button class="btn btn-sm" onclick="document.getElementById('rel-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <div id="rel-client" style="font-size:13px;color:var(--text2);margin-bottom:10px"></div>
+          <div class="toolbar" style="flex-wrap:wrap;gap:6px;align-items:center">
+            <span style="font-size:12px;color:var(--text2)" data-i18n="filtre.du">Du</span> <input id="rel-du" type="date" onchange="afficherReleve()" style="width:auto">
+            <span style="font-size:12px;color:var(--text2)" data-i18n="filtre.au">au</span> <input id="rel-au" type="date" onchange="afficherReleve()" style="width:auto">
+            <button class="btn btn-sm" onclick="document.getElementById('rel-du').value='';document.getElementById('rel-au').value='';afficherReleve()" data-i18n="rel.tout">Tous les paiements</button>
+            <button class="btn btn-sm" onclick="relAnnee()" data-i18n="rel.annee">Cette année</button>
+          </div>
+          <div style="overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)"><table id="rel-table"></table></div>
+          <div id="rel-total" style="text-align:end;font-size:15px;font-weight:700;margin-top:10px"></div>
+          <div class="mo-footer">
+            <button class="btn" onclick="document.getElementById('rel-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button>
+            <button class="btn btn-p" onclick="imprimerReleve()" data-i18n="rel.imprimer">🖨️ Imprimer (ticket 75 mm)</button>
+          </div>
+        </div>
+      </div>
+
       <div class="mo" id="ld-modal">
         <div class="mo-box" style="max-width:440px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
@@ -3019,6 +3044,14 @@ const I18N = {
     'reste.paye':        'Payé',
     'dv.btn':            '📝 Faire un devis',
     'ld.btn':            '🖨️ Liste par discipline',
+    'rel.btn':           'Relevé',
+    'rel.title':         'Relevé des paiements',
+    'rel.tout':          'Tous les paiements',
+    'rel.annee':         'Cette année',
+    'rel.imprimer':      '🖨️ Imprimer (ticket 75 mm)',
+    'rel.vide':          'Aucun paiement sur cette période',
+    'rel.total':         'Total payé',
+    'rel.paiements':     'paiement(s)',
     'ld.title':          'Liste des adhérents par discipline',
     'ld.aide':           'Tableau N° adhérent, Nom, Prénom, trié par nom de famille. Un adhérent inscrit dans plusieurs disciplines apparaît dans chacune.',
     'ld.discipline':     'Discipline',
@@ -4347,6 +4380,14 @@ const I18N = {
     'reste.paye':        'المدفوع',
     'dv.btn':            '📝 إعداد عرض أسعار',
     'ld.btn':            '🖨️ اللائحة حسب الرياضة',
+    'rel.btn':           'كشف الأداءات',
+    'rel.title':         'كشف الأداءات',
+    'rel.tout':          'كل الأداءات',
+    'rel.annee':         'هذه السنة',
+    'rel.imprimer':      '🖨️ طباعة (تذكرة 75 ملم)',
+    'rel.vide':          'لا توجد أداءات في هذه الفترة',
+    'rel.total':         'مجموع المدفوع',
+    'rel.paiements':     'أداء',
     'ld.title':          'لائحة المنخرطين حسب الرياضة',
     'ld.aide':           'جدول: رقم المنخرط، الاسم العائلي، الاسم الشخصي، مرتب حسب الاسم العائلي. المنخرط في عدة رياضات يظهر في كل واحدة.',
     'ld.discipline':     'الرياضة',
@@ -7517,6 +7558,7 @@ async function showClientFiche(idx, event) {
   });
   const moisDoublons = new Set(Object.keys(moisCount).filter(k => moisCount[k] > 1));
   const paieHtml = renderEncaissementsClient(c, sports, paies || [], moisDoublons, idx);
+  window._ficheReleve = { c, sports, paies: paies || [] };
   // Restes à payer du client (paiements partiels)
   const restesCli = Object.values(calculerRestes(paies)).filter(r => r.reste > 0);
   const restesHtml = restesCli.length ? `<div style="margin-top:12px;padding:10px 14px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);font-size:13px">
@@ -7644,11 +7686,11 @@ function renderEncaissementsClient(c, sports, paies, moisDoublons, idx) {
       <td>${g.map(partie).join('')}</td>
       <td style="text-align:end;white-space:nowrap;font-weight:600;color:var(--green)">${fmt(totalG)}</td>
       <td style="white-space:nowrap">${modeTr[p.mode] || p.mode || '—'}</td>
-      <td style="white-space:nowrap;text-align:end">
+      <td><div class="fiche-actions">
         <button class="btn btn-sm" onclick="ouvrirRecu(${idsAttr(g)})">${t('recu.btn')}</button>
         ${canWrite ? `<button class="btn btn-sm" onclick="modifierTransaction(${idsAttr(g)}, ${idx})">${t('common.modifier')}</button>` : ''}
         ${canDel ? `<button class="btn btn-sm btn-d" onclick="delPaiementFiche(${idsAttr(g)}, ${idx})">${t('msg.suppr')}</button>` : ''}
-      </td>
+      </div></td>
     </tr>`;
   };
   const transactions = grouperTransactions(paies);
@@ -7656,7 +7698,10 @@ function renderEncaissementsClient(c, sports, paies, moisDoublons, idx) {
   return `<div style="margin-top:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
       <div style="font-size:13px;font-weight:700">${t('fiche.encaissements')}</div>
-      ${canWrite ? `<button class="btn btn-sm btn-p" onclick="encaisserDepuisFiche(${idx})">+ ${t('fiche.nouvel_encaissement')}</button>` : ''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${paies.length ? `<button class="btn btn-sm" onclick="ouvrirReleve()">🧾 ${t('rel.btn')}</button>` : ''}
+        ${canWrite ? `<button class="btn btn-sm btn-p" onclick="encaisserDepuisFiche(${idx})">+ ${t('fiche.nouvel_encaissement')}</button>` : ''}
+      </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       ${stat(t('fiche.total_encaisse'), fmt(total))}
@@ -8705,6 +8750,96 @@ async function imprimerListeDeclaration() {
   if (onglet) onglet.location.href = url;
   else doc.save(`declaration-assurance-${today()}.pdf`);
   logAudit('PRINT', 'clients', `Liste déclaration assurance (${liste.length})`);
+}
+
+// ── Relevé des paiements d'un client (fiche client), imprimable sur ticket 75 mm ──
+function ouvrirReleve() {
+  const r = window._ficheReleve;
+  if (!r) return;
+  const c = r.c;
+  document.getElementById('rel-client').innerHTML = `<strong style="color:var(--text)">${echapper(`${c.prenom || ''} ${c.nom || ''}`.trim())}</strong>`
+    + (c.numero_adherent ? ` · ${t('clients.num_adh')} ${String(c.numero_adherent).padStart(4, '0')}` : '');
+  document.getElementById('rel-du').value = '';
+  document.getElementById('rel-au').value = '';
+  afficherReleve();
+  document.getElementById('rel-modal').classList.add('open');
+}
+function relAnnee() {
+  const an = new Date().getFullYear();
+  document.getElementById('rel-du').value = `${an}-01-01`;
+  document.getElementById('rel-au').value = `${an}-12-31`;
+  afficherReleve();
+}
+// Lignes du relevé (période choisie), de la plus ancienne à la plus récente
+function lignesReleve() {
+  const r = window._ficheReleve;
+  const du = document.getElementById('rel-du').value, au = document.getElementById('rel-au').value;
+  const parId = {}; r.paies.forEach(x => { parId[x.id] = x; });
+  const lignes = r.paies.filter(x => (!du || (x.date_paiement || '') >= du) && (!au || (x.date_paiement || '') <= au))
+    .sort((a, b) => (a.date_paiement || '').localeCompare(b.date_paiement || '') || (a.created_at || '').localeCompare(b.created_at || ''))
+    .map(x => ({ date: x.date_paiement, numero: x.numero_recu || '', mode: x.mode || '', note: x.note && x.note !== "Frais d'inscription" && !/^Assurance/.test(x.note) ? x.note : '',
+      libelle: x.type === 'Complément' ? `${t('paie.t_complement')}${parId[x.reste_de] ? ' — ' + libelleEncaissement(parId[x.reste_de], r.sports) : ''}` : libelleEncaissement(x, r.sports),
+      montant: parseFloat(x.montant) || 0 }));
+  const restes = Object.values(calculerRestes(r.paies)).reduce((a, x) => a + x.reste, 0);
+  return { lignes, du, au, total: lignes.reduce((a, l) => a + l.montant, 0), restes };
+}
+function afficherReleve() {
+  const { lignes, total, restes } = lignesReleve();
+  const e = s => echapper(s ?? '');
+  const modeTr = { 'Espèces': t('paie.m_especes'), 'Virement': t('paie.m_virement'), 'Chèque': t('paie.m_cheque') };
+  document.getElementById('rel-table').innerHTML = `<thead><tr><th>${t('common.date')}</th><th>${t('fiche.n_recu')}</th><th>${t('fiche.libelle')}</th><th>${t('paie.mode')}</th><th style="text-align:end">${t('paie.montant')}</th></tr></thead>
+    <tbody>${lignes.length ? lignes.map(l => `<tr><td style="white-space:nowrap">${dateFr(l.date)}</td><td style="white-space:nowrap;color:var(--text2)">${e(l.numero) || '—'}</td>
+      <td>${e(l.libelle)}${l.note ? `<div style="font-size:11px;color:var(--text3)">${e(l.note)}</div>` : ''}</td><td>${e(modeTr[l.mode] || l.mode || '—')}</td>
+      <td style="text-align:end;white-space:nowrap;font-weight:600;color:var(--green)">${fmt(l.montant)}</td></tr>`).join('')
+      : `<tr class="empty-row"><td colspan="5">${t('rel.vide')}</td></tr>`}</tbody>`;
+  document.getElementById('rel-total').innerHTML = `${t('rel.total')} : ${fmt(total)} <span style="font-size:12px;font-weight:400;color:var(--text3)">(${lignes.length} ${t('rel.paiements')})</span>`
+    + (restes > 0 ? `<div style="font-size:13px;color:var(--red)">${t('paie.reste')} : ${fmt(restes)}</div>` : '');
+}
+function imprimerReleve() {
+  const r = window._ficheReleve;
+  if (!r) return;
+  const { lignes, du, au, total, restes } = lignesReleve();
+  if (!lignes.length) { showToast(t('rel.vide'), 'e'); return; }
+  const c = r.c, e = s => echapper(s ?? ''), mt = v => montantPdf(v);
+  const maint = new Date(), imprime = `${dateFr(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
+  const periode = du && au ? `Du ${dateFr(du)} au ${dateFr(au)}` : du ? `Depuis le ${dateFr(du)}` : au ? `Jusqu'au ${dateFr(au)}` : 'Tous les paiements';
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Relevé des paiements</title><style>
+    @page { size: 75mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: #000; }
+    body { width: 75mm; padding: 5mm 3.5mm 0; font: 11px/1.5 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { display: block; width: 100%; margin: 0 auto 3mm; }
+    .c { text-align: center; } .pt { font-size: .85em; }
+    .sep { border-top: 1px dashed #000; margin: 3mm 0; }
+    .titre { font-size: 1.25em; font-weight: 800; letter-spacing: .5px; }
+    .kv { display: flex; justify-content: space-between; gap: 2mm; } .kv b { text-align: right; white-space: nowrap; }
+    .li { padding: 1mm 0; border-bottom: 1px dotted #999; }
+    .total { display: flex; justify-content: space-between; font-size: 1.3em; font-weight: 900; padding: .5mm 0; }
+    .avance { white-space: pre; line-height: 1.6; text-align: center; }
+  </style></head><body>
+    <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
+    <div class="c pt">${e(RECU_ASSO.adresse)}<br>Tél. ${e(RECU_ASSO.tel)}</div>
+    <div class="sep"></div>
+    <div class="c titre">RELEVÉ DES PAIEMENTS</div>
+    <div class="c"><b>${e(periode)}</b></div>
+    <div class="kv pt"><span>Imprimé le</span><span>${imprime}</span></div>
+    <div class="sep"></div>
+    <div class="kv"><span>Client</span><b>${e(`${c.prenom || ''} ${c.nom || ''}`.trim())}</b></div>
+    ${c.numero_adherent ? `<div class="kv"><span>N° adhérent</span><b>${String(c.numero_adherent).padStart(4, '0')}</b></div>` : ''}
+    ${r.sports.length ? `<div class="kv"><span>Sport(s)</span><b>${e(r.sports.join(', '))}</b></div>` : ''}
+    <div class="sep"></div>
+    ${lignes.map(l => `<div class="li"><div class="kv"><span><b>${dateFr(l.date)}</b>${l.numero ? ` · ${e(l.numero)}` : ''}</span><b>${mt(l.montant)}</b></div>
+      <div class="pt">${e(l.libelle)}${l.mode ? ` · ${e(l.mode)}` : ''}${l.note ? ` · ${e(l.note)}` : ''}</div></div>`).join('')}
+    <div class="sep"></div>
+    <div class="kv pt"><span>Nombre de paiements</span><span>${lignes.length}</span></div>
+    <div class="total"><span>TOTAL PAYÉ</span><span>${mt(total)}</span></div>
+    ${restes > 0 ? `<div class="total"><span>RESTE À PAYER</span><span>${mt(restes)}</span></div>` : ''}
+    <div class="sep"></div>
+    <div class="c pt">Merci de votre confiance !</div>
+    <div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.</div>
+  </body></html>`;
+  imprimerThermique(html);
+  logAudit('PRINT', 'paiements', `Relevé ${c.prenom || ''} ${c.nom || ''} — ${periode} (${lignes.length})`.trim());
 }
 
 // ── Liste des adhérents par discipline (PDF A4) : N° adhérent, NOM, Prénom, triés par nom ──
