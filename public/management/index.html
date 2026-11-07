@@ -9203,7 +9203,8 @@ async function loadPaiements() {
   const typeTr={'Mensualité':t('paie.t_mensualite'),'Trimestriel':t('paie.t_trimestriel'),'Semestriel':t('paie.t_semestriel'),'Annuel':t('paie.t_annuel'),'Inscription':t('paie.t_inscription'),'Assurance':t('paie.t_assurance'),'Équipement':t('paie.t_equipement'),'Autre':t('paie.t_autre'),'Complément':t('paie.t_complement')};
   const modeTr={'Espèces':t('paie.m_especes'),'Virement':t('paie.m_virement'),'Chèque':t('paie.m_cheque')};
   const types = {};
-  list.forEach(p=>{ const k=typeTr[p.type]||p.type; types[k]=(types[k]||0)+parseFloat(p.montant||0); });
+  const typeOrig = {}; (allData || []).forEach(x => { typeOrig[x.id] = x.type; });
+  list.forEach(p=>{ const ty = p.type === 'Complément' && typeOrig[p.reste_de] ? typeOrig[p.reste_de] : p.type; const k=typeTr[ty]||ty; types[k]=(types[k]||0)+parseFloat(p.montant||0); });
   document.getElementById('p-par-type').innerHTML = Object.entries(types).map(([t,v])=>
     `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text2)">${t}</span><span style="font-weight:500">${fmt(v)}</span></div>`).join('');
 
@@ -12783,8 +12784,8 @@ async function loadStats() {
 let _fin = null;
 
 async function loadFinances() {
-  const [rp, rc0, rs, rv, ra] = await Promise.all([
-    fetchAllRows(() => sb.from('paiements').select('montant,date_paiement,type,mode').order('id')),
+  const [rp0, rc0, rs, rv, ra] = await Promise.all([
+    fetchAllRows(() => sb.from('paiements').select('id,montant,date_paiement,type,mode,reste_de').order('id')),
     fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie,mode').order('id')),
     fetchAllRows(() => sb.from('salaires_paie').select('montant,mois,mode').order('id')),
     fetchAllRows(() => sb.from('versements_associes').select('montant,date_versement,mode').eq('activite', 'club').order('id')),
@@ -12792,6 +12793,9 @@ async function loadFinances() {
   ]);
   // Script 36 non exécuté (pas de mode sur les charges) : toutes les charges comptées en espèces
   const rc = rc0.error ? await fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie').order('id')) : rc0;
+  // Script 39 non exécuté (pas de reste_de) : lecture sans le lien des restes payés
+  const rp = rp0.error ? await fetchAllRows(() => sb.from('paiements').select('id,montant,date_paiement,type,mode').order('id')) : rp0;
+  const typeOrig = {}; (rp.data || []).forEach(x => { typeOrig[x.id] = x.type; });
   const esp = m => !m || !/^(virement|ch[eè]que)$/i.test(String(m).trim());   // même règle que la caisse de la page Associés
   const M = {};
   const mois = m => M[m] ??= { recettes: 0, depenses: 0, espIn: 0, espOut: 0, verse: 0, types: {}, modesR: {}, cats: {}, modesD: {} };
@@ -12800,7 +12804,8 @@ async function loadFinances() {
     const m = String(x.date_paiement || '').slice(0, 7); if (!m) return;
     const o = mois(m), v = parseFloat(x.montant) || 0;
     o.recettes += v;
-    add(o.types, DUREE_ABONNEMENT[x.type] ? 'abo' : x.type === 'Inscription' ? 'inscr' : x.type === 'Assurance' ? 'assur' : 'autre', v);
+    const ty = x.type === 'Complément' && typeOrig[x.reste_de] ? typeOrig[x.reste_de] : x.type;   // reste payé = type de la ligne d'origine
+    add(o.types, DUREE_ABONNEMENT[ty] ? 'abo' : ty === 'Inscription' ? 'inscr' : ty === 'Assurance' ? 'assur' : 'autre', v);
     add(o.modesR, x.mode || 'Espèces', v);
     if (x.mode === 'Espèces') o.espIn += v;
   });
