@@ -1053,11 +1053,12 @@ html[data-theme="dark"] .bvl-c select{background:var(--bg3)}
         <div id="db-assur-alert" class="al al-e" style="display:none;margin-bottom:1rem;cursor:pointer" onclick="nav('clients',document.querySelector('.nav[data-page=clients]'))"></div>
 
         <!-- Stats principales -->
-        <div class="sg" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+        <div class="sg" style="grid-template-columns:repeat(6,minmax(0,1fr))">
           <div class="sc" style="cursor:pointer" onclick="nav('clients',document.querySelector('.nav[data-page=clients]'))"><div class="sc-label" data-i18n="db.clients_actifs">Clients actifs</div><div class="sc-val" id="db-nc">—</div><div class="sc-sub" id="db-nc-sub"></div></div>
           <div class="sc"><div class="sc-label" data-i18n="fin.recettes">Recettes</div><div class="sc-val" id="db-rm" style="color:var(--green-text)">—</div><div class="sc-sub db-fin-per"></div></div>
           <div class="sc"><div class="sc-label" data-i18n="fin.depenses_col">Dépenses</div><div class="sc-val" id="db-cm" style="color:var(--red-text)">—</div><div class="sc-sub" data-i18n="fin.depenses_sub">Charges + salaires</div></div>
           <div class="sc"><div class="sc-label" data-i18n="fin.solde_tous">Solde (tous modes)</div><div class="sc-val" id="db-sol">—</div><div class="sc-sub" data-i18n="fin.solde_sub">Recettes − dépenses</div></div>
+          <div class="sc" style="cursor:pointer;border:1px solid var(--blue)" onclick="openRapportJour()" title="Voir le rapport journalier"><div class="sc-label" data-i18n="db.solde_jour">Solde du jour</div><div class="sc-val" id="db-sj">—</div><div class="sc-sub" id="db-sj-sub"></div></div>
           <div class="sc" style="border:1px solid var(--green);"><div class="sc-label" data-i18n="vs.caisse_reelle">Caisse réelle (espèces)</div><div class="sc-val" id="db-caisse">—</div><div class="sc-sub" id="db-caisse-sub"></div></div>
         </div>
 
@@ -3221,6 +3222,11 @@ const I18N = {
     "fin.depenses_sub": "Charges + salaires",
     "fin.solde_tous": "Solde (tous modes)",
     "fin.solde_sub": "Recettes − dépenses",
+    "db.solde_jour": "Solde du jour",
+    "db.solde_jour_aide": "Voir le rapport journalier",
+    "db.sj_entrees": "Entrées",
+    "db.sj_sorties": "Sorties",
+    "db.sj_detail": "Cliquez pour le détail",
     "fin.titre_mois": "Recettes et dépenses par mois",
     "fin.note": "Tous les mois, y compris les paiements d'avance datés des mois à venir. Cliquez sur un mois pour voir son détail. Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces (+ capital), comme sur la page Associés.",
     "fin.periode": "Période",
@@ -4585,6 +4591,11 @@ const I18N = {
     "fin.depenses_sub": "التكاليف + الأجور",
     "fin.solde_tous": "الرصيد (كل طرق الأداء)",
     "fin.solde_sub": "الإيرادات − المصاريف",
+    "db.solde_jour": "رصيد اليوم",
+    "db.solde_jour_aide": "عرض التقرير اليومي",
+    "db.sj_entrees": "المداخيل",
+    "db.sj_sorties": "المصاريف",
+    "db.sj_detail": "اضغط لرؤية التفاصيل",
     "fin.titre_mois": "الإيرادات والمصاريف حسب الشهر",
     "fin.note": "كل الأشهر، بما فيها الأداءات المسبقة المؤرخة في الأشهر القادمة. انقر على شهر لرؤية تفاصيله. الصندوق الفعلي = النقد المحصل − التكاليف والأجور والدفعات للشركاء المؤداة نقداً (+ رأس المال)، كما في صفحة الشركاء.",
     "fin.periode": "الفترة",
@@ -6306,6 +6317,7 @@ function nav(page, btn) {
 async function loadDashboard() {
   majAlerteAssuranceDashboard();
   loadFinances();
+  loadSoldeJour();
   // Mois sélectionné (vide = tous les mois) ; les blocs propres à un mois prennent alors le mois en cours
   const mois = document.getElementById('db-mois').value || thisMonth();
   const year = mois.split('-')[0];
@@ -12941,6 +12953,28 @@ async function openBilanMensuel() {
   sel.innerHTML = Array.from({ length: an - debut + 1 }, (_, i) => an - i).map(y => `<option value="${y}">${y}</option>`).join('');
   document.getElementById('bilan-modal').classList.add('open');
   await chargerBilan();
+}
+
+// ── Solde du jour (tableau de bord) : même calcul que le Rapport journalier pour aujourd'hui ──
+// Entrées = paiements enregistrés aujourd'hui + ventes boutique du jour ; sorties = charges du jour + salaires enregistrés aujourd'hui
+async function loadSoldeJour() {
+  const el = document.getElementById('db-sj'), sub = document.getElementById('db-sj-sub'); if (!el) return;
+  const auj = today(), [y, m, d] = auj.split('-').map(Number);
+  const debut = new Date(y, m - 1, d).toISOString(), fin = new Date(y, m - 1, d + 1).toISOString();
+  const [rp, rv, rc, rs] = await Promise.all([
+    fetchAllRows(() => sb.from('paiements').select('id,montant').gte('created_at', debut).lt('created_at', fin).order('id')),
+    fetchAllRows(() => sb.from('ventes').select('id,quantite,prix_vente').eq('date_vente', auj).order('id')),
+    fetchAllRows(() => sb.from('charges').select('id,montant').eq('date_charge', auj).order('id')),
+    fetchAllRows(() => sb.from('salaires_paie').select('id,montant').gte('created_at', debut).lt('created_at', fin).order('id'))
+  ]);
+  if (rp.error) { el.textContent = '—'; sub.textContent = ''; return; }
+  const som = (r, f) => (r.error ? [] : r.data || []).reduce((a, x) => a + f(x), 0);
+  const entrees = som(rp, x => parseFloat(x.montant) || 0) + som(rv, x => (parseInt(x.quantite, 10) || 1) * (parseFloat(x.prix_vente) || 0));
+  const sorties = som(rc, x => parseFloat(x.montant) || 0) + som(rs, x => parseFloat(x.montant) || 0);
+  const solde = entrees - sorties;
+  el.textContent = fmt(solde);
+  el.style.color = solde < 0 ? 'var(--red)' : solde > 0 ? 'var(--green)' : 'var(--text3)';
+  sub.innerHTML = `${t('db.sj_entrees')} : <b style="color:var(--green-text);white-space:nowrap">${fmt(entrees)}</b><br>${t('db.sj_sorties')} : <b style="color:var(--red-text);white-space:nowrap">${fmt(sorties)}</b><br>${t('db.sj_detail')}`;
 }
 
 // ── Rapport journalier : entrées, sorties et solde jour par jour ──
