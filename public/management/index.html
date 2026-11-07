@@ -567,7 +567,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .bf-resume .ecart{border-color:var(--amber)}
 #bf-lignes input{padding:6px 8px;font-size:13px}
 /* Vente boutique : plusieurs articles */
-.bv-entete,.bv-ligne{display:grid;grid-template-columns:minmax(0,2.4fr) 76px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 34px;gap:8px;align-items:start}
+.bv-entete,.bv-ligne{display:grid;grid-template-columns:minmax(0,2.6fr) 76px minmax(0,1fr) minmax(0,1fr) 34px;gap:8px;align-items:start}
 .bv-entete{font-size:12px;color:var(--text2);font-weight:500;padding:0 2px 4px}
 .bv-ligne{padding:7px 0;border-top:1px solid var(--border)}
 .bv-ligne:last-child{border-bottom:1px solid var(--border)}
@@ -1616,12 +1616,11 @@ html[data-theme="dark"] .bvl-c select{background:var(--bg3)}
               <div class="fg"><label data-i18n="bq.date">Date</label><input id="bv-date" type="date"></div>
             </div>
             <datalist id="bv-articles"></datalist>
-            <div class="bv-entete"><span data-i18n="bq.article">Article</span><span data-i18n="bq.qte">Qté</span><span data-i18n="bq.prix_achat">Prix d'achat</span><span data-i18n="bq.prix_vente">Prix de vente</span><span data-i18n="bq.total">Total</span><span></span></div>
+            <div class="bv-entete"><span data-i18n="bq.article">Article</span><span data-i18n="bq.qte">Qté</span><span data-i18n="bq.prix_vente">Prix de vente</span><span data-i18n="bq.total">Total</span><span></span></div>
             <div id="bv-lignes"></div>
             <button class="btn btn-sm" type="button" id="bv-ajouter" onclick="bvAjouterLigne()" style="margin-top:8px" data-i18n="bq.ajouter_article">+ Ajouter un article</button>
             <div style="display:flex;gap:24px;flex-wrap:wrap;margin:12px 0;font-size:14px">
               <div><span style="color:var(--text2)" data-i18n="bq.total">Total</span> : <strong id="bv-total">—</strong> <span id="bv-nb" style="font-size:12px;color:var(--text3)"></span></div>
-              <div><span style="color:var(--text2)" data-i18n="bq.benefice">Bénéfice</span> : <strong id="bv-marge">—</strong></div>
             </div>
             <div class="btns">
               <button class="btn btn-p" id="bv-save" onclick="saveVente()">Enregistrer la vente</button>
@@ -1636,7 +1635,7 @@ html[data-theme="dark"] .bvl-c select{background:var(--bg3)}
                 <input id="bt-mois" type="month" onchange="loadBoutique()" style="max-width:180px">
               </div>
             </div>
-            <table><thead><tr><th data-i18n="bq.date">Date</th><th data-i18n="bq.client">Client</th><th data-i18n="bq.article">Article</th><th data-i18n="bq.qte">Qté</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.total">Total</th><th data-i18n="bq.benefice">Bénéfice</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bv-tb"></tbody></table>
+            <table><thead><tr><th data-i18n="bq.date">Date</th><th data-i18n="bq.client">Client</th><th data-i18n="bq.article">Article</th><th data-i18n="bq.qte">Qté</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.total">Total</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bv-tb"></tbody></table>
           </div>
         </div>
 
@@ -1660,7 +1659,7 @@ html[data-theme="dark"] .bvl-c select{background:var(--bg3)}
               </div>
             </div>
             <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bq.note_stock">Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » enregistre le stock compté dans la case « Stock inventaire », sans modifier le stock calculé.</p>
-            <table><thead><tr><th data-i18n="bq.article">Article</th><th data-i18n="bq.categorie">Catégorie</th><th data-i18n="bq.prix_achat">Prix d'achat</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.stock">Stock</th><th data-i18n="bq.stock_inventaire">Stock inventaire</th><th data-i18n="bq.valeur">Valeur</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bp-tb"></tbody></table>
+            <table><thead><tr><th data-i18n="bq.article">Article</th><th data-i18n="bq.categorie">Catégorie</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.stock">Stock</th><th data-i18n="bq.stock_inventaire">Stock inventaire</th><th data-i18n="bq.valeur">Valeur</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bp-tb"></tbody></table>
           </div>
         </div>
 
@@ -10569,13 +10568,12 @@ function renderVentes() {
   const liste = _bt.ventes.filter(v => !q || `${nomClientVente(v)} ${v.article || ''}`.toLowerCase().includes(q));
   const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
   document.getElementById('bv-tb').innerHTML = liste.length ? liste.map(v => {
-    const qte = qteVente(v), pv = parseFloat(v.prix_vente) || 0, b = qte * (pv - (parseFloat(v.prix_achat) || 0));
+    const qte = qteVente(v), pv = parseFloat(v.prix_vente) || 0;
     const libre = !v.produit_id ? ` <span class="badge b-i" style="font-size:9px" title="${echapper(t('bq.hors_catalogue_aide'))}">${t('bq.hors_catalogue')}</span>` : '';
     return `<tr><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || `<span style="color:var(--text3)">${t('bq.passage')}</span>`}</td>
       <td><strong>${echapper(v.article || '—')}</strong>${libre}</td><td>${qte}</td><td>${fmtDH2(pv)}</td><td><strong>${fmtDH2(qte * pv)}</strong></td>
-      <td style="font-weight:600;color:${b >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtDH2(b)}</td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-sm" onclick="recuVenteListe('${v.id}')" title="${echapper(t('bq.recu_aide'))}">🧾 ${t('bq.recu')}</button>${canW ? `<button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
-  }).join('') : `<tr class="empty-row"><td colspan="8">${t(q ? 'bq.aucune_recherche' : 'bq.aucune_mois')}</td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="7">${t(q ? 'bq.aucune_recherche' : 'bq.aucune_mois')}</td></tr>`;
 }
 
 const bvLignesEls = () => [...document.querySelectorAll('#bv-lignes .bv-ligne')];
@@ -10586,7 +10584,7 @@ function bvLigneHtml(l = {}) {
   return `<div class="bv-ligne">
     <label class="bvl-c bvl-art"><span class="bvl-lab">${t('bq.article')}</span><input class="bvl-article" list="bv-articles" placeholder="${echapper(t('bq.article_ph'))}" autocomplete="off" value="${v(l.article)}" oninput="bvArticleLigne(this)"><span class="bvl-info"></span></label>
     <label class="bvl-c"><span class="bvl-lab">${t('bq.qte')}</span><input class="bvl-qte" type="number" min="1" step="1" value="${v(l.qte ?? 1)}" oninput="bvMarge()"></label>
-    <label class="bvl-c"><span class="bvl-lab">${t('bq.prix_achat_u')}</span><input class="bvl-achat" type="number" min="0" step="0.01" placeholder="0" value="${v(l.achat)}" oninput="bvMarge()"></label>
+    <input class="bvl-achat" type="hidden" value="${v(l.achat)}">
     <label class="bvl-c"><span class="bvl-lab">${t('bq.prix_vente_u')}</span><input class="bvl-vente" type="number" min="0" step="0.01" placeholder="0" value="${v(l.vente)}" oninput="bvMarge()"></label>
     <div class="bvl-c"><span class="bvl-lab">${t('bq.total')}</span><strong class="bvl-total">—</strong></div>
     <button type="button" class="btn btn-sm btn-d bvl-x" title="${echapper(t('bq.retirer'))}" onclick="bvRetirerLigne(this)">✕</button>
@@ -10654,10 +10652,9 @@ function bvMarge() {
     saisi = true; tot += l.qte * l.vente; mg += l.qte * (l.vente - l.achat); nb += l.qte;
     cell.textContent = fmtDH2(l.qte * l.vente);
   });
-  const elT = document.getElementById('bv-total'), elM = document.getElementById('bv-marge');
+  const elT = document.getElementById('bv-total');
   if (!elT) return;
-  if (!saisi) { elT.textContent = '—'; elM.textContent = '—'; elM.style.color = ''; }
-  else { elT.textContent = fmtDH2(tot); elM.textContent = fmtDH2(mg); elM.style.color = mg >= 0 ? 'var(--green)' : 'var(--red)'; }
+  elT.textContent = saisi ? fmtDH2(tot) : '—';
   document.getElementById('bv-nb').textContent = saisi ? `(${t('bq.nb_articles').replace('%n', nb)})` : '';
   const enModif = !!document.getElementById('bv-id').value;
   document.getElementById('bv-save').textContent = enModif ? t('bq.enregistrer_modif')
@@ -10952,13 +10949,13 @@ function renderProduits() {
   document.getElementById('bp-tb').innerHTML = liste.length ? liste.map(p => {
     const [cl, lib] = etatStock(p);
     return `<tr><td><strong>${echapper(p.nom)}</strong></td><td>${echapper(p.categorie || '—')}</td>
-      <td>${fmtDH2(p.prix_achat)}</td><td>${fmtDH2(p.prix_vente)}</td>
+      <td>${fmtDH2(p.prix_vente)}</td>
       <td><span class="badge ${cl}" title="${lib}">${p.stock}</span> <span style="font-size:10px;color:var(--text3)">${lib}</span></td>
       <td>${celluleInventaire(p)}</td>
       <td>${fmtDH2(Math.max(p.stock, 0) * (parseFloat(p.prix_achat) || 0))}</td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">${canW ? `<button class="btn btn-sm" onclick="ouvrirMouvement('${p.id}','Ajustement')">${t('bq.inventaire')}</button>
         <button class="btn btn-sm" onclick="ouvrirProduit('${p.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delProduit('${p.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
-  }).join('') : `<tr class="empty-row"><td colspan="8">${t(_bt.produits.length ? 'bq.aucun_filtre' : 'bq.aucun_article')}</td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="7">${t(_bt.produits.length ? 'bq.aucun_filtre' : 'bq.aucun_article')}</td></tr>`;
 }
 
 // Fiche des articles pour imprimante thermique 75 mm : date vide en haut, quantité à remplir à la main
