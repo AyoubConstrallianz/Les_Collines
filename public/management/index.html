@@ -577,6 +577,21 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .bvl-c input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
 .bvl-c input::placeholder{color:var(--text3)}
 html[data-theme="dark"] .bvl-c input{background:var(--bg3)}
+.bvl-c select{width:100%;min-width:0;font-size:13px;padding:9px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)}
+html[data-theme="dark"] .bvl-c select{background:var(--bg3)}
+/* Paiement pour plusieurs personnes */
+.pg-entete,.pg-ligne{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.3fr) minmax(0,1fr) 34px;gap:8px;align-items:start}
+.pg-entete{font-size:12px;color:var(--text2);font-weight:500;padding:0 2px 4px}
+.pg-ligne{padding:7px 0;border-top:1px solid var(--border)}
+.pg-ligne:last-child{border-bottom:1px solid var(--border)}
+.pg-ligne .bvl-x{margin-top:4px;padding:5px 0}
+@media (max-width:640px){
+  .pg-entete{display:none}
+  .pg-ligne{grid-template-columns:1fr 1fr}
+  .pg-ligne .pg-pers{grid-column:1/-1}
+  .pg-ligne .bvl-lab{display:block}
+  .pg-ligne .bvl-x{grid-column:1/-1;justify-self:end;margin-top:0;padding:4px 12px}
+}
 .bvl-total{display:block}
 .bvl-lab{display:none;font-size:11px;color:var(--text2);font-weight:500}
 .bvl-info{font-size:11px}
@@ -1313,6 +1328,11 @@ html[data-theme="dark"] .bvl-c input{background:var(--bg3)}
                 <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <strong data-i18n="fm.choix_famille">Famille (pack famille)</strong>
                 <span data-i18n="fm.choix_famille_desc">Payer tous les membres en une fois, ou inscrire une nouvelle famille</span>
+              </button>
+              <button type="button" class="paie-choix" onclick="closePaiementChoix();ouvrirPaiementGroupe()">
+                <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                <strong data-i18n="pg.choix">Plusieurs personnes, une facture</strong>
+                <span data-i18n="pg.choix_desc">Une personne paie pour plusieurs clients : une seule facture</span>
               </button>
             </div>
           </div>
@@ -2605,6 +2625,32 @@ html[data-theme="dark"] .bvl-c input{background:var(--bg3)}
   </div>
 </div>
 
+<!-- ══ MODAL PAIEMENT POUR PLUSIEURS PERSONNES ═══════════════ -->
+<div class="mo" id="pg-modal">
+  <div class="mo-box" style="max-width:820px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div class="mo-title" style="margin-bottom:0" data-i18n="pg.titre">Paiement pour plusieurs personnes</div>
+      <button class="btn btn-sm" onclick="document.getElementById('pg-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+    </div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px" data-i18n="pg.aide">Chaque personne garde son paiement dans sa fiche. Une seule facture est faite au nom de la personne qui paie.</p>
+    <datalist id="pg-clients"></datalist>
+    <div class="g3">
+      <div class="fg"><label data-i18n="pg.payeur">Payé par</label><input id="pg-payeur" list="pg-clients" autocomplete="off" placeholder="Client, parent, société…" data-i18n-ph="pg.payeur_ph"></div>
+      <div class="fg"><label data-i18n="bq.date">Date</label><input id="pg-date" type="date"></div>
+      <div class="fg"><label data-i18n="paie.mode">Mode</label><select id="pg-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
+    </div>
+    <div class="pg-entete"><span data-i18n="pg.personne">Personne</span><span data-i18n="paie.type">Type</span><span data-i18n="pg.montant">Montant (DH)</span><span></span></div>
+    <div id="pg-lignes"></div>
+    <button class="btn btn-sm" type="button" onclick="pgAjouter()" style="margin-top:8px" data-i18n="pg.ajouter">+ Ajouter une personne</button>
+    <div class="fg" style="margin-top:12px"><label data-i18n="pg.note">Note (facultatif)</label><input id="pg-note"></div>
+    <div style="margin:12px 0;font-size:15px"><span style="color:var(--text2)" data-i18n="bq.total">Total</span> : <strong id="pg-total">—</strong> <span id="pg-nb" style="font-size:12px;color:var(--text3)"></span></div>
+    <div class="btns">
+      <button class="btn btn-p" id="pg-valider" onclick="savePaiementGroupe()">🧾 Encaisser et faire la facture</button>
+      <button class="btn" onclick="document.getElementById('pg-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL PAIEMENT FAMILLE ═══════════════════════════════ -->
 <div class="mo" id="fp-modal">
   <div class="mo-box" style="max-width:820px">
@@ -3382,6 +3428,25 @@ const I18N = {
     "fm.arrete_ok": "Abonnement arrêté",
     "fm.choix_famille": "Famille (pack famille)",
     "fm.choix_famille_desc": "Payer tous les membres en une fois, ou inscrire une nouvelle famille",
+    "pg.choix": "Plusieurs personnes, une facture",
+    "pg.choix_desc": "Une personne paie pour plusieurs clients : une seule facture",
+    "pg.titre": "Paiement pour plusieurs personnes",
+    "pg.aide": "Chaque personne garde son paiement dans sa fiche. Une seule facture est faite au nom de la personne qui paie.",
+    "pg.payeur": "Payé par",
+    "pg.payeur_ph": "Client, parent, société…",
+    "pg.personne": "Personne",
+    "pg.client_ph": "Rechercher un client…",
+    "pg.montant": "Montant (DH)",
+    "pg.ajouter": "+ Ajouter une personne",
+    "pg.note": "Note (facultatif)",
+    "pg.encaisser": "🧾 Encaisser et faire la facture",
+    "pg.introuvable": "Client introuvable : choisissez-le dans la liste",
+    "pg.sans_sport": "Aucune discipline",
+    "pg.vide": "Ajoutez au moins une personne",
+    "pg.montant_requis": "Indiquez le montant",
+    "pg.ok": "%n paiement(s) enregistré(s)",
+    "pg.nb": "%n personne(s)",
+    "pg.facture": "Facture groupée",
     "fm.sql_33": "Exécutez d'abord le script SQL 33 (familles) dans Supabase.",
     "fam.case": "Pack famille (tarif famille réduit)",
     "fam.badge": "Pack famille",
@@ -4727,6 +4792,25 @@ const I18N = {
     "fm.arrete_ok": "تم إيقاف الاشتراك",
     "fm.choix_famille": "عائلة (باقة العائلة)",
     "fm.choix_famille_desc": "أداء جميع الأفراد دفعة واحدة، أو تسجيل عائلة جديدة",
+    "pg.choix": "عدة أشخاص، فاتورة واحدة",
+    "pg.choix_desc": "شخص واحد يؤدي عن عدة زبناء: فاتورة واحدة",
+    "pg.titre": "أداء عن عدة أشخاص",
+    "pg.aide": "يبقى أداء كل شخص في ملفه. تصدر فاتورة واحدة باسم المؤدي.",
+    "pg.payeur": "المؤدي",
+    "pg.payeur_ph": "زبون، ولي أمر، شركة…",
+    "pg.personne": "الشخص",
+    "pg.client_ph": "ابحث عن زبون…",
+    "pg.montant": "المبلغ (درهم)",
+    "pg.ajouter": "+ إضافة شخص",
+    "pg.note": "ملاحظة (اختياري)",
+    "pg.encaisser": "🧾 تحصيل وإصدار الفاتورة",
+    "pg.introuvable": "زبون غير موجود: اختره من القائمة",
+    "pg.sans_sport": "بدون رياضة",
+    "pg.vide": "أضف شخصا واحدا على الأقل",
+    "pg.montant_requis": "أدخل المبلغ",
+    "pg.ok": "تم تسجيل %n أداء",
+    "pg.nb": "%n شخص",
+    "pg.facture": "فاتورة جماعية",
     "fm.sql_33": "نفّذ أولاً سكريبت SQL رقم 33 (العائلات) في Supabase.",
     "fam.case": "باقة العائلة (تعريفة عائلية مخفضة)",
     "fam.badge": "باقة العائلة",
@@ -9410,14 +9494,14 @@ function periodeRecu(p) {
   return keys.length === 1 ? nom(keys[0]) : `${nom(keys[0])} à ${nom(keys[keys.length - 1])}`;
 }
 
-async function genererRecuPdf(paies, client, encaissePar, infoReste = null) {
+async function genererRecuPdf(paies, client, encaissePar, infoReste = null, groupe = null) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = 210, M = 18;
   const bleu = [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42];
   const fD = s => s ? s.split('-').reverse().join('/') : '-';
   const p0 = paies[0];
-  const numero = numeroRecu(paies);
+  const numero = groupe ? groupe.code : numeroRecu(paies);
   const total = paies.reduce((a, p) => a + (parseFloat(p.montant) || 0), 0);
   const sports = client.sports || (client.sport ? [client.sport] : []);
 
@@ -9445,7 +9529,7 @@ async function genererRecuPdf(paies, client, encaissePar, infoReste = null) {
   // Client
   doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
   doc.roundedRect(M, 50, W - 2 * M, 30, 2, 2, 'FD');
-  doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text('REÇU DE', M + 5, 57);
+  doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text(groupe ? 'PAYÉ PAR' : 'REÇU DE', M + 5, 57);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...noir);
   doc.text(`${client.prenom || ''} ${client.nom || ''}`.trim() || '-', M + 5, 64);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
@@ -9454,8 +9538,9 @@ async function genererRecuPdf(paies, client, encaissePar, infoReste = null) {
     client.cin ? `CIN : ${client.cin}` : '',
     (client.telephone || client.telephone2) ? `Tél. : ${[client.telephone, client.telephone2].filter(Boolean).join(' / ')}` : ''
   ].filter(Boolean).join('     ');
-  doc.text(infos || '-', M + 5, 71);
-  if (sports.length) doc.text(`Sport(s) : ${sports.join(', ')}`, M + 5, 76);
+  if (infos || !groupe) doc.text(infos || '-', M + 5, 71);
+  if (groupe) doc.text(`Facture groupée pour ${groupe.n} personne${groupe.n > 1 ? 's' : ''}`, M + 5, infos ? 76 : 71);
+  else if (sports.length) doc.text(`Sport(s) : ${sports.join(', ')}`, M + 5, 76);
 
   // Tableau : une ligne par paiement
   let y = 92;
@@ -9474,7 +9559,8 @@ async function genererRecuPdf(paies, client, encaissePar, infoReste = null) {
       ? `Reste à payer - ${DESIGNATIONS[ir?.orig.type] || ir?.orig.type || 'paiement'}` + (ir ? ` du ${fD(ir.orig.date_paiement)}` : '')
       : DESIGNATIONS[p.type] || p.type || 'Paiement';
     const noteUtile = p.note && p.note !== designation && p.note !== "Frais d'inscription" && !/^Assurance/.test(p.note);
-    const desLignes = doc.splitTextToSize(designation + (noteUtile ? ` - ${p.note}` : ''), cPer - cDes - 4);
+    const qui = groupe ? `${p.clients?.prenom || ''} ${p.clients?.nom || ''}`.trim() : '';
+    const desLignes = doc.splitTextToSize((qui ? `${qui} - ` : '') + designation + (noteUtile && !groupe ? ` - ${p.note}` : ''), cPer - cDes - 4);
     const perLignes = doc.splitTextToSize(periodeRecu(ref), cMnt - cPer - 32);
     let hLigne = Math.max(11, Math.max(desLignes.length, perLignes.length) * 5 + 6);
     doc.text(desLignes, cDes, y + 7);
@@ -9541,11 +9627,23 @@ function numeroRecu(paies) {
 async function ouvrirRecu(paiementIds) {
   if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
   const ids = Array.isArray(paiementIds) ? paiementIds : [paiementIds];
-  const { data: rows, error } = await sb.from('paiements')
-    .select('*,clients(id,prenom,nom,cin,telephone,telephone2,email,sports,sport,numero_adherent)').in('id', ids);
-  // Ordre d'affichage = ordre demandé ; jamais deux clients sur un même reçu
-  const paies = ids.map(id => (rows || []).find(r => r.id === id)).filter(Boolean)
-    .filter((p, _, arr) => p.client_id === arr[0].client_id);
+  const SEL = '*,clients(id,prenom,nom,cin,telephone,telephone2,email,sports,sport,numero_adherent)';
+  const { data: rows, error } = await sb.from('paiements').select(SEL).in('id', ids);
+  let paies, groupe = null;
+  const code = codeGroupe((rows || []).map(r => r.note).find(codeGroupe));
+  if (code) {
+    // Facture groupée : tous les paiements de ce groupe, quelle que soit la ligne choisie
+    const { data: tous } = await sb.from('paiements').select(SEL).ilike('note', `%${code}%`).order('created_at');
+    paies = (tous && tous.length ? tous : rows || []).filter(p => codeGroupe(p.note) === code);
+    const nomPayeur = payeurGroupe(paies);
+    const pc = paies.map(p => p.clients).find(c => c && nomPayeur && cleNom(`${c.prenom} ${c.nom}`) === cleNom(nomPayeur));
+    groupe = { code, payeur: nomPayeur || `${paies[0]?.clients?.prenom || ''} ${paies[0]?.clients?.nom || ''}`.trim(), payeurClient: pc || null,
+      n: new Set(paies.map(p => p.client_id)).size };
+  } else {
+    // Ordre d'affichage = ordre demandé ; jamais deux clients sur un même reçu
+    paies = ids.map(id => (rows || []).find(r => r.id === id)).filter(Boolean)
+      .filter((p, _, arr) => p.client_id === arr[0].client_id);
+  }
   if (error || !paies.length) { showToast(error?.message || t('recu.pdf_ko'), 'e'); return; }
   const p0 = paies[0];
 
@@ -9554,19 +9652,21 @@ async function ouvrirRecu(paiementIds) {
     const { data: prof } = await sb.from('profils').select('prenom,nom').eq('id', p0.created_by).maybeSingle();
     if (prof) encaissePar = `${prof.prenom} ${prof.nom}`;
   }
-  const client = p0.clients || {};
+  const client = groupe ? (groupe.payeurClient ? { ...groupe.payeurClient } : { prenom: groupe.payeur, nom: '' }) : (p0.clients || {});
   let doc;
   let infoReste = null;
-  try { infoReste = await infoRestesRecu(paies); } catch (_) {}
-  try { doc = await genererRecuPdf(paies, client, encaissePar, infoReste); }
+  if (!groupe) { try { infoReste = await infoRestesRecu(paies); } catch (_) {} }
+  try { doc = await genererRecuPdf(paies, client, encaissePar, infoReste, groupe); }
   catch (e) { console.error(e); showToast(t('recu.pdf_ko'), 'e'); return; }
 
   if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
   const blobUrl = URL.createObjectURL(doc.output('blob'));
-  _recu = { doc, blobUrl, paiements: paies, numero: numeroRecu(paies), client, encaissePar, infoReste };
+  _recu = { doc, blobUrl, paiements: paies, numero: groupe ? groupe.code : numeroRecu(paies), client, encaissePar, infoReste, groupe,
+    // Mail : envoyé au payeur s'il fait partie des personnes (avec l'email de sa fiche)
+    idsMail: groupe ? (groupe.payeurClient ? paies.filter(p => p.client_id === groupe.payeurClient.id).map(p => p.id) : []) : null };
   try { const l = localStorage.getItem('ticket_largeur'); if (l) document.getElementById('recu-ticket-largeur').value = l; } catch (_) {}
 
-  document.getElementById('recu-title').textContent = `${t('recu.title')} ${p0.numero_recu ? _recu.numero : ''}`.trim();
+  document.getElementById('recu-title').textContent = groupe ? `${t('pg.facture')} ${groupe.code}` : `${t('recu.title')} ${p0.numero_recu ? _recu.numero : ''}`.trim();
   document.getElementById('recu-preview').src = blobUrl;
   const btnMail = document.getElementById('btn-recu-mail');
   btnMail.style.display = '';
@@ -9574,7 +9674,7 @@ async function ouvrirRecu(paiementIds) {
   btnMail.textContent = t('recu.envoyer');
   document.getElementById('recu-mail-info').textContent = client.email
     ? t('recu.mail_a').replace('%s', client.email) : t('recu.no_email');
-  document.getElementById('btn-recu-email-add').style.display = client.email || !PERMS.clients?.ecrire ? 'none' : '';
+  document.getElementById('btn-recu-email-add').style.display = client.email || !client.id || !PERMS.clients?.ecrire ? 'none' : '';
   const tel = numeroWhatsApp(client);
   const btnWa = document.getElementById('btn-recu-wa');
   btnWa.disabled = !tel; btnWa.title = tel ? '+' + tel : t('recu.wa_no_tel');
@@ -9671,7 +9771,8 @@ function imprimerTicket() {
       ? `Reste à payer - ${DESIG[ir?.orig.type] || ir?.orig.type || 'paiement'}${ir ? ` du ${fD(ir.orig.date_paiement)}` : ''}`
       : DESIG[x.type] || x.type || 'Paiement';
     const per = periodeRecu(ir && x.type === 'Complément' ? ir.orig : x);
-    return `<div class="li"><div class="li-h"><span>${e(des)}</span><b>${mt(x.montant)}</b></div>${per && per !== '-' ? `<div class="pt">${e(per)}</div>` : ''}${ir ? `<div class="pt">À payer ${mt(ir.du)}${ir.avant ? ` · Déjà payé ${mt(ir.avant)}` : ''}</div>` : ''}</div>`;
+    const qui = r.groupe ? `${x.clients?.prenom || ''} ${x.clients?.nom || ''}`.trim() : '';
+    return `<div class="li"><div class="li-h"><span>${qui ? `<b>${e(qui)}</b><br>` : ''}${e(des)}</span><b>${mt(x.montant)}</b></div>${per && per !== '-' ? `<div class="pt">${e(per)}</div>` : ''}${ir ? `<div class="pt">À payer ${mt(ir.du)}${ir.avant ? ` · Déjà payé ${mt(ir.avant)}` : ''}</div>` : ''}</div>`;
   }).join('');
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Ticket ${e(r.numero)}</title><style>
     @page { size: ${largeur}mm auto; margin: 0; }
@@ -9696,11 +9797,13 @@ function imprimerTicket() {
     <div class="kv"><span>Date du paiement</span><b>${fD(p0.date_paiement)}</b></div>
     <div class="kv pt"><span>Imprimé le</span><span>${imprime}</span></div>
     <div class="sep"></div>
-    <div class="kv"><span>Client</span><b>${e(`${c.prenom || ''} ${c.nom || ''}`.trim() || '-')}</b></div>
+    ${r.groupe ? `<div class="c pt">Facture groupée</div>` : ''}
+    <div class="kv"><span>${r.groupe ? 'Payé par' : 'Client'}</span><b>${e(`${c.prenom || ''} ${c.nom || ''}`.trim() || '-')}</b></div>
+    ${r.groupe ? `<div class="kv"><span>Personnes</span><b>${r.groupe.n}</b></div>` : ''}
     ${adherent ? `<div class="kv"><span>N° adhérent</span><b>${e(adherent)}</b></div>` : ''}
     ${c.cin ? `<div class="kv"><span>CIN</span><b>${e(c.cin)}</b></div>` : ''}
     ${c.telephone ? `<div class="kv"><span>Tél.</span><b>${e(c.telephone)}</b></div>` : ''}
-    ${sports.length ? `<div class="kv"><span>Sport(s)</span><b>${e(sports.join(', '))}</b></div>` : ''}
+    ${sports.length && !r.groupe ? `<div class="kv"><span>Sport(s)</span><b>${e(sports.join(', '))}</b></div>` : ''}
     <div class="sep"></div>
     ${lignes}
     <div class="sep"></div>
@@ -9753,7 +9856,7 @@ async function envoyerRecuMail() {
     const res = await fetch('/api/envoyer-recu', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
-      body: JSON.stringify({ paiement_ids: _recu.paiements.map(p => p.id), pdf_base64: _recu.doc.output('datauristring').split(',')[1] })
+      body: JSON.stringify({ paiement_ids: _recu.idsMail || _recu.paiements.map(p => p.id), pdf_base64: _recu.doc.output('datauristring').split(',')[1] })
     });
     const out = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(out.error || `Erreur ${res.status}`);
@@ -11819,6 +11922,117 @@ async function saveInscriptionFamille() {
 }
 
 // ── Paiement famille : tous les membres actifs dans une seule fenêtre ──
+// ── Paiement pour plusieurs personnes : une seule facture ──
+// Chaque personne a son paiement (dans sa fiche) ; la note porte « Facture groupée G-XXXXXX · payé par … »,
+// ce qui permet de refaire la facture complète depuis n'importe lequel de ces paiements.
+const codeGroupe = note => (String(note || '').match(/Facture groupée (G-[0-9A-F]{6})/) || [])[1] || null;
+const payeurGroupe = paies => { for (const x of paies) { const m = String(x.note || '').match(/payé par (.+?)(?: · |$)/); if (m) return m[1].trim(); } return ''; };
+const cleNom = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+const nouveauCodeGroupe = () => 'G-' + ((crypto.randomUUID && crypto.randomUUID()) || (Math.random().toString(16).slice(2) + '000000')).replace(/-/g, '').slice(0, 6).toUpperCase();
+let _pg = { clients: [] };
+const PG_TYPES = [['Mensualité', 'paie.t_mensualite'], ['Trimestriel', 'paie.t_trimestriel'], ['Semestriel', 'paie.t_semestriel'], ['Annuel', 'paie.t_annuel'],
+  ['Inscription', 'paie.t_inscription'], ['Assurance', 'paie.t_assurance'], ['Équipement', 'paie.t_equipement']];
+
+async function ouvrirPaiementGroupe() {
+  await loadParametres();
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
+  const { data } = await fetchAllRows(() => sb.from('clients').select('id,prenom,nom,sports,sport,numero_adherent').order('id'));
+  _pg.clients = (data || []).sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr', { sensitivity: 'base' }));
+  const nb = {};
+  _pg.clients.forEach(c => { const k = cleNom(`${c.prenom} ${c.nom}`); nb[k] = (nb[k] || 0) + 1; });
+  _pg.clients.forEach(c => {
+    const base = `${c.prenom || ''} ${c.nom || ''}`.trim();
+    c._lib = nb[cleNom(base)] > 1 ? `${base} (${c.numero_adherent || 'ADH-' + c.id.substring(0, 8).toUpperCase()})` : base;
+  });
+  document.getElementById('pg-clients').innerHTML = _pg.clients.map(c => `<option value="${echapper(c._lib)}">`).join('');
+  ['pg-payeur', 'pg-note'].forEach(i => { document.getElementById(i).value = ''; });
+  document.getElementById('pg-date').value = today();
+  document.getElementById('pg-mode').value = 'Espèces';
+  document.getElementById('pg-lignes').innerHTML = '';
+  pgAjouter(false); pgAjouter(false);
+  document.getElementById('pg-modal').classList.add('open');
+  document.getElementById('pg-payeur').focus();
+}
+
+const pgClient = lib => { const k = cleNom(lib); return k ? _pg.clients.find(c => cleNom(c._lib) === k) : null; };
+
+function pgAjouter(focus = true) {
+  const box = document.getElementById('pg-lignes');
+  box.insertAdjacentHTML('beforeend', `<div class="pg-ligne">
+    <label class="bvl-c pg-pers"><span class="bvl-lab">${t('pg.personne')}</span><input class="pg-client" list="pg-clients" autocomplete="off" placeholder="${echapper(t('pg.client_ph'))}" oninput="pgLigne(this)"><span class="bvl-info pg-info"></span></label>
+    <label class="bvl-c"><span class="bvl-lab">${t('paie.type')}</span><select class="pg-type" onchange="pgLigne(this)">${PG_TYPES.map(([v, k]) => `<option value="${v}">${t(k)}</option>`).join('')}</select></label>
+    <label class="bvl-c"><span class="bvl-lab">${t('pg.montant')}</span><input class="pg-montant" type="number" min="0" step="0.01" placeholder="0" oninput="pgTotal()"></label>
+    <button type="button" class="btn btn-sm btn-d bvl-x" onclick="pgRetirer(this)">✕</button>
+  </div>`);
+  if (focus) box.lastElementChild.querySelector('.pg-client').focus();
+  pgTotal();
+}
+
+function pgRetirer(btn) {
+  btn.closest('.pg-ligne').remove();
+  if (!document.querySelector('#pg-lignes .pg-ligne')) pgAjouter(false); else pgTotal();
+}
+
+// Personne ou type changé : disciplines affichées et montant proposé selon les tarifs
+function pgLigne(el) {
+  const row = el.closest('.pg-ligne'), saisie = row.querySelector('.pg-client').value.trim(), c = pgClient(saisie);
+  const type = row.querySelector('.pg-type').value, info = row.querySelector('.pg-info');
+  const sports = c ? (c.sports || (c.sport ? [c.sport] : [])) : [];
+  info.innerHTML = !saisie ? '' : !c ? `<span style="color:var(--red)">${t('pg.introuvable')}</span>`
+    : `<span style="color:var(--text3)">${echapper(sports.join(', ') || t('pg.sans_sport'))}</span>`;
+  if (c) {
+    const m = type === 'Assurance' ? montantAssurance() : type === 'Équipement' ? 0 : montantAbonnement(sports, type);
+    row.querySelector('.pg-montant').value = m || '';
+  }
+  pgTotal();
+}
+
+function pgLignes() {
+  return [...document.querySelectorAll('#pg-lignes .pg-ligne')].map(row => {
+    const lib = row.querySelector('.pg-client').value.trim(), mt = row.querySelector('.pg-montant').value;
+    return { row, lib, c: pgClient(lib), type: row.querySelector('.pg-type').value, montantTxt: mt, montant: parseFloat(mt) || 0 };
+  });
+}
+
+function pgTotal() {
+  const lignes = pgLignes().filter(l => l.montant > 0);
+  const tot = lignes.reduce((a, l) => a + l.montant, 0), n = new Set(lignes.filter(l => l.c).map(l => l.c.id)).size;
+  document.getElementById('pg-total').textContent = tot ? fmtDH2(tot) : '—';
+  document.getElementById('pg-nb').textContent = n ? `(${t('pg.nb').replace('%n', n)})` : '';
+  document.getElementById('pg-valider').textContent = t('pg.encaisser') + (tot ? ` · ${fmtDH2(tot)}` : '');
+}
+
+async function savePaiementGroupe() {
+  const lignes = pgLignes().filter(l => l.lib || l.montantTxt !== '');
+  if (!lignes.length) { showToast(t('pg.vide'), 'e'); return; }
+  for (const l of lignes) {
+    if (!l.c) { showToast(`${t('pg.introuvable')}${l.lib ? ' : ' + l.lib : ''}`, 'e'); l.row.querySelector('.pg-client').focus(); return; }
+    if (!(l.montant > 0)) { showToast(`${t('pg.montant_requis')} (${l.c._lib})`, 'e'); l.row.querySelector('.pg-montant').focus(); return; }
+  }
+  const payeur = document.getElementById('pg-payeur').value.trim().replace(/ \((?:ADH-)?[0-9A-Z-]+\)$/, '') || `${lignes[0].c.prenom} ${lignes[0].c.nom}`;
+  const code = nouveauCodeGroupe(), libre = document.getElementById('pg-note').value.trim();
+  const note = `Facture groupée ${code} · payé par ${payeur}${libre ? ' · ' + libre : ''}`;
+  const date = document.getElementById('pg-date').value || today(), mode = document.getElementById('pg-mode').value;
+  // Une transaction par personne (ses lignes restent groupées dans sa fiche et dans la liste)
+  const parClient = {};
+  lignes.forEach(l => (parClient[l.c.id] ??= []).push({ client_id: l.c.id, type: l.type, montant: l.montant, date_paiement: date, mode, note, created_by: ME.id }));
+  const btn = document.getElementById('pg-valider'); btn.disabled = true;
+  const ids = [], erreurs = [];
+  for (const lot of Object.values(parClient)) {
+    const r = await insererTransaction(lot);
+    if (r.error) erreurs.push(r.error.message); else ids.push(...r.ids);
+  }
+  btn.disabled = false;
+  const total = lignes.reduce((a, l) => a + l.montant, 0);
+  await logAudit('CREATE', 'paiements', `Facture groupée ${code} (payé par ${payeur}) : ${Object.keys(parClient).length} personne(s), ${fmtDH2(total)}`);
+  if (erreurs.length) showToast(erreurs.join(' · '), 'e'); else showToast(t('pg.ok').replace('%n', ids.length), 's');
+  if (!ids.length) return;
+  document.getElementById('pg-modal').classList.remove('open');
+  if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
+  if (document.getElementById('page-clients').classList.contains('active')) { loadClients(); loadImpayes(); }
+  ouvrirRecu(ids);
+}
+
 async function ouvrirPaiementFamille(fid) {
   await chargerFamilles();
   document.getElementById('fp-alerte').innerHTML = _fam.ok ? '' : `<div class="al al-e">${t('fm.sql_33')}</div>`;
@@ -11878,12 +12092,13 @@ async function savePaiementFamille() {
   const lignes = fpLignes();
   if (!fid || !lignes.length) { showToast(t('fm.rien_a_payer'), 'e'); return; }
   const formule = document.getElementById('fp-formule').value, mode = document.getElementById('fp-mode').value;
-  const date = document.getElementById('fp-date').value || today(), note = `${t('fam.badge')} — ${nomFamille(fid)}`;
+  const code = nouveauCodeGroupe();
+  const date = document.getElementById('fp-date').value || today(), note = `${t('fam.badge')} — ${nomFamille(fid)} · Facture groupée ${code} · payé par ${nomFamille(fid)}`;
   const btn = document.getElementById('fp-valider'); btn.disabled = true;
-  let ok = 0; const erreurs = [];
+  let ok = 0; const erreurs = [], ids = [];
   for (const l of lignes) {
     const r = await insererTransaction([{ client_id: l.id, type: formule, montant: l.montant, date_paiement: date, mode, note, created_by: ME.id }]);
-    if (r.error) erreurs.push(r.error.message); else ok++;
+    if (r.error) erreurs.push(r.error.message); else { ok++; ids.push(...r.ids); }
   }
   btn.disabled = false;
   await logAudit('CREATE', 'paiements', `Paiement famille ${nomFamille(fid)} : ${ok} membre(s), ${fmtDH2(lignes.reduce((s, l) => s + l.montant, 0))}`);
@@ -11893,6 +12108,7 @@ async function savePaiementFamille() {
   if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
   if (document.getElementById('page-clients').classList.contains('active')) { loadClients(); loadImpayes(); }
   if (_pf.vue === 'famille') loadFamillesListe();
+  if (ids.length) ouvrirRecu(ids);   // une seule facture pour toute la famille
 }
 
 // ── Fiche client : la famille, arrêter / reprendre l'abonnement d'un membre ──
