@@ -566,6 +566,30 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .bf-resume .ok{border-color:var(--green)}
 .bf-resume .ecart{border-color:var(--amber)}
 #bf-lignes input{padding:6px 8px;font-size:13px}
+/* Vente boutique : plusieurs articles */
+.bv-entete,.bv-ligne{display:grid;grid-template-columns:minmax(0,2.4fr) 76px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 34px;gap:8px;align-items:start}
+.bv-entete{font-size:12px;color:var(--text2);font-weight:500;padding:0 2px 4px}
+.bv-ligne{padding:7px 0;border-top:1px solid var(--border)}
+.bv-ligne:last-child{border-bottom:1px solid var(--border)}
+.bvl-c{display:flex;flex-direction:column;gap:2px;min-width:0;margin:0}
+.bvl-c input{width:100%;min-width:0;font-size:13px;padding:9px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);transition:all var(--dur) var(--ease)}
+.bvl-c input:hover{border-color:var(--border2)}
+.bvl-c input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.bvl-c input::placeholder{color:var(--text3)}
+html[data-theme="dark"] .bvl-c input{background:var(--bg3)}
+.bvl-total{display:block}
+.bvl-lab{display:none;font-size:11px;color:var(--text2);font-weight:500}
+.bvl-info{font-size:11px}
+.bvl-total{padding-top:8px;font-size:14px;white-space:nowrap}
+.bv-ligne .bvl-x{margin-top:4px;padding:5px 0}
+@media (max-width:640px){
+  .bv-entete{display:none}
+  .bv-ligne{grid-template-columns:1fr 1fr}
+  .bvl-art{grid-column:1/-1}
+  .bvl-lab{display:block}
+  .bvl-total{padding-top:6px}
+  .bv-ligne .bvl-x{grid-column:1/-1;justify-self:end;margin-top:0;padding:4px 12px}
+}
 @media (max-width:640px){.bf-resume{grid-template-columns:1fr}}
 /* Détails d'une famille */
 .fd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
@@ -1567,23 +1591,20 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
           <div class="card" id="bv-form-card">
             <div class="ct" id="bv-titre" data-i18n="bq.nouvelle">Nouvelle vente</div>
             <input type="hidden" id="bv-id">
-            <div class="g3">
+            <div class="g2" style="margin-bottom:12px">
               <div class="fg"><label data-i18n="bq.client">Client</label><input id="bv-client" list="bv-clients" placeholder="Client de passage" data-i18n-ph="bq.client_ph" autocomplete="off"><datalist id="bv-clients"></datalist></div>
               <div class="fg"><label data-i18n="bq.date">Date</label><input id="bv-date" type="date"></div>
-              <div class="fg"><label data-i18n="bq.article">Article</label><input id="bv-article" list="bv-articles" placeholder="Choisir un article du stock" data-i18n-ph="bq.article_ph" autocomplete="off" oninput="bvArticleConnu()"><datalist id="bv-articles"></datalist>
-                <span id="bv-stock-info" style="font-size:11px;margin-top:2px"></span></div>
             </div>
-            <div class="g3">
-              <div class="fg"><label data-i18n="bq.quantite">Quantité</label><input id="bv-qte" type="number" min="1" step="1" value="1" oninput="bvMarge()"></div>
-              <div class="fg"><label data-i18n="bq.prix_achat_u">Prix d'achat unitaire (DH)</label><input id="bv-achat" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
-              <div class="fg"><label data-i18n="bq.prix_vente_u">Prix de vente unitaire (DH)</label><input id="bv-vente" type="number" min="0" step="0.01" placeholder="0" oninput="bvMarge()"></div>
-            </div>
-            <div style="display:flex;gap:24px;flex-wrap:wrap;margin:2px 0 12px;font-size:14px">
-              <div><span style="color:var(--text2)" data-i18n="bq.total">Total</span> : <strong id="bv-total">—</strong></div>
+            <datalist id="bv-articles"></datalist>
+            <div class="bv-entete"><span data-i18n="bq.article">Article</span><span data-i18n="bq.qte">Qté</span><span data-i18n="bq.prix_achat">Prix d'achat</span><span data-i18n="bq.prix_vente">Prix de vente</span><span data-i18n="bq.total">Total</span><span></span></div>
+            <div id="bv-lignes"></div>
+            <button class="btn btn-sm" type="button" id="bv-ajouter" onclick="bvAjouterLigne()" style="margin-top:8px" data-i18n="bq.ajouter_article">+ Ajouter un article</button>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;margin:12px 0;font-size:14px">
+              <div><span style="color:var(--text2)" data-i18n="bq.total">Total</span> : <strong id="bv-total">—</strong> <span id="bv-nb" style="font-size:12px;color:var(--text3)"></span></div>
               <div><span style="color:var(--text2)" data-i18n="bq.benefice">Bénéfice</span> : <strong id="bv-marge">—</strong></div>
             </div>
             <div class="btns">
-              <button class="btn btn-p" onclick="saveVente()" data-i18n="bq.enregistrer">Enregistrer la vente</button>
+              <button class="btn btn-p" id="bv-save" onclick="saveVente()">Enregistrer la vente</button>
               <button class="btn" id="bv-annuler" style="display:none" onclick="resetVente()" data-i18n="bq.annuler_modif">Annuler la modification</button>
             </div>
           </div>
@@ -3560,6 +3581,15 @@ const I18N = {
     "bq.sql_21": "Exécutez d'abord le script SQL 21 (Boutique simplifiée) dans Supabase.",
     "bq.modifiee": "Vente modifiée",
     "bq.enregistree": "Vente enregistrée",
+    "bq.ajouter_article": "+ Ajouter un article",
+    "bq.retirer": "Retirer cet article",
+    "bq.nb_articles": "%n article(s)",
+    "bq.enregistrer_recu": "🧾 Enregistrer la vente et faire le reçu",
+    "bq.enregistrer_modif": "Enregistrer la modification",
+    "bq.aucun_article_saisi": "Ajoutez au moins un article",
+    "bq.recu": "Reçu",
+    "bq.recu_aide": "Reçu de cette vente (tous les articles enregistrés ensemble)",
+    "bq.recu_titre": "Reçu de vente",
     "bq.suppr_confirm": "Supprimer la vente",
     "as.nouveau_btn": "+ Nouvel associé",
     "as.nouveau": "Nouvel associé",
@@ -4896,6 +4926,15 @@ const I18N = {
     "bq.sql_21": "نفّذ أولاً سكريبت SQL رقم 21 (المتجر) في Supabase.",
     "bq.modifiee": "تم تعديل البيع",
     "bq.enregistree": "تم تسجيل البيع",
+    "bq.ajouter_article": "+ إضافة منتج",
+    "bq.retirer": "حذف هذا المنتج",
+    "bq.nb_articles": "%n منتج",
+    "bq.enregistrer_recu": "🧾 تسجيل البيع وإصدار الوصل",
+    "bq.enregistrer_modif": "حفظ التعديل",
+    "bq.aucun_article_saisi": "أضف منتجا واحدا على الأقل",
+    "bq.recu": "وصل",
+    "bq.recu_aide": "وصل هذا البيع (كل المنتجات المسجلة معا)",
+    "bq.recu_titre": "وصل البيع",
     "bq.suppr_confirm": "حذف البيع",
     "as.nouveau_btn": "+ شريك جديد",
     "as.nouveau": "شريك جديد",
@@ -9613,6 +9652,7 @@ function telechargerRecu() {
 
 function imprimerTicket() {
   if (!_recu) return;
+  if (_recu.vente) { imprimerTicketVente(); return; }
   const largeur = document.getElementById('recu-ticket-largeur')?.value === '58' ? 58 : 80;
   try { localStorage.setItem('ticket_largeur', String(largeur)); } catch (_) {}
   const r = _recu, c = r.client || {}, paies = r.paiements, p0 = paies[0];
@@ -10374,7 +10414,7 @@ async function loadBoutique() {
   const [rv, rc, rp, rm] = await Promise.all([
     sb.from('ventes').select('*').gte('date_vente', mois + '-01').lt('date_vente', suivant)
       .order('date_vente', { ascending: false }).order('created_at', { ascending: false }),
-    fetchAllRows(() => sb.from('clients').select('id,prenom,nom').order('id')),
+    fetchAllRows(() => sb.from('clients').select('id,prenom,nom,telephone,telephone2,numero_adherent').order('id')),
     sb.from('produits').select('*').order('nom'),
     sb.from('stock_mouvements').select('*').gte('date_mouvement', mois + '-01').lt('date_mouvement', suivant)
       .order('date_mouvement', { ascending: false }).order('created_at', { ascending: false })
@@ -10396,6 +10436,7 @@ async function loadBoutique() {
   document.getElementById('bv-clients').innerHTML = _bt.clients.map(c => `<option value="${echapper(c.prenom + ' ' + c.nom)}">`).join('');
   document.getElementById('bv-articles').innerHTML = _bt.produits.filter(p => p.actif !== false)
     .map(p => `<option value="${echapper(p.nom)}">${echapper(t('bq.stock'))} : ${p.stock}</option>`).join('');
+  if (!document.querySelector('#bv-lignes .bv-ligne')) bvAjouterLigne(undefined, false);
   document.getElementById('bp-cats').innerHTML = [...new Set(_bt.produits.map(p => p.categorie).filter(Boolean))].map(c => `<option value="${echapper(c)}">`).join('');
   const selP = document.getElementById('bm-produit'), choisi = selP.value;
   selP.innerHTML = `<option value="">${t('bq.f_tous')}</option>` + _bt.produits.map(p => `<option value="${p.id}">${echapper(p.nom)}</option>`).join('');
@@ -10414,7 +10455,7 @@ function renderBoutique() {
   const kb = document.getElementById('bt-k-benef'); kb.textContent = fmtDH2(benef); kb.style.color = benef >= 0 ? 'var(--green)' : 'var(--red)';
   document.getElementById('bt-k-valeur').textContent = fmtDH2(valeur);
   const kr = document.getElementById('bt-k-bas'); kr.textContent = bas; kr.style.color = bas ? 'var(--red)' : 'var(--green)';
-  renderVentes(); renderProduits(); renderMouvements(); bvArticleConnu(true);
+  renderVentes(); renderProduits(); renderMouvements(); bvMarge();
   if (_bt.onglet === 'bilan') loadBilanBoutique();
   if (_bt.onglet === 'factures' && _bf.liste) renderFactures();
 }
@@ -10430,13 +10471,32 @@ function renderVentes() {
     return `<tr><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || `<span style="color:var(--text3)">${t('bq.passage')}</span>`}</td>
       <td><strong>${echapper(v.article || '—')}</strong>${libre}</td><td>${qte}</td><td>${fmtDH2(pv)}</td><td><strong>${fmtDH2(qte * pv)}</strong></td>
       <td style="font-weight:600;color:${b >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtDH2(b)}</td>
-      <td><div style="display:flex;gap:4px">${canW ? `<button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-sm" onclick="recuVenteListe('${v.id}')" title="${echapper(t('bq.recu_aide'))}">🧾 ${t('bq.recu')}</button>${canW ? `<button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
   }).join('') : `<tr class="empty-row"><td colspan="8">${t(q ? 'bq.aucune_recherche' : 'bq.aucune_mois')}</td></tr>`;
 }
 
-function bvProduitChoisi() {
-  const k = cleArticle(document.getElementById('bv-article').value);
-  return k ? _bt.produits.find(p => cleArticle(p.nom) === k) : null;
+const bvLignesEls = () => [...document.querySelectorAll('#bv-lignes .bv-ligne')];
+const bvProduitNom = nom => { const k = cleArticle(nom); return k ? _bt.produits.find(p => cleArticle(p.nom) === k) : null; };
+
+function bvLigneHtml(l = {}) {
+  const v = x => x === undefined || x === null ? '' : echapper(x);
+  return `<div class="bv-ligne">
+    <label class="bvl-c bvl-art"><span class="bvl-lab">${t('bq.article')}</span><input class="bvl-article" list="bv-articles" placeholder="${echapper(t('bq.article_ph'))}" autocomplete="off" value="${v(l.article)}" oninput="bvArticleLigne(this)"><span class="bvl-info"></span></label>
+    <label class="bvl-c"><span class="bvl-lab">${t('bq.qte')}</span><input class="bvl-qte" type="number" min="1" step="1" value="${v(l.qte ?? 1)}" oninput="bvMarge()"></label>
+    <label class="bvl-c"><span class="bvl-lab">${t('bq.prix_achat_u')}</span><input class="bvl-achat" type="number" min="0" step="0.01" placeholder="0" value="${v(l.achat)}" oninput="bvMarge()"></label>
+    <label class="bvl-c"><span class="bvl-lab">${t('bq.prix_vente_u')}</span><input class="bvl-vente" type="number" min="0" step="0.01" placeholder="0" value="${v(l.vente)}" oninput="bvMarge()"></label>
+    <div class="bvl-c"><span class="bvl-lab">${t('bq.total')}</span><strong class="bvl-total">—</strong></div>
+    <button type="button" class="btn btn-sm btn-d bvl-x" title="${echapper(t('bq.retirer'))}" onclick="bvRetirerLigne(this)">✕</button>
+  </div>`;
+}
+
+function bvLignes() {
+  return bvLignesEls().map(el => {
+    const val = c => el.querySelector(c).value;
+    const article = val('.bvl-article').trim();
+    return { el, article, p: bvProduitNom(article), qte: parseInt(val('.bvl-qte'), 10) || 0,
+      achat: parseFloat(val('.bvl-achat')) || 0, venteTxt: val('.bvl-vente'), vente: parseFloat(val('.bvl-vente')) || 0 };
+  });
 }
 
 // Stock disponible pour la vente en cours (en modification : + la quantité déjà vendue sur ce même article)
@@ -10445,38 +10505,69 @@ function bvDisponible(p) {
   return p.stock + (v && v.produit_id === p.id ? qteVente(v) : 0);
 }
 
-function bvMarge() {
-  const q = parseInt(document.getElementById('bv-qte').value, 10) || 0;
-  const a = parseFloat(document.getElementById('bv-achat').value) || 0, v = parseFloat(document.getElementById('bv-vente').value) || 0;
-  const tot = document.getElementById('bv-total'), mg = document.getElementById('bv-marge');
-  if (!document.getElementById('bv-vente').value) { tot.textContent = '—'; mg.textContent = '—'; mg.style.color = ''; }
-  else { tot.textContent = fmtDH2(q * v); mg.textContent = fmtDH2(q * (v - a)); mg.style.color = v - a >= 0 ? 'var(--green)' : 'var(--red)'; }
-  bvArticleConnu(true);
+// Quantité demandée par article du stock, toutes lignes confondues
+function bvQteParProduit(lignes) {
+  const q = {};
+  lignes.forEach(l => { if (l.p) q[l.p.id] = (q[l.p.id] || 0) + l.qte; });
+  return q;
 }
 
-// Article du catalogue : affiche le stock et reprend ses prix (sauf en modification ou si seul l'affichage est rafraîchi)
-function bvArticleConnu(affichageSeul) {
-  const info = document.getElementById('bv-stock-info'); if (!info) return;
-  const saisie = document.getElementById('bv-article').value.trim();
-  const p = bvProduitChoisi();
-  if (!saisie) { info.textContent = ''; return; }
-  if (!p) { info.innerHTML = `<span style="color:var(--text3)">${t('bq.hors_catalogue_aide')}</span>`; return; }
-  const dispo = bvDisponible(p), q = parseInt(document.getElementById('bv-qte').value, 10) || 0;
-  info.innerHTML = q > dispo
-    ? `<span style="color:var(--red);font-weight:600">${t('bq.stock_dispo')} : ${dispo} — ${t('bq.insuffisant')}</span>`
-    : `<span style="color:${dispo <= (p.seuil_alerte ?? 2) ? 'var(--amber-text)' : 'var(--green-text)'}">${t('bq.stock_dispo')} : ${dispo}</span>`;
-  if (affichageSeul === true || document.getElementById('bv-id').value) return;
-  document.getElementById('bv-achat').value = p.prix_achat ?? '';
-  document.getElementById('bv-vente').value = p.prix_vente ?? '';
+function bvAjouterLigne(l, focus = true) {
+  const box = document.getElementById('bv-lignes'); if (!box) return;
+  box.insertAdjacentHTML('beforeend', bvLigneHtml(l));
+  if (focus) box.lastElementChild.querySelector('.bvl-article').focus();
   bvMarge();
+}
+
+function bvRetirerLigne(btn) {
+  btn.closest('.bv-ligne').remove();
+  if (!bvLignesEls().length) bvAjouterLigne(undefined, false); else bvMarge();
+}
+
+// Article du catalogue choisi : reprend ses prix (sauf en modification d'une vente)
+function bvArticleLigne(inp) {
+  const el = inp.closest('.bv-ligne'), p = bvProduitNom(inp.value);
+  if (p && !document.getElementById('bv-id').value) {
+    el.querySelector('.bvl-achat').value = p.prix_achat ?? '';
+    el.querySelector('.bvl-vente').value = p.prix_vente ?? '';
+  }
+  bvMarge();
+}
+
+function bvMarge() {
+  const lignes = bvLignes(), parProduit = bvQteParProduit(lignes);
+  let tot = 0, mg = 0, nb = 0, saisi = false;
+  lignes.forEach(l => {
+    const info = l.el.querySelector('.bvl-info'), cell = l.el.querySelector('.bvl-total');
+    if (!l.article) info.textContent = '';
+    else if (!l.p) info.innerHTML = `<span style="color:var(--text3)">${t('bq.hors_catalogue_aide')}</span>`;
+    else {
+      const dispo = bvDisponible(l.p);
+      info.innerHTML = parProduit[l.p.id] > dispo
+        ? `<span style="color:var(--red);font-weight:600">${t('bq.stock_dispo')} : ${dispo} — ${t('bq.insuffisant')}</span>`
+        : `<span style="color:${dispo <= (l.p.seuil_alerte ?? 2) ? 'var(--amber-text)' : 'var(--green-text)'}">${t('bq.stock_dispo')} : ${dispo}</span>`;
+    }
+    if (l.venteTxt === '') { cell.textContent = '—'; return; }
+    saisi = true; tot += l.qte * l.vente; mg += l.qte * (l.vente - l.achat); nb += l.qte;
+    cell.textContent = fmtDH2(l.qte * l.vente);
+  });
+  const elT = document.getElementById('bv-total'), elM = document.getElementById('bv-marge');
+  if (!elT) return;
+  if (!saisi) { elT.textContent = '—'; elM.textContent = '—'; elM.style.color = ''; }
+  else { elT.textContent = fmtDH2(tot); elM.textContent = fmtDH2(mg); elM.style.color = mg >= 0 ? 'var(--green)' : 'var(--red)'; }
+  document.getElementById('bv-nb').textContent = saisi ? `(${t('bq.nb_articles').replace('%n', nb)})` : '';
+  const enModif = !!document.getElementById('bv-id').value;
+  document.getElementById('bv-save').textContent = enModif ? t('bq.enregistrer_modif')
+    : t('bq.enregistrer_recu') + (saisi ? ` · ${fmtDH2(tot)}` : '');
 }
 
 function resetVente() {
-  ['bv-id', 'bv-client', 'bv-article', 'bv-achat', 'bv-vente'].forEach(i => { document.getElementById(i).value = ''; });
-  document.getElementById('bv-qte').value = 1;
+  ['bv-id', 'bv-client'].forEach(i => { document.getElementById(i).value = ''; });
+  document.getElementById('bv-lignes').innerHTML = '';
+  document.getElementById('bv-ajouter').style.display = '';
   document.getElementById('bv-titre').textContent = t('bq.nouvelle');
   document.getElementById('bv-annuler').style.display = 'none';
-  bvMarge();
+  bvAjouterLigne(undefined, false);
 }
 
 function editVente(id) {
@@ -10484,46 +10575,256 @@ function editVente(id) {
   document.getElementById('bv-id').value = v.id;
   document.getElementById('bv-client').value = nomClientVente(v);
   document.getElementById('bv-date').value = v.date_vente;
-  document.getElementById('bv-article').value = (produitDe(v.produit_id)?.nom) || v.article || '';
-  document.getElementById('bv-qte').value = qteVente(v);
-  document.getElementById('bv-achat').value = v.prix_achat ?? '';
-  document.getElementById('bv-vente').value = v.prix_vente ?? '';
+  document.getElementById('bv-lignes').innerHTML = '';
+  document.getElementById('bv-ajouter').style.display = 'none';   // une modification porte sur une seule ligne de vente
   document.getElementById('bv-titre').textContent = t('bq.modifier');
   document.getElementById('bv-annuler').style.display = '';
-  boutiqueOnglet('ventes'); bvMarge();
+  bvAjouterLigne({ article: (produitDe(v.produit_id)?.nom) || v.article || '', qte: qteVente(v), achat: v.prix_achat, vente: v.prix_vente }, false);
+  boutiqueOnglet('ventes');
   document.getElementById('bv-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function saveVente() {
   const id = document.getElementById('bv-id').value;
-  const article = document.getElementById('bv-article').value.trim();
-  const venteTxt = document.getElementById('bv-vente').value;
-  const qte = parseInt(document.getElementById('bv-qte').value, 10);
-  if (!article) { showToast(t('bq.article_requis'), 'e'); return; }
-  if (!qte || qte < 1) { showToast(t('bq.qte_invalide'), 'e'); return; }
-  if (venteTxt === '' || parseFloat(venteTxt) < 0) { showToast(t('bq.prix_requis'), 'e'); return; }
-  const p = bvProduitChoisi();
-  if (p && qte > bvDisponible(p)) { showToast(`${t('bq.stock_insuffisant')} « ${p.nom} » (${t('bq.stock_dispo')} : ${bvDisponible(p)})`, 'e'); return; }
-  if (!p && _bt.stockActif && !confirm(t('bq.confirm_hors_catalogue').replace('%s', article))) return;
+  const lignes = bvLignes().filter(l => l.article || l.venteTxt !== '');
+  if (!lignes.length) { showToast(t('bq.aucun_article_saisi'), 'e'); return; }
+  for (const l of lignes) {
+    const stop = (cle, champ) => { showToast(t(cle) + (l.article ? ` (${l.article})` : ''), 'e'); l.el.querySelector(champ).focus(); };
+    if (!l.article) return stop('bq.article_requis', '.bvl-article');
+    if (!l.qte || l.qte < 1) return stop('bq.qte_invalide', '.bvl-qte');
+    if (l.venteTxt === '' || l.vente < 0) return stop('bq.prix_requis', '.bvl-vente');
+  }
+  const parProduit = bvQteParProduit(lignes);
+  const manque = Object.keys(parProduit).map(produitDe).find(p => parProduit[p.id] > bvDisponible(p));
+  if (manque) { showToast(`${t('bq.stock_insuffisant')} « ${manque.nom} » (${t('bq.stock_dispo')} : ${bvDisponible(manque)})`, 'e'); return; }
+  const libres = lignes.filter(l => !l.p).map(l => l.article);
+  if (libres.length && _bt.stockActif && !confirm(t('bq.confirm_hors_catalogue').replace('%s', libres.join(' », « ')))) return;
   // Client : rattaché à la fiche si le nom correspond à un client, sinon gardé tel quel (client de passage)
   const nomClient = document.getElementById('bv-client').value.trim();
   const cle = nomClient.toLowerCase().replace(/\s+/g, ' ');
   const client = nomClient && _bt.clients.find(c => `${c.prenom} ${c.nom}`.toLowerCase().replace(/\s+/g, ' ') === cle);
-  const obj = {
+  const base = {
     date_vente: document.getElementById('bv-date').value || today(),
     client_id: client ? client.id : null,
-    client_nom: client ? null : (nomClient || null),
-    article: p ? p.nom : article,
-    prix_achat: parseFloat(document.getElementById('bv-achat').value) || 0,
-    prix_vente: parseFloat(venteTxt) || 0,
-    ...(_bt.stockActif ? { produit_id: p ? p.id : null, quantite: qte } : {})
+    client_nom: client ? null : (nomClient || null)
   };
-  const { error } = id ? await sb.from('ventes').update(obj).eq('id', id) : await sb.from('ventes').insert(obj);
-  if (error) { showToast(/produit_id|quantite|schema cache|relation/i.test(error.message) ? t('bq.sql_27') : error.message, 'e'); return; }
-  await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `${qte} × ${obj.article} — ${fmtDH2(qte * obj.prix_vente)}${nomClient ? ' — ' + nomClient : ''}`);
+  const objs = lignes.map(l => ({
+    ...base,
+    article: l.p ? l.p.nom : l.article,
+    prix_achat: l.achat,
+    prix_vente: l.vente,
+    ...(_bt.stockActif ? { produit_id: l.p ? l.p.id : null, quantite: l.qte } : {})
+  }));
+  const total = lignes.reduce((a, l) => a + l.qte * l.vente, 0);
+  const btn = document.getElementById('bv-save'); btn.disabled = true;
+  // Plusieurs articles : une seule insertion, donc la même heure d'enregistrement (sert à regrouper le reçu)
+  const res = id ? await sb.from('ventes').update(objs[0]).eq('id', id)
+                 : await sb.from('ventes').insert(objs).select('id,created_at,created_by');
+  btn.disabled = false;
+  if (res.error) { showToast(/produit_id|quantite|schema cache|relation/i.test(res.error.message) ? t('bq.sql_27') : res.error.message, 'e'); return; }
+  await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `${lignes.map(l => `${l.qte} × ${l.p ? l.p.nom : l.article}`).join(', ')} — ${fmtDH2(total)}${nomClient ? ' — ' + nomClient : ''}`);
   showToast(t(id ? 'bq.modifiee' : 'bq.enregistree'), 's');
   resetVente();
-  loadBoutique();
+  await loadBoutique();
+  if (!id) {
+    const rows = objs.map((o, k) => ({ ...o, quantite: lignes[k].qte, ...((Array.isArray(res.data) && res.data[k]) || {}) }));
+    ouvrirRecuVente(rows);
+  }
+}
+
+// Reçu d'une vente de la liste : tous les articles enregistrés ensemble
+function recuVenteListe(id) {
+  const v = _bt.ventes.find(x => x.id === id); if (!v) return;
+  const groupe = v.created_at
+    ? _bt.ventes.filter(x => x.created_at === v.created_at && x.date_vente === v.date_vente && (x.client_id || null) === (v.client_id || null) && (x.client_nom || null) === (v.client_nom || null))
+    : [v];
+  ouvrirRecuVente(groupe);
+}
+
+function numeroRecuVente(d) {
+  const p2 = n => String(n).padStart(2, '0');
+  return `V-${String(d.getFullYear()).slice(2)}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}`;
+}
+
+async function ouvrirRecuVente(rows) {
+  if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  if (!rows?.length) return;
+  const v0 = rows[0];
+  const c = v0.client_id && _bt.clients.find(x => x.id === v0.client_id);
+  const client = c ? { ...c } : { prenom: v0.client_nom || '', nom: '' };
+  const quand = v0.created_at && !isNaN(new Date(v0.created_at)) ? new Date(v0.created_at) : new Date();
+  let vendeur = '';
+  if (v0.created_by) {
+    try {
+      const { data: prof } = await sb.from('profils').select('prenom,nom').eq('id', v0.created_by).maybeSingle();
+      if (prof) vendeur = `${prof.prenom || ''} ${prof.nom || ''}`.trim();
+    } catch (_) {}
+  }
+  const r = {
+    numero: numeroRecuVente(quand), date: v0.date_vente, client, passage: !c, vendeur,
+    lignes: rows.map(v => ({ article: v.article || '-', qte: qteVente(v), pu: parseFloat(v.prix_vente) || 0 }))
+  };
+  r.total = r.lignes.reduce((a, l) => a + l.qte * l.pu, 0);
+  r.nb = r.lignes.reduce((a, l) => a + l.qte, 0);
+  let doc;
+  try { doc = await genererRecuVentePdf(r); }
+  catch (e) { console.error(e); showToast(t('recu.pdf_ko'), 'e'); return; }
+  if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
+  const blobUrl = URL.createObjectURL(doc.output('blob'));
+  _recu = { doc, blobUrl, paiements: [{ id: null, numero_recu: r.numero, montant: r.total }], numero: r.numero, client, vente: r };
+  try { const l = localStorage.getItem('ticket_largeur'); if (l) document.getElementById('recu-ticket-largeur').value = l; } catch (_) {}
+  document.getElementById('recu-title').textContent = `${t('bq.recu_titre')} ${r.numero}`;
+  document.getElementById('recu-preview').src = blobUrl;
+  document.getElementById('btn-recu-mail').style.display = 'none';      // l'envoi par mail concerne les paiements
+  document.getElementById('btn-recu-email-add').style.display = 'none';
+  document.getElementById('recu-mail-info').textContent = '';
+  const tel = numeroWhatsApp(client), btnWa = document.getElementById('btn-recu-wa');
+  btnWa.disabled = !tel; btnWa.title = tel ? '+' + tel : t('recu.wa_no_tel');
+  document.getElementById('recu-modal').classList.add('open');
+}
+
+async function genererRecuVentePdf(r) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, M = 18;
+  const bleu = [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42];
+  const fD = s => s ? s.split('-').reverse().join('/') : '-';
+  const c = r.client || {};
+
+  // En-tête association
+  const logo = await chargerLogoRecu();
+  if (logo) doc.addImage(logo, 'PNG', M, 14, 24, 24);
+  const xTxt = logo ? M + 29 : M;
+  doc.setTextColor(...noir); doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+  doc.text(RECU_ASSO.nom, xTxt, 21);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+  doc.text(RECU_ASSO.slogan, xTxt, 26.5);
+  doc.text(RECU_ASSO.adresse, xTxt, 31);
+  doc.text(`Tél. ${RECU_ASSO.tel}  |  ${RECU_ASSO.email}`, xTxt, 35.5);
+  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+  doc.text('REÇU DE VENTE', W - M, 21, { align: 'right' });
+  doc.setTextColor(...noir); doc.setFontSize(10);
+  doc.text(`N° ${r.numero}`, W - M, 28, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
+  doc.text(`Date : ${fD(r.date)}`, W - M, 33, { align: 'right' });
+  doc.text('Boutique', W - M, 38, { align: 'right' });
+  doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 43, W - M, 43);
+
+  // Client
+  doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
+  doc.roundedRect(M, 50, W - 2 * M, 24, 2, 2, 'FD');
+  doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text('CLIENT', M + 5, 57);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...noir);
+  doc.text(`${c.prenom || ''} ${c.nom || ''}`.trim() || 'Client de passage', M + 5, 64);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+  const adherent = !r.passage ? (c.numero_adherent ? String(c.numero_adherent) : (c.id ? `ADH-${c.id.substring(0, 8).toUpperCase()}` : '')) : '';
+  const infos = [adherent ? `N° adhérent : ${adherent}` : '', c.telephone ? `Tél. : ${c.telephone}` : ''].filter(Boolean).join('     ');
+  doc.text(infos || (r.passage && (c.prenom || c.nom) ? 'Client de passage' : ' '), M + 5, 70);
+
+  // Tableau des articles
+  let y = 84;
+  const cDes = M + 4, cQte = 122, cPu = 160, cMnt = W - M - 4;
+  const entete = () => {
+    doc.setFillColor(...bleu); doc.rect(M, y, W - 2 * M, 9, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+    doc.text('Article', cDes, y + 6); doc.text('Qté', cQte, y + 6, { align: 'center' });
+    doc.text('Prix unitaire', cPu, y + 6, { align: 'right' }); doc.text('Montant', cMnt, y + 6, { align: 'right' });
+    y += 9; doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  };
+  entete();
+  r.lignes.forEach(l => {
+    const des = doc.splitTextToSize(l.article, cQte - cDes - 12);
+    const h = Math.max(10, des.length * 5 + 5);
+    if (y + h > 262) { doc.addPage(); y = 20; entete(); }
+    doc.text(des, cDes, y + 6.5);
+    doc.text(String(l.qte), cQte, y + 6.5, { align: 'center' });
+    doc.text(montantPdf(l.pu), cPu, y + 6.5, { align: 'right' });
+    doc.text(montantPdf(l.qte * l.pu), cMnt, y + 6.5, { align: 'right' });
+    y += h;
+    doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y);
+  });
+
+  // Total, montant en lettres, signature
+  if (y + 62 > 272) { doc.addPage(); y = 20; }
+  doc.setFillColor(239, 246, 255); doc.rect(W - M - 80, y + 4, 80, 11, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
+  doc.text('TOTAL', W - M - 76, y + 11.5);
+  doc.text(montantPdf(r.total), cMnt, y + 11.5, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+  doc.text(`${r.nb} article${r.nb > 1 ? 's' : ''}`, M, y + 11.5);
+  y += 24;
+  doc.setFontSize(9.5); doc.setTextColor(...noir);
+  doc.text(doc.splitTextToSize(`Arrêté le présent reçu à la somme de : ${montantEnLettres(r.total)}.`, W - 2 * M), M, y);
+  y += 8;
+  doc.setTextColor(...gris);
+  if (r.vendeur) doc.text(`Vendu par : ${r.vendeur}`, M, y);
+  doc.setDrawColor(203, 213, 225); doc.setLineDashPattern([1.2, 1.2], 0);
+  doc.roundedRect(W - M - 70, y + 6, 70, 28, 2, 2, 'S');
+  doc.setLineDashPattern([], 0);
+  doc.setFontSize(8.5); doc.text('Cachet et signature', W - M - 35, y + 12, { align: 'center' });
+
+  // Pied de page
+  for (let k = 1; k <= doc.getNumberOfPages(); k++) {
+    doc.setPage(k);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2); doc.line(M, 280, W - M, 280);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gris);
+    doc.text(`${RECU_ASSO.nom} - ${RECU_ASSO.adresse} - Merci de votre confiance`, W / 2, 285, { align: 'center' });
+  }
+  doc.setProperties({ title: `Reçu de vente ${r.numero}`, author: 'Association Les Collines' });
+  return doc;
+}
+
+// Ticket thermique du reçu de vente
+function imprimerTicketVente() {
+  const largeur = document.getElementById('recu-ticket-largeur')?.value === '58' ? 58 : 80;
+  try { localStorage.setItem('ticket_largeur', String(largeur)); } catch (_) {}
+  const r = _recu.vente, c = r.client || {}, e = s => echapper(s ?? ''), mt = v => montantPdf(v);
+  const fD = d => { const [y, m, j] = String(d || '').slice(0, 10).split('-'); return j ? `${j}/${m}/${y}` : ''; };
+  const maint = new Date(), imprime = `${fD(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
+  const nom = `${c.prenom || ''} ${c.nom || ''}`.trim();
+  const adherent = !r.passage ? (c.numero_adherent ? String(c.numero_adherent) : (c.id ? `ADH-${c.id.substring(0, 8).toUpperCase()}` : '')) : '';
+  const lignes = r.lignes.map(l => `<div class="li"><div class="li-h"><span>${e(l.article)}</span><b>${mt(l.qte * l.pu)}</b></div><div class="pt">${l.qte} × ${mt(l.pu)}</div></div>`).join('');
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Ticket ${e(r.numero)}</title><style>
+    @page { size: ${largeur}mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: #000; }
+    body { width: ${largeur}mm; padding: 5mm ${largeur === 58 ? 2 : 4}mm 0; font: ${largeur === 58 ? 10 : 11.5}px/1.5 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { display: block; width: 100%; margin: 0 auto 3mm; }
+    .c { text-align: center; } .pt { font-size: .85em; }
+    .sep { border-top: 1px dashed #000; margin: 3mm 0; }
+    .avance { white-space: pre; line-height: 1.6; color: #000; text-align: center; }
+    .titre { font-size: 1.25em; font-weight: 800; letter-spacing: .5px; }
+    .kv { display: flex; justify-content: space-between; gap: 2mm; } .kv b { text-align: right; }
+    .li { padding: .8mm 0; } .li-h { display: flex; justify-content: space-between; gap: 2mm; }
+    .total { display: flex; justify-content: space-between; font-size: 1.45em; font-weight: 900; padding: 1mm 0; }
+    .merci { font-weight: 700; margin-top: 2mm; }
+  </style></head><body>
+    <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
+    <div class="c pt">${e(RECU_ASSO.adresse)}<br>Tél. ${e(RECU_ASSO.tel)}<br>${e(RECU_ASSO.email)}</div>
+    <div class="sep"></div>
+    <div class="c titre">REÇU DE VENTE</div>
+    <div class="c pt">Boutique</div>
+    <div class="c"><b>N° ${e(r.numero)}</b></div>
+    <div class="kv"><span>Date</span><b>${fD(r.date)}</b></div>
+    <div class="kv pt"><span>Imprimé le</span><span>${imprime}</span></div>
+    <div class="sep"></div>
+    <div class="kv"><span>Client</span><b>${e(nom || 'Client de passage')}</b></div>
+    ${adherent ? `<div class="kv"><span>N° adhérent</span><b>${e(adherent)}</b></div>` : ''}
+    <div class="sep"></div>
+    ${lignes}
+    <div class="sep"></div>
+    <div class="kv pt"><span>Nombre d'articles</span><span>${r.nb}</span></div>
+    <div class="total"><span>TOTAL</span><span>${mt(r.total)}</span></div>
+    <div class="pt">Arrêté à la somme de : ${e(montantEnLettres(r.total))}.</div>
+    ${r.vendeur ? `<div class="sep"></div><div class="kv"><span>Vendu par</span><b>${e(r.vendeur)}</b></div>` : ''}
+    <div class="sep"></div>
+    <div class="c merci">Merci de votre confiance !</div>
+    <div class="c pt">Conservez ce ticket comme justificatif.</div>
+    <!-- Avance du papier (~15 lignes) avant la coupe ; le point final empêche le pilote de supprimer cet espace blanc -->
+    <div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.</div>
+  </body></html>`;
+  imprimerThermique(html);
+  logAudit('PRINT', 'boutique', `Ticket ${r.numero} (${largeur} mm)`);
 }
 
 async function delVente(id) {
