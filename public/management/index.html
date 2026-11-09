@@ -1227,6 +1227,11 @@ html[data-theme="dark"] .bvl-c select{background:var(--bg3)}
             <label><span data-i18n="clients.sports">Sports pratiqués</span> <span style="color:var(--text3);font-weight:400" data-i18n="clients.sports_hint">(sélectionnez un ou plusieurs)</span></label>
             <div id="c-sports-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-top:6px;padding:10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)"></div>
           </div>
+          <div class="fg" style="margin-bottom:10px">
+            <label><span data-i18n="clients.perso">Prix mensuel de ce client (DH)</span> <span style="color:var(--text3);font-weight:400" data-i18n="clients.perso_aide">(laisser vide = tarif normal des sports)</span></label>
+            <input id="c-perso" type="number" min="0" step="0.01" oninput="updateTarifPreview()" style="max-width:260px">
+            <div id="c-perso-info" style="font-size:11px;color:var(--text3);margin-top:3px"></div>
+          </div>
           <div class="fg" id="c-famille-wrap" style="margin-bottom:10px;display:none"><label><span data-i18n="fm.famille">Famille</span> <span style="font-weight:400;color:var(--text3)" data-i18n="fm.famille_aide">(pack famille : tarif famille à partir de 2 membres actifs)</span></label>
             <select id="c-famille-sel" onchange="choixFamilleFormulaire(this)"></select></div>
           <!-- Encaissement à l'inscription (nouveau client) : tout se fait ici, un seul reçu -->
@@ -3089,6 +3094,12 @@ const I18N = {
     'clients.tel2':      'Téléphone 2',
     'clients.optionnel': '(facultatif)',
     'clients.tel2_sql':  'Le 2e numéro n\'est pas encore activé dans Supabase. Exécutez le script supabase/07_telephone2_clients.sql.',
+    'clients.perso':     'Prix mensuel de ce client (DH)',
+    'clients.perso_aide':'(laisser vide = tarif normal des sports)',
+    'clients.perso_normal':'Tarif normal',
+    'clients.perso_mois':'mois',
+    'clients.perso_badge':'Prix personnalisé',
+    'clients.perso_sql': 'Le prix mensuel personnalisé n\'est pas encore activé. Exécutez le script supabase/40_prix_mensuel_client.sql dans Supabase.',
     'clients.email':     'E-mail',
     'clients.cin':       'CIN',
     'clients.num_adh':   'N° adhérent',
@@ -4458,6 +4469,12 @@ const I18N = {
     'clients.tel2':     'الهاتف 2',
     'clients.optionnel':'(اختياري)',
     'clients.tel2_sql': 'الرقم الثاني غير مفعل بعد في Supabase. نفّذ السكريبت supabase/07_telephone2_clients.sql.',
+    'clients.perso':     'الثمن الشهري لهذا الزبون (درهم)',
+    'clients.perso_aide':'(اتركه فارغا = التعريفة العادية للرياضات)',
+    'clients.perso_normal':'التعريفة العادية',
+    'clients.perso_mois':'شهر',
+    'clients.perso_badge':'ثمن خاص',
+    'clients.perso_sql': 'الثمن الشهري الخاص غير مفعل بعد. نفّذ السكريبت supabase/40_prix_mensuel_client.sql في Supabase.',
     'clients.email':    'البريد الإلكتروني',
     'clients.cin':      'البطاقة الوطنية',
     'clients.num_adh':  'رقم المنخرط',
@@ -6602,6 +6619,13 @@ function tarifSport(sp, type, famille = false) {
   if (type === 'Inscription') return parseFloat(sp.tarif_inscription) || 0;
   return m;
 }
+// Prix mensuel personnalisé d'un client (script 40) : remplace le tarif de ses sports.
+// Trimestriel / semestriel / annuel = ce prix × nombre de mois.
+const prixPerso = c => { const v = parseFloat(c?.tarif_mensuel_perso); return v > 0 ? v : 0; };
+function montantClient(c, sports, type, famille = false) {
+  const pp = prixPerso(c);
+  return pp && DUREE_ABONNEMENT[type] ? pp * DUREE_ABONNEMENT[type] : montantAbonnement(sports, type, famille);
+}
 function montantAbonnement(sports, type, famille = false) {
   return (sports || []).reduce((a, nom) => a + tarifSport(SPORTS_CACHE.find(x => x.nom === nom), type, famille), 0);
 }
@@ -7107,6 +7131,14 @@ function getSelectedSports() {
 function updateTarifPreview() {
   const sports = getSelectedSports();
   const nouveau = !document.getElementById('c-id').value;
+  // Prix mensuel personnalisé : tarif normal affiché en dessous pour comparer
+  const persoEl = document.getElementById('c-perso'), pp = parseFloat(persoEl?.value) > 0 ? parseFloat(persoEl.value) : 0;
+  const normal = montantAbonnement(sports, 'Mensualité');
+  if (persoEl) {
+    persoEl.placeholder = normal ? fmt(normal) : '';
+    document.getElementById('c-perso-info').innerHTML = !sports.length ? '' : `${t('clients.perso_normal')} : <b>${fmt(normal)}</b>/${t('clients.perso_mois')}`
+      + (pp && pp !== normal ? ` · <span style="color:${pp < normal ? 'var(--green-text)' : 'var(--amber-text)'}">${t('clients.perso_badge')} : <b>${fmt(pp)}</b> (${pp < normal ? '−' : '+'}${fmt(Math.abs(normal - pp))})</span>` : '');
+  }
   // Encaissement à l'inscription : seulement pour un nouveau client
   document.getElementById('c-tarif-preview').style.display = nouveau && sports.length ? 'block' : 'none';
   if (!nouveau || !sports.length) { majBoutonClient(0); return; }
@@ -7114,7 +7146,7 @@ function updateTarifPreview() {
   const inscription = sports.reduce((a,s)=>Math.max(a, parseFloat(SPORTS_CACHE.find(x=>x.nom===s)?.tarif_inscription)||0), 0);
   // Les montants modifiés à la main ne sont pas recalculés
   const set = (id, v) => { const el = document.getElementById(id); if (el.dataset.touche !== '1') el.value = v || ''; };
-  set('inscr-abo-montant', montantAbonnement(sports, formule, famillePreviewForm()));
+  set('inscr-abo-montant', pp && DUREE_ABONNEMENT[formule] ? pp * DUREE_ABONNEMENT[formule] : montantAbonnement(sports, formule, famillePreviewForm()));
   set('inscr-montant', inscription);
   set('inscr-assur-montant', montantAssurance() || 0);
   majTotalInscription();
@@ -7162,6 +7194,7 @@ function selectClient(c) {
   document.getElementById('p-client-search').value = c.prenom + ' ' + c.nom;
   document.getElementById('p-client-search').dataset.sports = JSON.stringify(c.sports||(c.sport?[c.sport]:[]));
   document.getElementById('p-client-search').dataset.famille = tarifFamilleApplicable(c) ? '1' : '';
+  document.getElementById('p-client-search').dataset.perso = prixPerso(c) || '';
   document.getElementById('p-client-dropdown').classList.remove('open');
   document.getElementById('p-date').value = today();
   document.getElementById('p-date').dataset.manuel = '';
@@ -7256,6 +7289,18 @@ async function onPaiementTypeChange() {
   if (isInscr || isMensuel || isTrim || isSem || isAnnuel) {
     // Tarifs du sport (pack famille si le client en bénéficie) ; trim/sem/annuel sans tarif : calculés depuis le mensuel
     const famille = searchEl.dataset.famille === '1';
+    const pp = parseFloat(searchEl.dataset.perso) || 0;
+    if (pp && !isInscr) {
+      // Prix mensuel personnalisé du client
+      const total = pp * DUREE_ABONNEMENT[type];
+      fixerAPayer(total);
+      document.getElementById('p-montant-hint').textContent = `· ${t('clients.perso_badge')} : ${fmt(pp)}/${t('clients.perso_mois')}${DUREE_ABONNEMENT[type] > 1 ? ' × ' + DUREE_ABONNEMENT[type] : ''}`;
+      const detail = document.getElementById('p-sports-detail');
+      detail.innerHTML = `${echapper(sports.join(', '))} : <strong style="color:var(--blue-text)">${fmt(total)}</strong> <span style="color:var(--text3)">(${t('clients.perso_badge')})</span>`;
+      detail.style.display = 'block';
+      updatePeriodeDetail();
+      return;
+    }
     const total = sports.reduce((a, s) => a + tarifSport(sportMap[s], type, famille), 0);
 
     // Auto-remplir le montant
@@ -7440,8 +7485,8 @@ async function loadClients() {
     if (col === 'date') return m * (a.date_inscription||a.created_at||'').localeCompare(b.date_inscription||b.created_at||'');
     if (col === 'statut') return m * (a.statut||'').localeCompare(b.statut||'');
     if (col === 'mensualite') {
-      const ma = (a.sports||[]).reduce((s,sp)=>s+(sportMap[sp]?.tarif_mensuel||0),0);
-      const mb = (b.sports||[]).reduce((s,sp)=>s+(sportMap[sp]?.tarif_mensuel||0),0);
+      const ma = prixPerso(a) || (a.sports||[]).reduce((s,sp)=>s+(sportMap[sp]?.tarif_mensuel||0),0);
+      const mb = prixPerso(b) || (b.sports||[]).reduce((s,sp)=>s+(sportMap[sp]?.tarif_mensuel||0),0);
       return m * (ma - mb);
     }
     return 0;
@@ -7458,7 +7503,7 @@ async function loadClients() {
   document.getElementById('clients-tb').innerHTML = list.length
     ? list.map((c,i)=>{
         const sports = c.sports || (c.sport ? [c.sport] : []);
-        const mensuel = sports.reduce((a,s)=>a+(sportMap[s]?.tarif_mensuel||0),0);
+        const mensuel = prixPerso(c) || sports.reduce((a,s)=>a+(sportMap[s]?.tarif_mensuel||0),0);
         const badges  = sports.map(s=>`<span class="badge b-i" style="margin-right:3px">${s}</span>`).join('');
         return `<tr style="cursor:pointer" onclick="showClientFiche(${i},event)">
           <td style="color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600">${c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '—'}</td>
@@ -7498,6 +7543,8 @@ async function saveClient() {
       ? { telephone2: document.getElementById('c-tel2').value.trim() || null } : {}),
     ...((document.getElementById('c-num').value.trim() || window._clientEditNumConnu)
       ? { numero_adherent: parseInt(document.getElementById('c-num').value, 10) || null } : {}),
+    ...((document.getElementById('c-perso').value.trim() || window._clientEditPersoConnu)
+      ? { tarif_mensuel_perso: parseFloat(document.getElementById('c-perso').value) > 0 ? parseFloat(document.getElementById('c-perso').value) : null } : {}),
     ...((document.getElementById('c-famille-sel')?.value || window._clientEditFamIdConnu)
       ? { famille_id: (document.getElementById('c-famille-sel').value || '').replace('__nouvelle__', '') || null } : {}),
     cin:              document.getElementById('c-cin').value.trim()||null,
@@ -7534,6 +7581,7 @@ async function saveClient() {
       : /numero_adherent/.test(error.message) ? t('clients.num_sql')
       : /famille_id|famille_actif|familles/.test(error.message) ? t('fm.sql_33')
       : /pack_famille/.test(error.message) ? t('fam.sql_32')
+      : /tarif_mensuel_perso/.test(error.message) ? t('clients.perso_sql')
       : /telephone2/.test(error.message) ? t('clients.tel2_sql') : error.message, 'e'); return; }
 
   // Upload photo et CIN si fichiers sélectionnés
@@ -7663,7 +7711,8 @@ async function showClientFiche(idx, event) {
   const sportMap = {};
   SPORTS_CACHE.forEach(s => { sportMap[s.nom] = s; });
   const sports = c.sports || (c.sport ? [c.sport] : []);
-  const mensuel = sports.reduce((a, s) => a + (sportMap[s]?.tarif_mensuel || 0), 0);
+  const mensuelNormal = sports.reduce((a, s) => a + (sportMap[s]?.tarif_mensuel || 0), 0);
+  const mensuel = prixPerso(c) || mensuelNormal;
 
   // Dernier paiement
   const dernierPaie = (paies && paies.length) ? paies[0].date_paiement : null;
@@ -7726,7 +7775,8 @@ async function showClientFiche(idx, event) {
         ${infoLine(t('clients.dob'), c.date_naissance)}
         ${infoLine(t('clients.sexe'), c.sexe==='Homme'?t('clients.homme'):t('clients.femme'))}
         ${infoLine(t('clients.sports'), sports.map(s=>'<span class="badge b-i" style="font-size:10px;margin-left:3px">'+s+'</span>').join(''))}
-        ${infoLine(t('clients.mensualite'), mensuel ? fmt(mensuel) : '—')}
+        ${infoLine(t('clients.mensualite'), mensuel ? fmt(mensuel) + (prixPerso(c) && prixPerso(c) !== mensuelNormal
+          ? ` <span class="badge b-w" style="font-size:10px">${t('clients.perso_badge')} · ${t('clients.perso_normal')} ${fmt(mensuelNormal)}</span>` : '') : '—')}
         ${infoLine(t('clients.dernier_paie'), dernierPaie||'—')}
         ${infoLine(t('assur.etat'), (() => {
           const last = (paies||[]).filter(p => p.type === 'Assurance' && p.date_paiement).map(p => p.date_paiement).sort().pop();
@@ -8064,6 +8114,8 @@ function editClient(c) {
   document.getElementById('c-tel').value = c.telephone||'';
   document.getElementById('c-tel2').value = c.telephone2||'';
   window._clientEditTel2Connu = 'telephone2' in c;
+  window._clientEditPersoConnu = 'tarif_mensuel_perso' in c;
+  document.getElementById('c-perso').value = prixPerso(c) || '';
   document.getElementById('c-cin').value = c.cin||'';
   document.getElementById('c-num').value = c.numero_adherent||'';
   window._clientEditFamIdConnu = 'famille_id' in c;
@@ -8120,6 +8172,8 @@ function closeClientForm() {
 
 function resetClientForm() {
   window._clientEditTel2Connu = false;
+  window._clientEditPersoConnu = false;
+  const cp = document.getElementById('c-perso'); if (cp) cp.value = '';
   window._clientEditNumConnu = false;
   window._clientEditFamilleConnu = false;
   window._clientEditFamIdConnu = false;
@@ -9304,6 +9358,7 @@ function openPaiementForm() {
   document.getElementById('p-client-search').value = '';
   document.getElementById('p-client-search').dataset.sports = '[]';
   document.getElementById('p-client-search').dataset.famille = '';
+  document.getElementById('p-client-search').dataset.perso = '';
   document.getElementById('paiement-form-modal').classList.add('open');
 }
 
@@ -9891,7 +9946,7 @@ const _peTypeTr = () => ({ 'Mensualité': t('paie.t_mensualite'), 'Trimestriel':
   'Annuel': t('paie.t_annuel'), 'Inscription': t('paie.t_inscription'), 'Assurance': t('paie.t_assurance'), 'Équipement': t('paie.t_equipement'), 'Autre': t('paie.t_autre') });
 
 async function modifierTransaction(ids, idxFiche) {
-  const { data, error } = await sb.from('paiements').select('*,clients(id,prenom,nom,sports,sport)').in('id', ids);
+  const { data, error } = await sb.from('paiements').select('*,clients(*)').in('id', ids);
   if (error || !data?.length) { showToast(error?.message || t('msg.no_payment'), 'e'); return; }
   const origine = ids.map(id => data.find(r => r.id === id)).filter(Boolean);
   if (!SPORTS_CACHE.length) { const { data: sp } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = sp || []; }
@@ -9955,7 +10010,7 @@ function montantProposeModif(type) {
   const sports = c.sports || (c.sport ? [c.sport] : []);
   if (type === 'Assurance') return montantAssurance() || 0;
   if (type === 'Inscription') return sports.reduce((a, s) => Math.max(a, parseFloat(SPORTS_CACHE.find(x => x.nom === s)?.tarif_inscription) || 0), 0);
-  if (DUREE_ABONNEMENT[type]) return montantAbonnement(sports, type, tarifFamilleApplicable(c));
+  if (DUREE_ABONNEMENT[type]) return montantClient(c, sports, type, tarifFamilleApplicable(c));
   return 0;
 }
 
@@ -11946,7 +12001,7 @@ const PG_TYPES = [['Mensualité', 'paie.t_mensualite'], ['Trimestriel', 'paie.t_
 async function ouvrirPaiementGroupe() {
   await loadParametres();
   if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
-  const { data } = await fetchAllRows(() => sb.from('clients').select('id,prenom,nom,sports,sport,numero_adherent').order('id'));
+  const { data } = await fetchAllRows(() => sb.from('clients').select('*').order('id'));
   _pg.clients = (data || []).sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr', { sensitivity: 'base' }));
   const nb = {};
   _pg.clients.forEach(c => { const k = cleNom(`${c.prenom} ${c.nom}`); nb[k] = (nb[k] || 0) + 1; });
@@ -11991,7 +12046,7 @@ function pgLigne(el) {
   info.innerHTML = !saisie ? '' : !c ? `<span style="color:var(--red)">${t('pg.introuvable')}</span>`
     : `<span style="color:var(--text3)">${echapper(sports.join(', ') || t('pg.sans_sport'))}</span>`;
   if (c) {
-    const m = type === 'Assurance' ? montantAssurance() : type === 'Équipement' ? 0 : montantAbonnement(sports, type);
+    const m = type === 'Assurance' ? montantAssurance() : type === 'Équipement' ? 0 : montantClient(c, sports, type);
     row.querySelector('.pg-montant').value = m || '';
   }
   pgTotal();
