@@ -6645,10 +6645,26 @@ const idsAttr = g => JSON.stringify(g.map(p => p.id)).replace(/"/g, "'");
 // ── Paiements partiels (script 39) ──
 // montant_du = montant à payer d'une ligne payée en partie ; les paiements « Complément »
 // (reste_de = ligne d'origine) réduisent le reste. Renvoie { idOrigine: { orig, du, paye, reste, complements } }
+// Même client, même type, même période (ex. deux lignes « Assurance 09/10/2026 » à payer 200 DH
+// dont une payée 50 DH) : c'est une seule dette, le reste est 200 − 50 = 150 et non 200 + 150.
+const cleReste = p => [p.client_id, p.type, moisCouvertsKeys(p.date_paiement, p.type).join(',') || p.date_paiement].join('|');
+const ordreReste = (a, b) => (a.date_paiement || '').localeCompare(b.date_paiement || '') || (a.created_at || '').localeCompare(b.created_at || '') || String(a.id).localeCompare(String(b.id));
 function calculerRestes(paies) {
   const R = {};
-  (paies || []).forEach(p => { const du = parseFloat(p.montant_du); if (du > 0) R[p.id] = { orig: p, du, paye: parseFloat(p.montant) || 0, complements: [] }; });
+  (paies || []).forEach(p => { const du = parseFloat(p.montant_du); if (du > 0) R[p.id] = { orig: p, du, paye: parseFloat(p.montant) || 0, complements: [], lignes: [p] }; });
   (paies || []).forEach(p => { if (p.reste_de && R[p.reste_de]) { R[p.reste_de].paye += parseFloat(p.montant) || 0; R[p.reste_de].complements.push(p); } });
+  // Regroupe les doublons sur la première ligne ; les autres pointent vers le même objet (sans être listées deux fois)
+  const groupes = {};
+  Object.values(R).forEach(r => { if (r.orig.client_id) (groupes[cleReste(r.orig)] = groupes[cleReste(r.orig)] || []).push(r); });
+  Object.values(groupes).filter(g => g.length > 1).forEach(g => {
+    g.sort((a, b) => ordreReste(a.orig, b.orig));
+    const m = g[0];
+    g.slice(1).forEach(r => {
+      m.du = Math.max(m.du, r.du); m.paye += r.paye;
+      m.complements.push(r.orig, ...r.complements); m.lignes.push(r.orig);
+      Object.defineProperty(R, r.orig.id, { value: m, enumerable: false, configurable: true });
+    });
+  });
   Object.values(R).forEach(r => { r.reste = Math.max(0, Math.round((r.du - r.paye) * 100) / 100); });
   return R;
 }
@@ -6941,13 +6957,13 @@ function majRestePaiement(depuisAPayer) {
 // Encaisser le reste d'un paiement partiel : nouveau paiement « Complément » relié à la ligne d'origine
 let _resteEdit = null;
 async function ouvrirReste(origId) {
-  const [{ data: orig, error }, { data: comps }] = await Promise.all([
-    sb.from('paiements').select('*,clients(id,prenom,nom,sports,sport)').eq('id', origId).maybeSingle(),
-    sb.from('paiements').select('id,montant,reste_de').eq('reste_de', origId)
-  ]);
-  if (error || !orig) { showToast(error?.message || t('msg.no_payment'), 'e'); return; }
-  const r = calculerRestes([orig, ...(comps || [])])[origId];
+  const { data: o0, error } = await sb.from('paiements').select('*,clients(id,prenom,nom,sports,sport)').eq('id', origId).maybeSingle();
+  if (error || !o0) { showToast(error?.message || t('msg.no_payment'), 'e'); return; }
+  // Tous les paiements du client : les lignes en double de la même période comptent ensemble
+  const { data: tous } = await sb.from('paiements').select('*').eq('client_id', o0.client_id);
+  const r = calculerRestes([o0, ...(tous || []).filter(x => x.id !== o0.id)])[origId];
   if (!r || r.reste <= 0) { showToast(t('reste.deja_solde'), 's'); return; }
+  const orig = r.orig.id === o0.id ? o0 : { ...r.orig, clients: o0.clients };   // le complément est relié à la première ligne
   _resteEdit = { orig, reste: r.reste };
   const c = orig.clients || {}, sports = c.sports || (c.sport ? [c.sport] : []);
   const kv = (l, v, st = '') => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">${l}</span><b style="${st}">${v}</b></div>`;
@@ -6999,7 +7015,7 @@ async function loadRestes() {
   const card = document.getElementById('restes-card');
   if (!card) return;
   const [ra, rb] = await Promise.all([
-    fetchAllRows(() => sb.from('paiements').select('id,client_id,montant,montant_du,type,date_paiement,mode,clients(id,prenom,nom,telephone,sports,sport)').not('montant_du', 'is', null).order('id')),
+    fetchAllRows(() => sb.from('paiements').select('id,client_id,montant,montant_du,type,date_paiement,mode,created_at,clients(id,prenom,nom,telephone,sports,sport)').not('montant_du', 'is', null).order('id')),
     fetchAllRows(() => sb.from('paiements').select('id,montant,reste_de').not('reste_de', 'is', null).order('id'))
   ]);
   if (ra.error) { card.style.display = 'none'; return; }   // script 39 pas encore exécuté
@@ -7027,22 +7043,29 @@ async function loadRestes() {
 async function infoRestesRecu(paies) {
   const origIds = [...new Set(paies.map(p => parseFloat(p.montant_du) > 0 ? p.id : p.reste_de).filter(Boolean))];
   if (!origIds.length) return null;
-  const [{ data: origs }, { data: comps }] = await Promise.all([
-    sb.from('paiements').select('id,type,date_paiement,montant,montant_du,created_at').in('id', origIds),
-    sb.from('paiements').select('id,montant,reste_de,created_at').in('reste_de', origIds)
-  ]);
+  const SELR = 'id,client_id,type,date_paiement,montant,montant_du,created_at';
+  const { data: origs } = await sb.from('paiements').select(SELR).in('id', origIds);
+  // Autres lignes du même client / type / période (saisies en double)
+  const cliIds = [...new Set((origs || []).map(o => o.client_id).filter(Boolean))];
+  const { data: sibs } = cliIds.length ? await sb.from('paiements').select(SELR).in('client_id', cliIds).not('montant_du', 'is', null) : { data: [] };
+  const membres = o => { const k = cleReste(o); const m = [o, ...(sibs || []).filter(x => x.id !== o.id && cleReste(x) === k)]; return m.sort(ordreReste); };
+  const tousIds = [...new Set((origs || []).flatMap(o => membres(o).map(x => x.id)))];
+  const { data: comps } = await sb.from('paiements').select('id,montant,reste_de,created_at').in('reste_de', tousIds.length ? tousIds : origIds);
   const lignes = {};
   let reste = 0;
+  const vus = new Set();
   origIds.forEach(oid => {
     const o = (origs || []).find(x => x.id === oid);
     const ici = paies.find(p => p.id === oid || p.reste_de === oid);
-    if (!o || !ici || !(parseFloat(o.montant_du) > 0)) return;
-    const avant = (ici.id === oid ? 0 : parseFloat(o.montant) || 0)
-      + (comps || []).filter(x => x.reste_de === oid && x.id !== ici.id && (x.created_at || '') <= (ici.created_at || ''))
-        .reduce((a, x) => a + (parseFloat(x.montant) || 0), 0);
-    const r = Math.max(0, Math.round((parseFloat(o.montant_du) - avant - (parseFloat(ici.montant) || 0)) * 100) / 100);
-    lignes[ici.id] = { du: parseFloat(o.montant_du), avant, reste: r, orig: o };
-    reste += r;
+    if (!o || !ici || !(parseFloat(o.montant_du) > 0) || lignes[ici.id]) return;
+    const mb = membres(o), ids = mb.map(x => x.id);
+    const avantIci = x => x.id !== ici.id && (x.created_at || '') <= (ici.created_at || '');
+    const avant = mb.filter(avantIci).reduce((a, x) => a + (parseFloat(x.montant) || 0), 0)
+      + (comps || []).filter(x => ids.includes(x.reste_de) && avantIci(x)).reduce((a, x) => a + (parseFloat(x.montant) || 0), 0);
+    const du = Math.max(...mb.map(x => parseFloat(x.montant_du) || 0));
+    const r = Math.max(0, Math.round((du - avant - (parseFloat(ici.montant) || 0)) * 100) / 100);
+    lignes[ici.id] = { du, avant, reste: r, orig: mb[0] };
+    const k = cleReste(o); if (!vus.has(k)) { vus.add(k); reste += r; }
   });
   return Object.keys(lignes).length ? { lignes, reste } : null;
 }
