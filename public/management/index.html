@@ -583,7 +583,11 @@ html[data-theme="dark"] .bvl-c select{background:var(--bg3)}
 #rt-lignes input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
 #rt-lignes input:disabled{opacity:.5}
 html[data-theme="dark"] #rt-lignes input{background:var(--bg3)}
-#rt-modal th,#rt-modal td{padding:8px 8px}
+#rt-modal th,#rt-modal td,#rf-modal th,#rf-modal td{padding:8px 8px}
+#rf-lignes input{font-size:13px;padding:7px 9px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)}
+#rf-lignes input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+#rf-lignes input:disabled{opacity:.5}
+html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
 /* Paiement pour plusieurs personnes */
 .pg-entete,.pg-ligne{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.3fr) minmax(0,1fr) 34px;gap:8px;align-items:start}
 .pg-entete{font-size:12px;color:var(--text2);font-weight:500;padding:0 2px 4px}
@@ -1686,6 +1690,8 @@ html[data-theme="dark"] #rt-lignes input{background:var(--bg3)}
                   <option value="Achat" data-i18n="bq.type_Achat">Achat</option>
                   <option value="Vente" data-i18n="bq.type_Vente">Vente</option>
                   <option value="Ajustement" data-i18n="bq.type_Ajustement">Ajustement</option>
+                  <option value="Retour" data-i18n="bq.type_Retour">Retour</option>
+                  <option value="Retour fournisseur" data-i18n="bq.type_Retour fournisseur">Retour fournisseur</option>
                 </select>
               </div>
             </div>
@@ -2206,6 +2212,27 @@ html[data-theme="dark"] #rt-lignes input{background:var(--bg3)}
             <span data-i18n="rt.a_rembourser">À rembourser au client (sortie de caisse)</span><b id="rt-total" style="color:var(--red);font-size:16px;white-space:nowrap">—</b>
           </div>
           <div class="mo-footer"><button class="btn" onclick="document.getElementById('rt-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button><button class="btn btn-d" id="rt-save" onclick="enregistrerRetour()" data-i18n="rt.enregistrer">Enregistrer le retour</button></div>
+        </div>
+      </div>
+
+      <div class="mo" id="rf-modal">
+        <div class="mo-box" style="max-width:800px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <div class="mo-title" style="margin-bottom:0">↩ <span data-i18n="rf.title">Retour fournisseur</span></div>
+            <button class="btn btn-sm" onclick="document.getElementById('rf-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <div id="rf-info" style="font-size:13px;margin-bottom:10px"></div>
+          <div style="overflow-x:auto"><table style="font-size:13px"><thead><tr><th data-i18n="bq.article">Article</th><th data-i18n="rf.achete">Acheté</th><th data-i18n="rt.deja">Déjà retourné</th><th data-i18n="rf.en_stock">En stock</th><th data-i18n="rt.qte">Qté retournée</th><th data-i18n="rf.pu">Remboursé / unité (DH)</th><th style="text-align:end" data-i18n="rt.montant">Montant</th></tr></thead><tbody id="rf-lignes"></tbody></table></div>
+          <div class="fr" style="margin-top:12px">
+            <div class="fg"><label data-i18n="rt.date">Date du retour</label><input id="rf-date" type="date"></div>
+            <div class="fg"><label data-i18n="rf.mode">Remboursement reçu en</label><select id="rf-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
+          </div>
+          <div class="fg" style="margin-bottom:8px"><label data-i18n="rt.motif">Motif du retour</label><input id="rf-note" placeholder="Ex. article défectueux, erreur de livraison…" data-i18n-ph="rf.motif_ph"></div>
+          <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:2px 0 12px;cursor:pointer"><input type="checkbox" id="rf-bon" checked style="width:auto;margin:0"> <span data-i18n="rf.bon">Préparer le bon de retour (à remettre au fournisseur)</span></label>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.3);border-radius:var(--r);font-size:13px">
+            <span data-i18n="rf.a_recevoir">Remboursement du fournisseur (entrée en caisse)</span><b id="rf-total" style="color:var(--green);font-size:16px;white-space:nowrap">—</b>
+          </div>
+          <div class="mo-footer"><button class="btn" onclick="document.getElementById('rf-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button><button class="btn btn-p" id="rf-save" onclick="enregistrerRetourFournisseur()" data-i18n="rf.enregistrer">Enregistrer le retour fournisseur</button></div>
         </div>
       </div>
 
@@ -3710,6 +3737,30 @@ const I18N = {
     "rt.suppr_confirm": "Annuler ce retour ? Le remboursement sera retiré de la caisse et l'article ressortira du stock.",
     "rt.suppr_vente_retour": "Cette vente a un retour : annulez d'abord le retour.",
     "rt.recu_titre": "Reçu de retour",
+    "bq.type_Retour fournisseur": "Retour fournisseur",
+    "rf.title": "Retour fournisseur",
+    "rf.btn": "Retour fournisseur",
+    "rf.btn_aide": "Renvoyer des articles de cette facture au fournisseur : le stock baisse et le remboursement entre en caisse",
+    "rf.achete": "Acheté",
+    "rf.en_stock": "En stock",
+    "rf.pu": "Remboursé / unité (DH)",
+    "rf.mode": "Remboursement reçu en",
+    "rf.motif_ph": "Ex. article défectueux, erreur de livraison…",
+    "rf.bon": "Préparer le bon de retour (à remettre au fournisseur)",
+    "rf.bon_court": "Bon de retour",
+    "rf.bon_titre": "Bon de retour fournisseur",
+    "rf.a_recevoir": "Remboursement du fournisseur (entrée en caisse)",
+    "rf.enregistrer": "Enregistrer le retour fournisseur",
+    "rf.facture": "Facture",
+    "rf.du": "du",
+    "rf.retour_du": "Retour du",
+    "rf.rembourse": "remboursé",
+    "rf.sans_remb": "sans remboursement",
+    "rf.remboursement": "Remboursement",
+    "rf.rien": "Aucun article de cette facture ne peut être retourné (déjà retourné ou plus en stock).",
+    "rf.ok": "Retour fournisseur enregistré : stock diminué, %s de remboursement en caisse.",
+    "rf.suppr_confirm": "Annuler ce retour fournisseur ? Les articles reviennent en stock et le remboursement (%s) est retiré de la caisse.",
+    "rf.sql_42": "Les retours fournisseur ne sont pas encore activés. Exécutez le script supabase/42_boutique_retour_fournisseur.sql dans Supabase.",
     "bq.suppr_article_confirm": "Supprimer l'article « %s » ?\nSon historique de stock sera supprimé ; les ventes passées restent enregistrées.\nAstuce : le statut « Archivé » le retire de la vente sans rien effacer.",
     "bq.entree_titre": "Entrée de stock (achat)",
     "bq.inventaire_titre": "Inventaire : stock compté",
@@ -5150,6 +5201,30 @@ const I18N = {
     "rt.suppr_confirm": "إلغاء هذا الإرجاع؟ سيُحذف المبلغ المسترد من الصندوق وتخرج السلعة من المخزون.",
     "rt.suppr_vente_retour": "لهذا البيع إرجاع: ألغِ الإرجاع أولا.",
     "rt.recu_titre": "وصل إرجاع",
+    "bq.type_Retour fournisseur": "إرجاع للمورد",
+    "rf.title": "إرجاع للمورد",
+    "rf.btn": "إرجاع للمورد",
+    "rf.btn_aide": "إرجاع سلع من هذه الفاتورة للمورد: ينقص المخزون ويدخل المبلغ المسترد إلى الصندوق",
+    "rf.achete": "المشترى",
+    "rf.en_stock": "في المخزون",
+    "rf.pu": "المبلغ المسترد للوحدة (درهم)",
+    "rf.mode": "طريقة الاسترداد",
+    "rf.motif_ph": "مثلا: سلعة معيبة، خطأ في التسليم…",
+    "rf.bon": "تحضير وصل الإرجاع (يسلم للمورد)",
+    "rf.bon_court": "وصل الإرجاع",
+    "rf.bon_titre": "وصل إرجاع للمورد",
+    "rf.a_recevoir": "المبلغ المسترد من المورد (دخول إلى الصندوق)",
+    "rf.enregistrer": "تسجيل الإرجاع للمورد",
+    "rf.facture": "فاتورة",
+    "rf.du": "بتاريخ",
+    "rf.retour_du": "إرجاع بتاريخ",
+    "rf.rembourse": "مسترد",
+    "rf.sans_remb": "بدون استرداد",
+    "rf.remboursement": "استرداد",
+    "rf.rien": "لا يمكن إرجاع أي سلعة من هذه الفاتورة (أُرجعت سابقا أو لم تعد في المخزون).",
+    "rf.ok": "تم تسجيل الإرجاع للمورد: نقص المخزون، و%s مستردة في الصندوق.",
+    "rf.suppr_confirm": "إلغاء هذا الإرجاع؟ تعود السلع إلى المخزون ويُحذف المبلغ المسترد (%s) من الصندوق.",
+    "rf.sql_42": "الإرجاع للمورد غير مفعل بعد. نفّذ السكريبت supabase/42_boutique_retour_fournisseur.sql في Supabase.",
     "bq.suppr_article_confirm": "حذف المنتج « %s » ؟\nسيُحذف سجل مخزونه، وتبقى المبيعات السابقة مسجلة.\nنصيحة : الحالة « مؤرشف » تزيله من البيع دون حذف أي شيء.",
     "bq.entree_titre": "إدخال إلى المخزون (شراء)",
     "bq.inventaire_titre": "الجرد : المخزون المعدود",
@@ -10538,7 +10613,7 @@ async function loadCharges() {
   document.getElementById('charges-tb').innerHTML = (data||[]).length
     ? (data||[]).map(c=>c.salaire
       ? `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-i">${catTr.Salaires}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence}</td><td><button class="btn btn-sm" onclick="nav('coaches',document.querySelector('.nav[data-page=coaches]'))" title="${t('charges.sal_gerer')}">${t('charges.sal_voir')}</button></td></tr>`
-      : `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-w">${catTr[c.categorie]||c.categorie}</span></td><td style="font-weight:500;color:var(--red)">${fmt(c.montant)}</td><td>${recTr[c.recurrence]||c.recurrence||"—"}${c.mode && c.mode!=='Espèces' ? `<div style="font-size:11px;color:var(--text3)">${echapper(c.mode)}</div>` : ''}</td><td>${c.categorie==='Achats boutique'?`<button class="btn btn-sm" title="${t('charges.voir_boutique')}" onclick="nav('boutique',document.querySelector('.nav[data-page=boutique]'));boutiqueOnglet('factures')">${t('charges.sal_voir')}</button>`:canDel?`<button class="btn btn-sm btn-d" onclick="delCharge('${c.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`).join('')
+      : `<tr><td>${c.date_charge}</td><td>${c.libelle}</td><td><span class="badge b-w">${catTr[c.categorie]||c.categorie}</span></td><td style="font-weight:500;color:${c.montant < 0 ? 'var(--green)' : 'var(--red)'}">${fmt(c.montant)}${c.montant < 0 ? `<div style="font-size:10px;font-weight:400;color:var(--text3)">${t('rf.remboursement')}</div>` : ''}</td><td>${recTr[c.recurrence]||c.recurrence||"—"}${c.mode && c.mode!=='Espèces' ? `<div style="font-size:11px;color:var(--text3)">${echapper(c.mode)}</div>` : ''}</td><td>${c.categorie==='Achats boutique'?`<button class="btn btn-sm" title="${t('charges.voir_boutique')}" onclick="nav('boutique',document.querySelector('.nav[data-page=boutique]'));boutiqueOnglet('factures')">${t('charges.sal_voir')}</button>`:canDel?`<button class="btn btn-sm btn-d" onclick="delCharge('${c.id}')">${t('msg.suppr')}</button>`:''}</td></tr>`).join('')
     : `<tr class="empty-row"><td colspan="6">${t('msg.no_charge')}</td></tr>`;
 
   const form = document.querySelector('#page-charges .g2 .card:first-child');
@@ -11159,8 +11234,8 @@ async function genererRecuVentePdf(r) {
   doc.text(RECU_ASSO.slogan, xTxt, 26.5);
   doc.text(RECU_ASSO.adresse, xTxt, 31);
   doc.text(`Tél. ${RECU_ASSO.tel}  |  ${RECU_ASSO.email}`, xTxt, 35.5);
-  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
-  doc.text(r.retour ? 'REÇU DE RETOUR' : 'REÇU DE VENTE', W - M, 21, { align: 'right' });
+  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(r.fournisseur ? 10.5 : 17);
+  doc.text(r.fournisseur ? 'BON DE RETOUR FOURNISSEUR' : r.retour ? 'REÇU DE RETOUR' : 'REÇU DE VENTE', W - M, 21, { align: 'right' });
   doc.setTextColor(...noir); doc.setFontSize(10);
   doc.text(`N° ${r.numero}`, W - M, 28, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
@@ -11171,13 +11246,13 @@ async function genererRecuVentePdf(r) {
   // Client
   doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
   doc.roundedRect(M, 50, W - 2 * M, 24, 2, 2, 'FD');
-  doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text('CLIENT', M + 5, 57);
+  doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text(r.fournisseur ? 'FOURNISSEUR' : 'CLIENT', M + 5, 57);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...noir);
   doc.text(`${c.prenom || ''} ${c.nom || ''}`.trim() || 'Client de passage', M + 5, 64);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
   const adherent = !r.passage ? (c.numero_adherent ? String(c.numero_adherent) : (c.id ? `ADH-${c.id.substring(0, 8).toUpperCase()}` : '')) : '';
   const infos = [adherent ? `N° adhérent : ${adherent}` : '', c.telephone ? `Tél. : ${c.telephone}` : ''].filter(Boolean).join('     ');
-  doc.text(infos || (r.passage && (c.prenom || c.nom) ? 'Client de passage' : ' '), M + 5, 70);
+  doc.text(r.fournisseur ? `Facture${r.ref ? ` n° ${r.ref}` : ''}${r.dateVente ? ` du ${fD(r.dateVente)}` : ''}` : (infos || (r.passage && (c.prenom || c.nom) ? 'Client de passage' : ' ')), M + 5, 70);
 
   // Tableau des articles
   let y = 84;
@@ -11207,17 +11282,17 @@ async function genererRecuVentePdf(r) {
   if (r.retour) doc.setFillColor(254, 242, 242); else doc.setFillColor(239, 246, 255);
   doc.rect(W - M - 80, y + 4, 80, 11, 'F');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
-  doc.text(r.retour ? 'REMBOURSÉ' : 'TOTAL', W - M - 76, y + 11.5);
+  doc.text(r.fournisseur ? 'À REMBOURSER' : r.retour ? 'REMBOURSÉ' : 'TOTAL', W - M - 76, y + 11.5);
   doc.text(montantPdf(r.total), cMnt, y + 11.5, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
   doc.text(`${r.nb} article${r.nb > 1 ? 's' : ''}${r.retour ? ` retourné${r.nb > 1 ? 's' : ''}` : ''}`, M, y + 11.5);
   y += 24;
   doc.setFontSize(9.5); doc.setTextColor(...noir);
-  doc.text(doc.splitTextToSize(r.retour ? `Somme remboursée au client : ${montantEnLettres(r.total)}.` : `Arrêté le présent reçu à la somme de : ${montantEnLettres(r.total)}.`, W - 2 * M), M, y);
+  doc.text(doc.splitTextToSize(r.fournisseur ? `Somme à rembourser par le fournisseur : ${montantEnLettres(r.total)}.` : r.retour ? `Somme remboursée au client : ${montantEnLettres(r.total)}.` : `Arrêté le présent reçu à la somme de : ${montantEnLettres(r.total)}.`, W - 2 * M), M, y);
   y += 8;
   if (r.retour) {
     doc.setTextColor(...gris);
-    const det = [r.ref ? `Vente d'origine : ${r.ref}${r.dateVente ? ` du ${fD(r.dateVente)}` : ''}` : '', r.motif ? `Motif : ${r.motif}` : ''].filter(Boolean);
+    const det = [!r.fournisseur && r.ref ? `Vente d'origine : ${r.ref}${r.dateVente ? ` du ${fD(r.dateVente)}` : ''}` : '', r.fournisseur && r.mode && r.total ? `Remboursement : ${r.mode}` : '', r.motif ? `Motif : ${r.motif}` : ''].filter(Boolean);
     det.forEach(x => { doc.text(doc.splitTextToSize(x, W - 2 * M - 80), M, y); y += 6; });
   }
   doc.setTextColor(...gris);
@@ -11234,7 +11309,7 @@ async function genererRecuVentePdf(r) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gris);
     doc.text(`${RECU_ASSO.nom} - ${RECU_ASSO.adresse} - Merci de votre confiance`, W / 2, 285, { align: 'center' });
   }
-  doc.setProperties({ title: `${r.retour ? 'Reçu de retour' : 'Reçu de vente'} ${r.numero}`, author: 'Association Les Collines' });
+  doc.setProperties({ title: `${r.fournisseur ? 'Bon de retour fournisseur' : r.retour ? 'Reçu de retour' : 'Reçu de vente'} ${r.numero}`, author: 'Association Les Collines' });
   return doc;
 }
 
@@ -11266,21 +11341,22 @@ function imprimerTicketVente() {
     <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
     <div class="c pt">${e(RECU_ASSO.adresse)}<br>Tél. ${e(RECU_ASSO.tel)}<br>${e(RECU_ASSO.email)}</div>
     <div class="sep"></div>
-    <div class="c titre">${r.retour ? 'REÇU DE RETOUR' : 'REÇU DE VENTE'}</div>
+    <div class="c titre">${r.fournisseur ? 'BON DE RETOUR FOURNISSEUR' : r.retour ? 'REÇU DE RETOUR' : 'REÇU DE VENTE'}</div>
     <div class="c pt">Boutique</div>
     <div class="c"><b>N° ${e(r.numero)}</b></div>
     <div class="kv"><span>${r.retour ? 'Date du retour' : 'Date'}</span><b>${fD(r.date)}</b></div>
-    ${r.retour && r.ref ? `<div class="kv pt"><span>Vente d'origine</span><span>${e(r.ref)}${r.dateVente ? ` du ${fD(r.dateVente)}` : ''}</span></div>` : ''}
+    ${r.retour && (r.ref || r.fournisseur) ? `<div class="kv pt"><span>${r.fournisseur ? 'Facture' : "Vente d'origine"}</span><span>${r.ref ? 'n° ' + e(r.ref) : ''}${r.dateVente ? ` du ${fD(r.dateVente)}` : ''}</span></div>` : ''}
     <div class="kv pt"><span>Imprimé le</span><span>${imprime}</span></div>
     <div class="sep"></div>
-    <div class="kv"><span>Client</span><b>${e(nom || 'Client de passage')}</b></div>
+    <div class="kv"><span>${r.fournisseur ? 'Fournisseur' : 'Client'}</span><b>${e(nom || 'Client de passage')}</b></div>
     ${adherent ? `<div class="kv"><span>N° adhérent</span><b>${e(adherent)}</b></div>` : ''}
     <div class="sep"></div>
     ${lignes}
     <div class="sep"></div>
     <div class="kv pt"><span>${r.retour ? 'Articles retournés' : "Nombre d'articles"}</span><span>${r.nb}</span></div>
-    <div class="total"><span>${r.retour ? 'REMBOURSÉ' : 'TOTAL'}</span><span>${mt(r.total)}</span></div>
-    <div class="pt">${r.retour ? 'Somme remboursée' : 'Arrêté à la somme de'} : ${e(montantEnLettres(r.total))}.</div>
+    <div class="total"><span>${r.fournisseur ? 'À REMBOURSER' : r.retour ? 'REMBOURSÉ' : 'TOTAL'}</span><span>${mt(r.total)}</span></div>
+    <div class="pt">${r.fournisseur ? 'À rembourser par le fournisseur' : r.retour ? 'Somme remboursée' : 'Arrêté à la somme de'} : ${e(montantEnLettres(r.total))}.</div>
+    ${r.fournisseur && r.mode && r.total ? `<div class="pt">Remboursement : ${e(r.mode)}</div>` : ''}
     ${r.retour && r.motif ? `<div class="pt">Motif : ${e(r.motif)}</div>` : ''}
     ${r.vendeur ? `<div class="sep"></div><div class="kv"><span>${r.retour ? 'Retour par' : 'Vendu par'}</span><b>${e(r.vendeur)}</b></div>` : ''}
     <div class="sep"></div>
@@ -11494,13 +11570,13 @@ function renderMouvements() {
   const fp = document.getElementById('bm-produit')?.value || '', ft = document.getElementById('bm-type')?.value || '';
   const canD = PERMS.boutique?.supprimer;
   const liste = _bt.mouvements.filter(m => (!fp || m.produit_id === fp) && (!ft || m.type === ft));
-  const cls = { Achat: 'b-g', Vente: 'b-i', Ajustement: 'b-w', Retour: 'b-g' };
+  const cls = { Achat: 'b-g', Vente: 'b-i', Ajustement: 'b-w', Retour: 'b-g', 'Retour fournisseur': 'b-d' };
   document.getElementById('bm-tb').innerHTML = liste.length ? liste.map(m => `<tr>
       <td>${dateCourte(m.date_mouvement)}</td><td><strong>${echapper(produitDe(m.produit_id)?.nom || '—')}</strong></td>
       <td><span class="badge ${cls[m.type] || 'b-i'}">${t('bq.type_' + m.type)}</span></td>
       <td style="font-weight:700;color:${m.quantite > 0 ? 'var(--green)' : 'var(--red)'}" dir="ltr">${m.quantite > 0 ? '+' : ''}${m.quantite}</td>
       <td>${fmtDH2(m.prix_unitaire)}</td><td style="font-size:12px;color:var(--text2)">${echapper(m.note || '')}</td>
-      <td>${canD && !m.vente_id && !m.facture_id ? `<button class="btn btn-sm btn-d" onclick="delMouvement('${m.id}')">${t('msg.suppr')}</button>` : ''}</td></tr>`).join('')
+      <td>${canD && !m.vente_id && !m.facture_id && !m.retour_fournisseur_id ? `<button class="btn btn-sm btn-d" onclick="delMouvement('${m.id}')">${t('msg.suppr')}</button>` : ''}</td></tr>`).join('')
     : `<tr class="empty-row"><td colspan="7">${t('bq.aucun_mouvement')}</td></tr>`;
 }
 
@@ -11576,6 +11652,13 @@ async function loadFactures() {
   ]);
   _bf.liste = rf.error || rm.error ? null : (rf.data || []);   // null = script 34 non exécuté
   _bf.mvts = rm.data || [];
+  // Retours fournisseur (script 42)
+  const [rr, rmr] = await Promise.all([
+    sb.from('boutique_retours_fournisseur').select('*').order('date_retour').order('created_at'),
+    fetchAllRows(() => sb.from('stock_mouvements').select('id,retour_fournisseur_id,produit_id,quantite,prix_unitaire').not('retour_fournisseur_id', 'is', null).order('id'))
+  ]);
+  _bf.retours = rr.error || rmr.error ? null : (rr.data || []);   // null = script 42 non exécuté
+  _bf.mvtsRetour = rmr.data || [];
   renderFactures();
 }
 
@@ -11590,13 +11673,21 @@ function renderFactures() {
   document.getElementById('bf-tb').innerHTML = !ok ? '' : liste.length ? liste.map(f => {
     const l = lignesFacture(f.id), ta = totalLignes(l), ecart = Math.round(((parseFloat(f.montant) || 0) - ta) * 100) / 100;
     const noms = l.map(m => `${echapper(produitDe(m.produit_id)?.nom || '—')} <span style="color:var(--text3)">×${m.quantite}</span>`).join(', ');
+    const rets = retoursFacture(f.id), rembourse = rets.reduce((a, r) => a + (parseFloat(r.montant) || 0), 0);
+    const retHtml = rets.map(r => `<div style="margin-top:5px;padding:4px 8px;border-inline-start:2px solid var(--red);background:rgba(239,68,68,.05);font-size:11px">
+        <b style="color:var(--red-text)">↩ ${t('rf.retour_du')} ${dateCourte(r.date_retour)}</b> :
+        ${mvtsRetour(r.id).map(m => `${echapper(produitDe(m.produit_id)?.nom || '—')} ×${-m.quantite}`).join(', ')}
+        · ${parseFloat(r.montant) > 0 ? `${t('rf.rembourse')} <b>${fmtDH2(r.montant)}</b>` : t('rf.sans_remb')}${r.note ? ` · <span style="color:var(--text3)">${echapper(r.note)}</span>` : ''}
+        <button class="btn btn-sm" style="font-size:10px;padding:1px 6px" onclick="bonRetourFournisseur('${r.id}')" title="${echapper(t('rf.bon_court'))}">📄 ${t('rf.bon_court')}</button>
+        ${canD ? `<button class="btn btn-sm btn-d" style="font-size:10px;padding:1px 6px" onclick="delRetourFournisseur('${r.id}')">${t('rt.annuler')}</button>` : ''}</div>`).join('');
     return `<tr><td style="white-space:nowrap">${dateCourte(f.date_facture)}</td>
       <td><strong>${echapper(f.fournisseur || '—')}</strong>${f.numero ? `<div style="font-size:11px;color:var(--text3)">${t('bf.numero_court')} ${echapper(f.numero)}</div>` : ''}</td>
-      <td style="font-size:12px;max-width:340px">${noms || '—'}</td>
-      <td style="font-weight:700;white-space:nowrap">${fmtDH2(f.montant)}</td>
+      <td style="font-size:12px;max-width:380px">${noms || '—'}${retHtml}</td>
+      <td style="font-weight:700;white-space:nowrap">${fmtDH2(f.montant)}${rembourse ? `<div style="font-size:11px;font-weight:400;color:var(--green-text)">− ${t('rf.rembourse')} ${fmtDH2(rembourse)}</div>` : ''}</td>
       <td style="white-space:nowrap">${fmtDH2(ta)}${ecart ? `<div style="font-size:11px;color:var(--amber-text)">${t('bf.ecart')} : ${fmtDH2(ecart)}</div>` : ''}</td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="ouvrirFacture('${f.id}')">${t(peutFacturer() ? 'common.modifier' : 'bf.voir')}</button>
+        ${peutFacturer() ? `<button class="btn btn-sm" onclick="ouvrirRetourFournisseur('${f.id}')" title="${echapper(t('rf.btn_aide'))}">↩ ${t('rf.btn')}</button>` : ''}
         ${canD ? `<button class="btn btn-sm btn-d" onclick="delFacture('${f.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
   }).join('') + `<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td colspan="3" style="font-weight:800">${t('bq.total')}</td><td style="font-weight:800;white-space:nowrap">${fmtDH2(tot)}</td><td colspan="2"></td></tr>`
     : `<tr class="empty-row"><td colspan="6">${t((_bf.liste || []).length ? 'bq.aucun_filtre' : 'bf.aucune')}</td></tr>`;
@@ -11711,6 +11802,120 @@ async function delFacture(id) {
   showToast(t('bf.supprimee'), 's');
   await loadBoutique();
   loadFactures();
+}
+
+// ── Retours fournisseur (script 42) : articles d'une facture renvoyés ; le stock baisse,
+// le remboursement est une charge négative de la salle (la caisse remonte) ──
+const retoursFacture = id => (_bf.retours || []).filter(r => r.facture_id === id);
+const mvtsRetour = rid => (_bf.mvtsRetour || []).filter(m => m.retour_fournisseur_id === rid);
+let _rf = null;
+function ouvrirRetourFournisseur(fid) {
+  if (!Array.isArray(_bf.retours)) { showToast(t('rf.sql_42'), 'e'); return; }
+  const f = (_bf.liste || []).find(x => x.id === fid); if (!f) return;
+  // Articles de la facture, regroupés par article (prix d'achat moyen)
+  const par = {};
+  lignesFacture(fid).forEach(m => {
+    const o = par[m.produit_id] ??= { pid: m.produit_id, achete: 0, valeur: 0, rendu: 0 };
+    o.achete += parseInt(m.quantite, 10) || 0; o.valeur += (parseInt(m.quantite, 10) || 0) * (parseFloat(m.prix_unitaire) || 0);
+  });
+  retoursFacture(fid).forEach(r => mvtsRetour(r.id).forEach(m => { if (par[m.produit_id]) par[m.produit_id].rendu -= parseInt(m.quantite, 10) || 0; }));
+  const lignes = Object.values(par).map(o => {
+    const pr = produitDe(o.pid), stock = pr ? pr.stock : 0;
+    return { ...o, nom: pr?.nom || '—', stock, pu: o.achete ? Math.round(o.valeur / o.achete * 100) / 100 : 0, max: Math.max(0, Math.min(o.achete - o.rendu, stock)) };
+  });
+  if (!lignes.some(l => l.max > 0)) { showToast(t('rf.rien'), 'e'); return; }
+  _rf = { f, lignes };
+  document.getElementById('rf-info').innerHTML = `<b>${echapper(f.fournisseur || '—')}</b> · ${t('rf.facture')}${f.numero ? ' ' + t('bf.numero_court') + ' ' + echapper(f.numero) : ''} ${t('rf.du')} ${dateFr(f.date_facture)} · ${fmtDH2(f.montant)}`;
+  document.getElementById('rf-lignes').innerHTML = lignes.map(l => {
+    const dis = l.max > 0 ? '' : 'disabled';
+    return `<tr><td><strong>${echapper(l.nom)}</strong></td><td>${l.achete}</td><td>${l.rendu || '—'}</td><td${l.stock < l.achete - l.rendu ? ' style="color:var(--amber-text)"' : ''}>${l.stock}</td>
+      <td><input class="rf-qte" type="number" min="0" max="${l.max}" step="1" value="0" ${dis} oninput="majRetourFournisseur()" style="width:64px"></td>
+      <td><input class="rf-pu" type="number" min="0" step="0.01" value="${l.pu}" ${dis} oninput="majRetourFournisseur()" style="width:90px"></td>
+      <td class="rf-mnt" style="text-align:end;font-weight:600;white-space:nowrap">—</td></tr>`;
+  }).join('');
+  document.getElementById('rf-date').value = today();
+  document.getElementById('rf-mode').value = 'Espèces';
+  document.getElementById('rf-note').value = '';
+  majRetourFournisseur();
+  document.getElementById('rf-modal').classList.add('open');
+}
+function rfSaisie() {
+  const q = [...document.querySelectorAll('#rf-lignes .rf-qte')], pu = [...document.querySelectorAll('#rf-lignes .rf-pu')];
+  return _rf.lignes.map((l, i) => ({ ...l, qte: parseInt(q[i].value, 10) || 0, prix: parseFloat(pu[i].value) || 0 }));
+}
+function majRetourFournisseur() {
+  if (!_rf) return;
+  const cells = document.querySelectorAll('#rf-lignes .rf-mnt');
+  let tot = 0;
+  rfSaisie().forEach((l, i) => {
+    cells[i].textContent = l.qte ? fmtDH2(l.qte * l.prix) : '—';
+    cells[i].style.color = l.qte > l.max || l.qte < 0 ? 'var(--red)' : '';
+    if (l.qte > 0) tot += l.qte * l.prix;
+  });
+  document.getElementById('rf-total').textContent = fmtDH2(tot);
+  document.getElementById('rf-save').textContent = t('rf.enregistrer') + (tot ? ` · ${fmtDH2(tot)}` : '');
+}
+async function enregistrerRetourFournisseur() {
+  if (!_rf) return;
+  const saisie = rfSaisie();
+  const trop = saisie.find(l => l.qte > l.max || l.qte < 0);
+  if (trop) { showToast(`${t('rt.trop')} « ${trop.nom} » (${t('rt.max')} : ${trop.max})`, 'e'); return; }
+  const lignes = saisie.filter(l => l.qte > 0);
+  if (!lignes.length) { showToast(t('rt.aucun'), 'e'); return; }
+  const total = Math.round(lignes.reduce((a, l) => a + l.qte * l.prix, 0) * 100) / 100;
+  const retour = { facture_id: _rf.f.id, date_retour: document.getElementById('rf-date').value || today(),
+    mode: document.getElementById('rf-mode').value, note: document.getElementById('rf-note').value.trim() || null };
+  const btn = document.getElementById('rf-save'); btn.disabled = true;
+  const { data: rid, error } = await sb.rpc('enregistrer_retour_fournisseur', { p_retour: retour, p_lignes: lignes.map(l => ({ produit_id: l.pid, quantite: l.qte, prix_unitaire: l.prix })) });
+  btn.disabled = false;
+  if (error) { showToast(/schema cache|Could not find the function|does not exist|Retour fournisseur|type_check/i.test(error.message) ? t('rf.sql_42') : error.message, 'e'); return; }
+  const f = _rf.f;
+  await logAudit('CREATE', 'boutique', `Retour fournisseur ${[f.fournisseur, f.numero].filter(Boolean).join(' ')} : ${lignes.map(l => `${l.qte} × ${l.nom}`).join(', ')} — remboursé ${fmtDH2(total)}`);
+  const bon = document.getElementById('rf-bon').checked;
+  document.getElementById('rf-modal').classList.remove('open');
+  _rf = null;
+  showToast(t('rf.ok').replace('%s', fmtDH2(total)), 's');
+  await loadBoutique();   // stock mis à jour
+  await loadFactures();
+  if (bon && rid) bonRetourFournisseur(rid);
+}
+async function delRetourFournisseur(id) {
+  const r = (_bf.retours || []).find(x => x.id === id); if (!r) return;
+  if (!confirm(t('rf.suppr_confirm').replace('%s', fmtDH2(r.montant)))) return;
+  const { error } = await sb.from('boutique_retours_fournisseur').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE', 'boutique', `Retour fournisseur du ${r.date_retour} annulé (${fmtDH2(r.montant)})`);
+  await loadBoutique();
+  loadFactures();
+}
+// Bon de retour fournisseur : même présentation que le reçu de retour (PDF A4 et ticket)
+async function bonRetourFournisseur(id) {
+  if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  const r0 = (_bf.retours || []).find(x => x.id === id); if (!r0) return;
+  const f = (_bf.liste || []).find(x => x.id === r0.facture_id) || {};
+  const quand = r0.created_at && !isNaN(new Date(r0.created_at)) ? new Date(r0.created_at) : new Date();
+  let vendeur = '';
+  if (r0.created_by) {
+    try { const { data: prof } = await sb.from('profils').select('prenom,nom').eq('id', r0.created_by).maybeSingle(); if (prof) vendeur = `${prof.prenom || ''} ${prof.nom || ''}`.trim(); } catch (_) {}
+  }
+  const client = { prenom: f.fournisseur || 'Fournisseur', nom: '' };
+  const r = { numero: 'RF' + numeroRecuVente(quand).slice(1), date: r0.date_retour, client, passage: true, vendeur, retour: true, fournisseur: true,
+    ref: f.numero || '', dateVente: f.date_facture || '', motif: r0.note || '', mode: r0.mode || '',
+    lignes: mvtsRetour(id).map(m => ({ article: produitDe(m.produit_id)?.nom || '-', qte: -(parseInt(m.quantite, 10) || 0), pu: parseFloat(m.prix_unitaire) || 0 })) };
+  r.total = r.lignes.reduce((a, l) => a + l.qte * l.pu, 0);
+  r.nb = r.lignes.reduce((a, l) => a + l.qte, 0);
+  let doc;
+  try { doc = await genererRecuVentePdf(r); } catch (e) { console.error(e); showToast(t('recu.pdf_ko'), 'e'); return; }
+  if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
+  const blobUrl = URL.createObjectURL(doc.output('blob'));
+  _recu = { doc, blobUrl, paiements: [{ id: null, numero_recu: r.numero, montant: r.total }], numero: r.numero, client, vente: r };
+  document.getElementById('recu-title').textContent = `${t('rf.bon_titre')} ${r.numero}`;
+  document.getElementById('recu-preview').src = blobUrl;
+  document.getElementById('btn-recu-mail').style.display = 'none';
+  document.getElementById('btn-recu-email-add').style.display = 'none';
+  document.getElementById('recu-mail-info').textContent = '';
+  const btnWa = document.getElementById('btn-recu-wa'); btnWa.disabled = true; btnWa.title = t('recu.wa_no_tel');
+  document.getElementById('recu-modal').classList.add('open');
 }
 
 // Achats de stock : ceux d'une facture fournisseur sont payés par la caisse de la salle (charges), pas par la boutique
@@ -13325,8 +13530,9 @@ async function loadSoldeJour() {
   if (rp.error) { el.textContent = '—'; sub.textContent = ''; return; }
   const som = (r, f) => (r.error ? [] : r.data || []).reduce((a, x) => a + f(x), 0);
   const mv = x => (parseInt(x.quantite, 10) || 1) * (parseFloat(x.prix_vente) || 0);   // retour boutique : négatif
-  const entrees = som(rp, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, mv(x)));
-  const sorties = som(rc, x => parseFloat(x.montant) || 0) + som(rs, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, -mv(x)));
+  const ch = x => parseFloat(x.montant) || 0;   // charge négative = remboursement (retour fournisseur) : entrée
+  const entrees = som(rp, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, mv(x))) + som(rc, x => Math.max(0, -ch(x)));
+  const sorties = som(rc, x => Math.max(0, ch(x))) + som(rs, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, -mv(x)));
   const solde = entrees - sorties;
   el.textContent = fmt(solde);
   el.style.color = solde < 0 ? 'var(--red)' : solde > 0 ? 'var(--green)' : 'var(--text3)';
@@ -13379,6 +13585,11 @@ async function chargerRapportJour() {
   (rc.data || []).forEach(c => {
     if (!c.date_charge) return;
     const v = parseFloat(c.montant) || 0, o = jour(c.date_charge);
+    if (v < 0) {   // remboursement (ex. retour fournisseur boutique) : entrée d'argent
+      o.entrees += -v;
+      o.lignesE.push({ heure: '', qui: c.libelle || '—', quoi: t('rf.remboursement'), mode: c.mode || 'Espèces', note: '', montant: -v });
+      return;
+    }
     o.sorties += v;
     o.lignesS.push({ heure: '', qui: c.libelle || '—', quoi: c.categorie || t('rj.charge'), mode: c.mode || 'Espèces', note: '', montant: v });
   });
