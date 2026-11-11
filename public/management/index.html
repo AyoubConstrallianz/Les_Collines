@@ -2489,13 +2489,43 @@ html[data-theme="dark"] #rt-lignes input{background:var(--bg3)}
             <div class="fg" style="flex:2;min-width:160px"><label data-i18n="coaches.salarie">Salarié</label><select id="co-sal-emp" onchange="calculerSalaire()"></select></div>
             <div class="fg" id="co-sal-mois-wrap" style="min-width:130px"><label data-i18n="coaches.mois_concerne">Mois concerné</label><input id="co-sal-mois" type="month" onchange="calculerSalaire()"></div>
             <div class="fg" id="co-sal-semaine-wrap" style="min-width:150px;display:none"><label data-i18n="hebdo.semaine_payee">Semaine payée (lundi)</label><input id="co-sal-semaine" type="date" data-vide onchange="calculerSalaire(true)"></div>
-            <div class="fg" style="min-width:120px"><label data-i18n="paie.montant">Montant (DH)</label><input id="co-sal-mont" type="number" min="0"></div>
+            <div class="fg" style="min-width:120px"><label data-i18n="paie.montant">Montant (DH)</label><input id="co-sal-mont" type="number" min="0" oninput="majNetAvance(true)"></div>
             <div class="fg" style="min-width:130px"><label data-i18n="coaches.mode_paiement">Mode de paiement</label>
               <select id="co-sal-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select>
             </div>
             <button class="btn btn-p" onclick="saveCoachPaie()" data-i18n="coaches.valider_paie">Valider le paiement</button>
           </div>
           <div id="co-sal-detail" style="display:none"></div>
+          <div id="co-sal-avance" style="display:none"></div>
+        </div>
+
+        <!-- Avances sur salaire -->
+        <div class="card sect-salaires" id="av-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.75rem">
+            <div class="ct" style="margin-bottom:0" data-i18n="av.title">Avances sur salaire</div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <span id="av-total" style="font-size:13px;color:var(--text2)"></span>
+              <select id="av-filtre" onchange="renderAvances()" style="width:auto"><option value="cours" data-i18n="av.f_cours">En cours</option><option value="toutes" data-i18n="av.f_toutes">Toutes</option></select>
+            </div>
+          </div>
+          <div class="sect-salaires-ecrire">
+            <div class="ligne-form" style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;align-items:flex-end">
+              <div class="fg" style="flex:2;min-width:160px"><label data-i18n="coaches.salarie">Salarié</label><select id="av-emp" onchange="majPlanAvance()"></select></div>
+              <div class="fg" style="min-width:110px"><label data-i18n="av.montant">Montant de l'avance (DH)</label><input id="av-montant" type="number" min="0" oninput="majPlanAvance()"></div>
+              <div class="fg" style="min-width:130px"><label data-i18n="av.date">Date de l'avance</label><input id="av-date" type="date" onchange="majPlanAvance(true)"></div>
+              <div class="fg" style="min-width:120px"><label data-i18n="av.duree">Durée de remboursement</label><select id="av-duree" onchange="majPlanAvance()"></select></div>
+              <div class="fg" style="min-width:140px"><label data-i18n="av.debut">Première retenue (mois)</label><input id="av-debut" type="month" onchange="majPlanAvance()"></div>
+              <div class="fg" style="min-width:110px"><label data-i18n="paie.mode">Mode</label><select id="av-mode"><option value="Espèces" data-i18n="paie.m_especes">Espèces</option><option value="Virement" data-i18n="paie.m_virement">Virement</option><option value="Chèque" data-i18n="paie.m_cheque">Chèque</option></select></div>
+              <div class="fg" style="flex:2;min-width:140px"><label data-i18n="paie.note">Note</label><input id="av-note"></div>
+              <button class="btn btn-p" onclick="saveAvance()" data-i18n="av.enregistrer">Enregistrer l'avance</button>
+            </div>
+            <div id="av-plan" style="font-size:12px;color:var(--blue-text);margin-bottom:12px;min-height:16px"></div>
+          </div>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th data-i18n="coaches.salarie">Salarié</th><th data-i18n="av.date_court">Date</th><th data-i18n="av.montant_court">Avance</th><th data-i18n="av.remboursement">Remboursement</th><th data-i18n="av.rembourse">Remboursé</th><th data-i18n="av.reste">Reste</th><th data-i18n="common.actions">Actions</th></tr></thead>
+            <tbody id="av-tb"></tbody>
+          </table></div>
+          <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="av.note_aide">L'avance sort de la caisse le jour où elle est donnée. Elle est ensuite retenue automatiquement sur les salaires suivants (montant proposé au moment du paiement, modifiable).</p>
         </div>
 
         <!-- Historique des paiements + alertes non payés -->
@@ -4105,6 +4135,43 @@ const I18N = {
     'remu.adherents':    'Adhérents',
     'remu.ca_mois':      'CA du mois',
     'remu.recu_title':   'Récapitulatif de paie',
+    'av.title':          'Avances sur salaire',
+    'av.f_cours':        'En cours',
+    'av.f_toutes':       'Toutes',
+    'av.montant':        "Montant de l'avance (DH)",
+    'av.montant_court':  'Avance',
+    'av.date':           "Date de l'avance",
+    'av.date_court':     'Date',
+    'av.duree':          'Durée de remboursement',
+    'av.debut':          'Première retenue (mois)',
+    'av.enregistrer':    "Enregistrer l'avance",
+    'av.remboursement':  'Remboursement',
+    'av.rembourse':      'Remboursé',
+    'av.reste':          'Reste',
+    'av.reste_total':    'Reste à rembourser',
+    'av.mois':           'mois',
+    'av.plan':           'Retenues prévues',
+    'av.avance':         'Avance',
+    'av.avance_sur_salaire': 'Avance sur salaire',
+    'av.avances_annee':  'Avances données',
+    'av.retenue':        'Retenue',
+    'av.retenue_titre':  'Retenue sur avance',
+    'av.salaire':        'Salaire',
+    'av.net':            'Net à verser',
+    'av.du':             'du',
+    'av.en':             'en',
+    'av.retard':         'En retard :',
+    'av.soldee':         'Remboursée',
+    'av.aucune':         'Aucune avance enregistrée.',
+    'av.aucune_cours':   'Aucune avance en cours de remboursement.',
+    'av.requis':         "Choisissez le salarié, le montant de l'avance et le mois de la première retenue.",
+    'av.debut_avant':    "La première retenue ne peut pas être avant le mois de l'avance.",
+    'av.ok':             'Avance enregistrée (sortie de caisse).',
+    'av.trop':           'La retenue dépasse le reste de l\'avance (%s).',
+    'av.suppr_confirm':  'Supprimer cette avance ?',
+    'av.suppr_retenues': 'Cette avance a déjà été remboursée en partie (%s retenus sur les salaires). Supprimer quand même ?',
+    'av.recu_title':     "Reçu d'avance sur salaire",
+    'av.note_aide':      "L'avance sort de la caisse le jour où elle est donnée. Elle est ensuite retenue automatiquement sur les salaires suivants (montant proposé au moment du paiement, modifiable).",
     'remu.sql':          'Rémunération par groupe / pourcentage non activée : exécutez supabase/13_remuneration_coachs.sql dans Supabase.',
     'imp.btn':           'Importer Excel',
     'imp.title':         'Importer des clients et des paiements',
@@ -5508,6 +5575,43 @@ const I18N = {
     'remu.adherents':   'المنخرطون',
     'remu.ca_mois':     'رقم معاملات الشهر',
     'remu.recu_title':  'ملخص الأجرة',
+    'av.title':          'تسبيقات على الأجر',
+    'av.f_cours':        'جارية',
+    'av.f_toutes':       'الكل',
+    'av.montant':        'مبلغ التسبيق (درهم)',
+    'av.montant_court':  'التسبيق',
+    'av.date':           'تاريخ التسبيق',
+    'av.date_court':     'التاريخ',
+    'av.duree':          'مدة الاسترجاع',
+    'av.debut':          'أول اقتطاع (الشهر)',
+    'av.enregistrer':    'تسجيل التسبيق',
+    'av.remboursement':  'الاسترجاع',
+    'av.rembourse':      'المسترجع',
+    'av.reste':          'الباقي',
+    'av.reste_total':    'الباقي للاسترجاع',
+    'av.mois':           'شهر',
+    'av.plan':           'الاقتطاعات المتوقعة',
+    'av.avance':         'تسبيق',
+    'av.avance_sur_salaire': 'تسبيق على الأجر',
+    'av.avances_annee':  'التسبيقات الممنوحة',
+    'av.retenue':        'اقتطاع',
+    'av.retenue_titre':  'اقتطاع التسبيق',
+    'av.salaire':        'الأجر',
+    'av.net':            'الصافي للأداء',
+    'av.du':             'بتاريخ',
+    'av.en':             'على',
+    'av.retard':         'متأخر :',
+    'av.soldee':         'مسترجع بالكامل',
+    'av.aucune':         'لا يوجد أي تسبيق.',
+    'av.aucune_cours':   'لا يوجد تسبيق قيد الاسترجاع.',
+    'av.requis':         'اختر الأجير ومبلغ التسبيق وشهر أول اقتطاع.',
+    'av.debut_avant':    'لا يمكن أن يكون أول اقتطاع قبل شهر التسبيق.',
+    'av.ok':             'تم تسجيل التسبيق (خروج من الصندوق).',
+    'av.trop':           'الاقتطاع يتجاوز باقي التسبيق (%s).',
+    'av.suppr_confirm':  'حذف هذا التسبيق؟',
+    'av.suppr_retenues': 'تم استرجاع جزء من هذا التسبيق (%s مقتطعة من الأجور). هل تريد الحذف رغم ذلك؟',
+    'av.recu_title':     'وصل تسبيق على الأجر',
+    'av.note_aide':      'يخرج التسبيق من الصندوق يوم منحه، ثم يُقتطع تلقائيا من الأجور الموالية (المبلغ مقترح عند الأداء ويمكن تعديله).',
     'remu.sql':         'الأجرة حسب المجموعة / النسبة غير مفعلة : نفّذ supabase/13_remuneration_coachs.sql في Supabase.',
     'abo.couvert_jusqu':'مغطى إلى غاية',
     'abo.aucun':        'لم يؤد أي اشتراك',
@@ -6392,7 +6496,7 @@ function nav(page, btn) {
     document.querySelectorAll('#page-coaches .sect-salaires').forEach(el => el.style.display = PERMS.salaires?.lire ? '' : 'none');
     document.querySelectorAll('#page-coaches .sect-salaires-ecrire').forEach(el => { if (!PERMS.salaires?.ecrire) el.style.display = 'none'; });
     loadCoaches(); onPosteChange();
-    if (PERMS.salaires?.lire) { loadCoachPaies(); loadCoachNonPayes(); loadCoachRecapSelects(); }
+    if (PERMS.salaires?.lire) { loadCoachPaies(); loadCoachNonPayes(); loadCoachRecapSelects(); loadAvances(); }
   }
   if (page==='planning')    { loadSportsForSelect('pl-sport'); loadCoachesForPlanningSelect(); loadPlanning(); }
   if (page==='boutique')    loadBoutique();
@@ -10402,7 +10506,8 @@ async function loadCharges() {
       const periode = d.semaine_debut ? `${t('hebdo.semaine')} ${dateFr(d.semaine_debut).slice(0,5)} → ${dateFr(d.semaine_fin || ajouterJours(d.semaine_debut, 6)).slice(0,5)}`
                                       : `${t('charges.sal_mois')} ${s.mois ? s.mois.slice(5,7) + '/' + s.mois.slice(0,4) : ''}`;
       return { id: s.id, salaire: true, date_charge: (s.created_at || '').slice(0,10) || (s.mois + '-01'), mois: s.mois,
-               libelle: `${t('charges.sal_libelle')} — ${e.prenom || ''} ${e.nom || ''} (${periode})`, categorie: 'Salaires',
+               libelle: estAvance(s) ? `${t('av.avance_sur_salaire')} — ${e.prenom || ''} ${e.nom || ''} (${dateFr(d.date || s.mois)}, ${d.nb_mois || 1} ${t('av.mois')})`
+                 : `${t('charges.sal_libelle')} — ${e.prenom || ''} ${e.nom || ''} (${periode})${d.retenues?.length ? ` · ${t('av.retenue')} ${fmt(d.retenues.reduce((a, r) => a + (parseFloat(r.montant) || 0), 0))}` : ''}`, categorie: 'Salaires',
                montant: s.montant, recurrence: d.semaine_debut ? 'Hebdomadaire' : 'Mensuelle' };
     });
   }
@@ -13257,7 +13362,7 @@ async function chargerRapportJour() {
       return (parSaisie ? q.gte('created_at', debutJour(du)).lt('created_at', finISO) : q.gte('date_paiement', du).lte('date_paiement', au)).order('id');
     }),
     fetchAllRows(() => sb.from('charges').select('*').gte('date_charge', du).lte('date_charge', au).order('id')),
-    fetchAllRows(() => sb.from('salaires_paie').select('id,montant,mois,mode,created_at,employes(prenom,nom)').gte('created_at', debutJour(du)).lt('created_at', finISO).order('id')),
+    fetchAllRows(() => sb.from('salaires_paie').select('id,montant,mois,mode,created_at,detail,employes(prenom,nom)').gte('created_at', debutJour(du)).lt('created_at', finISO).order('id')),
     fetchAllRows(() => sb.from('ventes').select('*,clients(prenom,nom)').gte('date_vente', du).lte('date_vente', au).order('id'))
   ]);
   if (rp.error) { showToast(rp.error.message, 'e'); return; }
@@ -13300,7 +13405,8 @@ async function chargerRapportJour() {
     const v = parseFloat(x.montant) || 0, o = jour(k);
     o.sorties += v;
     o.lignesS.push({ heure: heure(x.created_at), qui: `${x.employes?.prenom || ''} ${x.employes?.nom || ''}`.trim() || '—',
-      quoi: `${t('rj.salaire')} ${x.mois ? nomMoisFin(x.mois) : ''}`.trim(), mode: x.mode || '', note: '', montant: v });
+      quoi: estAvance(x) ? t('av.avance_sur_salaire') : `${t('rj.salaire')} ${x.mois ? nomMoisFin(x.mois) : ''}`.trim(), mode: x.mode || '',
+      note: estAvance(x) ? `${x.detail.nb_mois || 1} ${t('av.mois')}` : x.detail?.retenues?.length ? `${t('av.retenue')} ${fmt(x.detail.retenues.reduce((a, r) => a + (parseFloat(r.montant) || 0), 0))}` : '', montant: v });
   });
   Object.values(J).forEach(o => { o.lignesE.sort((a, b) => a.heure.localeCompare(b.heure)); o.lignesS.sort((a, b) => a.heure.localeCompare(b.heure)); });
   _rj = { jours: J, ouvert: Object.keys(J).length === 1 ? Object.keys(J)[0] : null, du, au, parSaisie };
@@ -14157,31 +14263,44 @@ async function saveCoachPaie() {
   const mois   = document.getElementById('co-sal-mois').value;
   const montant= parseFloat(document.getElementById('co-sal-mont').value)||0;
   const mode   = document.getElementById('co-sal-mode').value;
-  if (!empId||!mois||!montant) { showToast(t('salaires.required'),'e'); return; }
+  // Retenues sur avance (bloc affiché sous le formulaire)
+  const retenues = [...document.querySelectorAll('#co-sal-avance .av-ret')]
+    .map(i => ({ avance_id: i.dataset.id, montant: Math.round((parseFloat(i.value) || 0) * 100) / 100, date_avance: i.dataset.date, reste: parseFloat(i.dataset.reste) || 0 }))
+    .filter(r => r.montant > 0);
+  if (!empId||!mois||(!montant && !retenues.length)) { showToast(t('salaires.required'),'e'); return; }
+  const tropRet = retenues.find(r => r.montant > r.reste + 0.001);
+  if (tropRet) { showToast(t('av.trop').replace('%s', fmtDH2(tropRet.reste)), 'e'); return; }
+  const totRet = Math.round(retenues.reduce((a, r) => a + r.montant, 0) * 100) / 100;
 
   // Vérifie doublon : même semaine (paie hebdomadaire) ou même mois (autres modes)
   const semaine = _salCalc?.empId === empId && _salCalc.detail?.semaine_debut;
   const { data: exist } = semaine
-    ? await sb.from('salaires_paie').select('id').eq('employe_id', empId).eq('detail->>semaine_debut', semaine)
-    : await sb.from('salaires_paie').select('id').eq('employe_id', empId).eq('mois', mois);
-  if (exist?.length > 0) {
+    ? await sb.from('salaires_paie').select('id,detail').eq('employe_id', empId).eq('detail->>semaine_debut', semaine)
+    : await sb.from('salaires_paie').select('id,detail').eq('employe_id', empId).eq('mois', mois);
+  if ((exist || []).filter(x => !estAvance(x)).length > 0) {
     if (!confirm(semaine ? t('hebdo.deja_payee').replace('%s', libelleSemaine(semaine)) : t('salaires.exists').replace('%s',mois))) return;
   }
 
   // Détail du calcul conservé avec le paiement (reçu PDF) — seulement s'il correspond à ce salarié et ce mois
-  const detail = (_salCalc && _salCalc.empId === empId && _salCalc.mois === mois) ? { ..._salCalc.detail, montant_verse: montant } : null;
+  const calc = (_salCalc && _salCalc.empId === empId && _salCalc.mois === mois) ? { ..._salCalc.detail, montant_verse: montant } : null;
+  const empSal = (window._COACHES_LIST || []).find(x => x.id === empId);
+  const detail = retenues.length
+    ? { ...(calc || { remuneration: empSal?.remuneration || 'Mensuel', total: Math.round((montant + totRet) * 100) / 100 }), montant_verse: montant,
+        retenues: retenues.map(({ reste, ...r }) => r), salaire_brut: Math.round((montant + totRet) * 100) / 100 }
+    : calc;
   let { data: savedSal, error } = await sb.from('salaires_paie').insert({ employe_id:empId, mois, montant, mode, created_by:ME.id, ...(detail ? { detail } : {}) }).select('id').single();
   if (error && /detail/.test(error.message)) {
     ({ data: savedSal, error } = await sb.from('salaires_paie').insert({ employe_id:empId, mois, montant, mode, created_by:ME.id }).select('id').single());
     if (!error) showToast(t('remu.sql'), 'e');
   }
   if (error) { showToast(error.message,'e'); return; }
-  await logAudit('CREATE','coaches',`Salaire ${fmt(montant)} — ${mois}`);
+  await logAudit('CREATE','coaches',`Salaire ${fmt(montant)} — ${mois}${totRet ? ` (retenue avance ${fmt(totRet)})` : ''}`);
   showToast(t('salaires.saved'),'s');
   document.getElementById('co-sal-mont').value='';
   document.getElementById('co-sal-detail').style.display = 'none';
+  const boxAv = document.getElementById('co-sal-avance'); boxAv.style.display = 'none'; boxAv.innerHTML = '';
   _salCalc = null;
-  loadCoaches(); loadCoachPaies(); loadCoachNonPayes();
+  loadCoaches(); loadCoachPaies(); loadCoachNonPayes(); loadAvances();
   if (savedSal?.id) ouvrirRecuSalaire(savedSal.id);
 }
 
@@ -14214,8 +14333,8 @@ async function loadCoachPaies() {
     ? (data||[]).map(p=>`<tr>
         <td><strong>${p.employes?.prenom||'?'} ${p.employes?.nom||''}</strong></td>
         <td style="color:var(--text2)">${_pTr[p.employes?.poste]||p.employes?.poste||'—'}</td>
-        <td><span class="badge b-i">${p.detail?.semaine_debut ? t('hebdo.sem_court') + ' ' + libelleSemaine(p.detail.semaine_debut) : p.mois}</span></td>
-        <td style="font-weight:500;color:var(--green)">${fmt(p.montant)}</td>
+        <td>${estAvance(p) ? `<span class="badge b-w">${t('av.avance')}</span> ` : ''}<span class="badge b-i">${p.detail?.semaine_debut ? t('hebdo.sem_court') + ' ' + libelleSemaine(p.detail.semaine_debut) : estAvance(p) ? dateFr(p.detail.date || p.mois) : p.mois}</span></td>
+        <td style="font-weight:500;color:${estAvance(p) ? 'var(--amber-text)' : 'var(--green)'}">${fmt(p.montant)}${p.detail?.retenues?.length ? `<div style="font-size:10px;font-weight:400;color:var(--text3)">${t('av.retenue')} ${fmt(p.detail.retenues.reduce((a, r) => a + (parseFloat(r.montant) || 0), 0))}</div>` : ''}</td>
         <td>${_mTr[p.mode]||p.mode||'—'}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecuSalaire('${p.id}')">${t('recu.btn')}</button> ${canDel?`<button class="btn btn-sm btn-d" onclick="delCoachPaie('${p.id}')">${t('msg.suppr')}</button>`:''}</td>
       </tr>`).join('')
@@ -14225,7 +14344,7 @@ async function loadCoachPaies() {
 async function delCoachPaie(id) {
   if (!confirm(t('paie.delete_confirm'))) return;
   await sb.from('salaires_paie').delete().eq('id',id);
-  loadCoachPaies(); loadCoachNonPayes();
+  loadCoachPaies(); loadCoachNonPayes(); loadAvances();
 }
 
 // Montant du mois pour les salariés payés au pourcentage du CA de leurs disciplines (CA du mois à ce jour)
@@ -14275,9 +14394,9 @@ async function majMasseSalariale(emps) {
 async function loadCoachNonPayes() {
   const moisCur = thisMonth();
   const { data: employes } = await sb.from('employes').select('*').order('nom');
-  const { data: paies }    = await sb.from('salaires_paie').select('employe_id,mois').eq('mois',moisCur);
+  const { data: paies }    = await sb.from('salaires_paie').select('employe_id,mois,detail').eq('mois',moisCur);
 
-  const payesIds = new Set((paies||[]).map(p=>p.employe_id));
+  const payesIds = new Set((paies||[]).filter(p => !estAvance(p)).map(p=>p.employe_id));
   const nonPayes = (employes||[]).filter(e => e.remuneration !== 'Semaine' && !payesIds.has(e.id) && e.actif !== false && (e.salaire > 0 || e.remuneration === 'Pourcentage'));
 
   // Paie hebdomadaire : semaines terminées (8 dernières au plus, depuis l'embauche) sans paiement
@@ -14357,8 +14476,10 @@ async function loadCoachRecap() {
   if (!empId || !annee) { zone.innerHTML = ''; return; }
 
   const { data: emp }   = await sb.from('employes').select('*').eq('id',empId).single();
-  const { data: paies } = await sb.from('salaires_paie').select('*')
+  const { data: paiesTout } = await sb.from('salaires_paie').select('*')
     .eq('employe_id',empId).like('mois',annee+'-%').order('mois');
+  const paies = (paiesTout || []).filter(p => !estAvance(p));   // les avances sont listées à part
+  const avancesAn = (paiesTout || []).filter(estAvance).reduce((a, p) => a + (parseFloat(p.montant) || 0), 0);
 
   const MOIS_LABELS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
   const moisPayes = new Set((paies||[]).map(p=>p.mois));
@@ -14389,6 +14510,7 @@ async function loadCoachRecap() {
         <span>Salaire contrat : <strong>${fmt(emp.salaire)}/mois</strong></span>
         <span>Total payé ${annee} : <strong style="color:var(--green)">${fmt(totalAnnee)}</strong></span>
         <span>Mois payés : <strong>${moisPayes.size}/12</strong></span>
+        ${avancesAn ? `<span>${t('av.avances_annee')} : <strong style="color:var(--amber-text)">${fmt(avancesAn)}</strong></span>` : ''}
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">${grid}</div>
@@ -14540,6 +14662,7 @@ async function calculerSalaire(garderSemaine = false) {
   const zone = document.getElementById('co-sal-detail');
   _salCalc = null; zone.style.display = 'none';
   const e = (window._COACHES_LIST || []).find(x => x.id === empId);
+  const boxAv = document.getElementById('co-sal-avance'); boxAv.style.display = 'none'; boxAv.innerHTML = '';
   const hebdo = e?.remuneration === 'Semaine';
   document.getElementById('co-sal-semaine-wrap').style.display = hebdo ? '' : 'none';
   document.getElementById('co-sal-mois-wrap').style.display = hebdo ? 'none' : '';
@@ -14585,6 +14708,158 @@ async function calculerSalaire(garderSemaine = false) {
   document.getElementById('co-sal-mont').value = detail.total || '';
   zone.innerHTML = detailSalaireHtml(detail);
   zone.style.display = '';
+  majRetenuesAvance();
+}
+
+// ════════════════════════════════════════════════════════════
+// AVANCES SUR SALAIRE
+// Une avance = ligne de salaires_paie (detail.type = 'avance') : elle sort de la caisse le jour où elle est donnée.
+// Remboursement : retenue sur les salaires suivants (detail.retenues = [{ avance_id, montant }]),
+// réparti sur la durée choisie à partir du mois de la première retenue.
+// ════════════════════════════════════════════════════════════
+const estAvance = s => s?.detail?.type === 'avance';
+const moisPlus = (m, n) => { const [y, mo] = m.split('-').map(Number); const d = new Date(y, mo - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+const ecartMois = (a, b) => { const [y1, m1] = a.split('-').map(Number), [y2, m2] = b.split('-').map(Number); return (y2 - y1) * 12 + (m2 - m1); };
+const r2 = v => Math.round(v * 100) / 100;
+// Échéancier : même retenue chaque mois, la dernière ajuste les centimes
+function echeancierAvance(montant, nb, debut) {
+  const m = r2(montant / nb);
+  return Array.from({ length: nb }, (_, i) => ({ mois: moisPlus(debut, i), montant: i === nb - 1 ? r2(montant - m * (nb - 1)) : m }));
+}
+// Montant qui aurait dû être retenu jusqu'au mois donné (inclus)
+const prevuAvance = (a, mois) => echeancierAvance(a.montant, a.nb_mois, a.mois_debut).filter(e => e.mois <= mois).reduce((s, e) => s + e.montant, 0);
+const moisFr = m => { const [a, b] = String(m || '').split('-').map(Number); return b ? `${MOIS_LONG_FR[b - 1]} ${a}` : ''; };
+
+let _av = { liste: [], emps: [] };
+async function loadAvances() {
+  const tb = document.getElementById('av-tb'); if (!tb) return;
+  const [re, rs] = await Promise.all([
+    sb.from('employes').select('id,prenom,nom,poste,actif').order('nom'),
+    fetchAllRows(() => sb.from('salaires_paie').select('id,employe_id,mois,montant,mode,created_at,detail').not('detail', 'is', null).order('id'))
+  ]);
+  _av.emps = re.data || [];
+  const lignes = rs.data || [];
+  const ret = {};
+  lignes.forEach(s => (s.detail?.retenues || []).forEach(r => {
+    (ret[r.avance_id] ??= []).push({ salId: s.id, mois: s.mois, montant: parseFloat(r.montant) || 0 });
+  }));
+  _av.liste = lignes.filter(estAvance).map(s => {
+    const d = s.detail, montant = parseFloat(s.montant) || 0;
+    const retenues = (ret[s.id] || []).sort((a, b) => (a.mois || '').localeCompare(b.mois || ''));
+    const rembourse = r2(retenues.reduce((a, r) => a + r.montant, 0));
+    return { id: s.id, empId: s.employe_id, date: d.date || String(s.created_at || '').slice(0, 10), montant, nb_mois: Math.max(1, parseInt(d.nb_mois, 10) || 1),
+      mois_debut: d.mois_debut || s.mois, mode: s.mode, note: d.note || '', retenues, rembourse, reste: Math.max(0, r2(montant - rembourse)) };
+  }).sort((a, b) => b.date.localeCompare(a.date));
+  // Formulaire
+  const sel = document.getElementById('av-emp'), choisi = sel.value;
+  sel.innerHTML = `<option value="">${t('select.choose_employee')}</option>` + _av.emps.filter(e => e.actif !== false)
+    .map(e => `<option value="${e.id}">${echapper(`${e.prenom} ${e.nom}`)}${e.poste ? ' — ' + echapper(e.poste) : ''}</option>`).join('');
+  sel.value = choisi;
+  const du = document.getElementById('av-duree');
+  if (!du.options.length) du.innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}">${i + 1} ${t('av.mois')}</option>`).join('');
+  if (!_av.init) { _av.init = true; document.getElementById('av-date').value = today(); majPlanAvance(true); }   // 1re retenue : le mois qui suit
+  renderAvances();
+  // Le formulaire de paie a pu être ouvert avant le chargement des avances
+  if (document.getElementById('co-sal-emp')?.value && _salCalc) majRetenuesAvance();
+}
+
+function renderAvances() {
+  const tb = document.getElementById('av-tb'); if (!tb) return;
+  const toutes = document.getElementById('av-filtre').value === 'toutes';
+  const liste = _av.liste.filter(a => toutes || a.reste > 0);
+  const enCours = _av.liste.filter(a => a.reste > 0);
+  document.getElementById('av-total').innerHTML = enCours.length
+    ? `${t('av.reste_total')} : <strong style="color:var(--red)">${fmtDH2(enCours.reduce((s, a) => s + a.reste, 0))}</strong> (${enCours.length})` : '';
+  const nomE = id => { const e = _av.emps.find(x => x.id === id); return e ? `${e.prenom} ${e.nom}` : '—'; };
+  const canDel = PERMS.coaches?.supprimer;
+  const moisCour = m => { const [y, mo] = m.split('-'); return `${mo}/${y.slice(2)}`; };
+  tb.innerHTML = liste.length ? liste.map(a => {
+    const fin = moisPlus(a.mois_debut, a.nb_mois - 1), pct = a.montant ? Math.min(100, Math.round(a.rembourse / a.montant * 100)) : 0;
+    const retard = a.reste > 0 ? r2(Math.min(a.montant, prevuAvance(a, moisPlus(thisMonth(), -1))) - a.rembourse) : 0;   // mois terminés non retenus
+    return `<tr>
+      <td><strong>${echapper(nomE(a.empId))}</strong>${a.note ? `<div style="font-size:11px;color:var(--text3)">${echapper(a.note)}</div>` : ''}</td>
+      <td style="white-space:nowrap">${dateFr(a.date)}</td>
+      <td style="white-space:nowrap;font-weight:600">${fmtDH2(a.montant)}</td>
+      <td style="font-size:12px">${a.nb_mois} ${t('av.mois')} × ${fmtDH2(r2(a.montant / a.nb_mois))}<div style="color:var(--text3)">${a.nb_mois > 1 ? `${nomMoisFin(a.mois_debut)} → ${nomMoisFin(fin)}` : nomMoisFin(a.mois_debut)}</div></td>
+      <td style="font-size:12px;min-width:120px"><span style="color:var(--green);font-weight:600">${fmtDH2(a.rembourse)}</span>
+        <div style="height:5px;background:var(--bg3);border-radius:3px;margin:4px 0"><div style="height:5px;width:${pct}%;background:var(--green);border-radius:3px"></div></div>
+        ${a.retenues.length ? `<div style="color:var(--text3)">${a.retenues.map(r => `${moisCour(r.mois)} : ${fmt(r.montant)}`).join(' · ')}</div>` : ''}</td>
+      <td style="white-space:nowrap">${a.reste > 0 ? `<strong style="color:var(--red)">${fmtDH2(a.reste)}</strong>${retard > 0.009 ? `<div><span class="badge b-w" style="font-size:10px">${t('av.retard')} ${fmt(retard)}</span></div>` : ''}` : `<span class="badge b-g">${t('av.soldee')}</span>`}</td>
+      <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecuSalaire('${a.id}')">${t('recu.btn')}</button> ${canDel ? `<button class="btn btn-sm btn-d" onclick="delAvance('${a.id}')">${t('msg.suppr')}</button>` : ''}</td>
+    </tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="7">${t(toutes ? 'av.aucune' : 'av.aucune_cours')}</td></tr>`;
+}
+
+// Aperçu de l'échéancier sous le formulaire
+function majPlanAvance(dateChangee) {
+  const date = document.getElementById('av-date').value || today();
+  const debutEl = document.getElementById('av-debut');
+  if (dateChangee || !debutEl.value) debutEl.value = moisPlus(date.slice(0, 7), 1);   // par défaut : le mois qui suit l'avance
+  const montant = parseFloat(document.getElementById('av-montant').value) || 0, nb = parseInt(document.getElementById('av-duree').value, 10) || 1;
+  const plan = document.getElementById('av-plan');
+  if (!(montant > 0) || !debutEl.value) { plan.textContent = ''; return; }
+  const ech = echeancierAvance(montant, nb, debutEl.value);
+  plan.innerHTML = `${t('av.plan')} : ${ech.map(e => `${nomMoisFin(e.mois)} <strong>${fmtDH2(e.montant)}</strong>`).join(' · ')}`;
+}
+
+async function saveAvance() {
+  const empId = document.getElementById('av-emp').value, montant = r2(parseFloat(document.getElementById('av-montant').value) || 0);
+  const date = document.getElementById('av-date').value || today(), nb = parseInt(document.getElementById('av-duree').value, 10) || 1;
+  const debut = document.getElementById('av-debut').value, note = document.getElementById('av-note').value.trim();
+  if (!empId || !(montant > 0) || !debut) { showToast(t('av.requis'), 'e'); return; }
+  if (debut < date.slice(0, 7)) { showToast(t('av.debut_avant'), 'e'); return; }
+  const e = _av.emps.find(x => x.id === empId);
+  const detail = { type: 'avance', date, nb_mois: nb, mois_debut: debut, total: montant, ...(note ? { note } : {}) };
+  const { data, error } = await sb.from('salaires_paie').insert({ employe_id: empId, mois: date.slice(0, 7), montant, mode: document.getElementById('av-mode').value, created_by: ME.id, detail }).select('id').single();
+  if (error) { showToast(/detail/.test(error.message) ? t('remu.sql') : error.message, 'e'); return; }
+  await logAudit('CREATE', 'coaches', `Avance ${fmt(montant)} — ${e ? e.prenom + ' ' + e.nom : ''} — ${nb} mois à partir de ${debut}`);
+  showToast(t('av.ok'), 's');
+  ['av-montant', 'av-note'].forEach(i => { document.getElementById(i).value = ''; });
+  majPlanAvance();
+  loadAvances(); loadCoachPaies();
+  if (data?.id) ouvrirRecuSalaire(data.id);
+}
+
+async function delAvance(id) {
+  const a = _av.liste.find(x => x.id === id); if (!a) return;
+  if (!confirm(a.retenues.length ? t('av.suppr_retenues').replace('%s', fmtDH2(a.rembourse)) : t('av.suppr_confirm'))) return;
+  const { error } = await sb.from('salaires_paie').delete().eq('id', id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE', 'coaches', `Avance ${fmt(a.montant)} du ${a.date}`);
+  loadAvances(); loadCoachPaies();
+}
+
+// Formulaire de paie : retenue proposée pour chaque avance en cours du salarié
+function majRetenuesAvance() {
+  const box = document.getElementById('co-sal-avance'); if (!box) return;
+  const empId = document.getElementById('co-sal-emp').value, mois = document.getElementById('co-sal-mois').value;
+  const ouvertes = _av.liste.filter(a => a.empId === empId && a.reste > 0 && mois && a.mois_debut <= mois);
+  if (!ouvertes.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.dataset.brut = parseFloat(document.getElementById('co-sal-mont').value) || 0;
+  box.innerHTML = `<div style="margin-top:10px;padding:10px 14px;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.07);border-radius:var(--r);font-size:13px">
+    <div style="font-weight:700;color:var(--amber-text);margin-bottom:6px">${t('av.retenue_titre')}</div>
+    ${ouvertes.map(a => {
+      const prop = r2(Math.min(a.reste, Math.max(0, prevuAvance(a, mois) - a.rembourse)));
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:3px 0">
+        <span>${t('av.avance')} ${t('av.du')} ${dateFr(a.date)} · ${fmtDH2(a.montant)} ${t('av.en')} ${a.nb_mois} ${t('av.mois')} · ${t('av.reste')} <b style="color:var(--red)">${fmtDH2(a.reste)}</b></span>
+        <span style="display:flex;align-items:center;gap:6px">${t('av.retenue')} <input class="av-ret" data-id="${a.id}" data-reste="${a.reste}" data-date="${a.date}" type="number" min="0" max="${a.reste}" step="0.01" value="${prop}" oninput="majNetAvance()" style="width:100px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)"> DH</span>
+      </div>`;
+    }).join('')}
+    <div id="co-sal-net" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(245,158,11,.3)"></div>
+  </div>`;
+  box.style.display = '';
+  majNetAvance();
+}
+// depuisMontant = l'utilisateur a modifié le montant versé : le salaire brut = montant + retenues
+function majNetAvance(depuisMontant) {
+  const box = document.getElementById('co-sal-avance');
+  if (!box || box.style.display === 'none' || !box.innerHTML) return;
+  const ret = r2([...box.querySelectorAll('.av-ret')].reduce((a, i) => a + (parseFloat(i.value) || 0), 0));
+  const mEl = document.getElementById('co-sal-mont');
+  if (depuisMontant) box.dataset.brut = r2((parseFloat(mEl.value) || 0) + ret);
+  const brut = parseFloat(box.dataset.brut) || 0, net = Math.max(0, r2(brut - ret));
+  if (!depuisMontant) mEl.value = net;
+  document.getElementById('co-sal-net').innerHTML = `${t('av.salaire')} ${fmtDH2(brut)} − ${t('av.retenue')} ${fmtDH2(ret)} = <strong style="color:var(--green)">${t('av.net')} ${fmtDH2(net)}</strong>`;
 }
 
 // Montant avec centimes : 1 083,23 DH
@@ -14637,8 +14912,8 @@ async function ouvrirRecuSalaire(id) {
   // En-tête neutre : aucune information sur la structure (logo, nom, adresse, téléphone),
   // uniquement le récapitulatif de paie du salarié
   doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-  doc.text('RÉCAPITULATIF DE PAIE', M, 26);
-  const periodeLib = d.semaine_debut ? `Semaine du ${dateFr(d.semaine_debut)} au ${dateFr(d.semaine_fin || ajouterJours(d.semaine_debut, 6))}` : `Mois : ${moisLib}`;
+  doc.text(d.type === 'avance' ? "REÇU D'AVANCE SUR SALAIRE" : 'RÉCAPITULATIF DE PAIE', M, 26);
+  const periodeLib = d.type === 'avance' ? `Avance du ${dateFr(d.date)}` : d.semaine_debut ? `Semaine du ${dateFr(d.semaine_debut)} au ${dateFr(d.semaine_fin || ajouterJours(d.semaine_debut, 6))}` : `Mois : ${moisLib}`;
   doc.setTextColor(...noir); doc.setFontSize(10); doc.text(periodeLib, W - M, 21, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
   doc.text(`Payé le : ${dateFr(String(p.created_at || '').slice(0, 10))}`, W - M, 26.5, { align: 'right' });
@@ -14650,7 +14925,8 @@ async function ouvrirRecuSalaire(id) {
   doc.setFontSize(8.5); doc.setTextColor(...gris); doc.text('BÉNÉFICIAIRE', M + 5, 55);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...noir); doc.text(`${e.prenom || ''} ${e.nom || ''}`, M + 5, 62);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
-  const modeLib = { Mensuel: 'Salaire mensuel', Groupe: 'Rémunération par groupe', Semaine: 'Rémunération par semaine', Pourcentage: `Pourcentage du CA (${d.pourcentage || 0} %)` }[d.remuneration] || '';
+  const modeLib = d.type === 'avance' ? `Remboursement en ${d.nb_mois || 1} mois à partir de ${moisFr(d.mois_debut)}`
+    : { Mensuel: 'Salaire mensuel', Groupe: 'Rémunération par groupe', Semaine: 'Rémunération par semaine', Pourcentage: `Pourcentage du CA (${d.pourcentage || 0} %)` }[d.remuneration] || '';
   doc.text([e.poste, e.cin ? `CIN : ${e.cin}` : '', modeLib].filter(Boolean).join('     '), M + 5, 68);
 
   // Détail du calcul
@@ -14662,7 +14938,14 @@ async function ouvrirRecuSalaire(id) {
     y += 9; doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
   };
   const ligne = cols => { cols.forEach(([txt, x, al]) => doc.text(String(txt), x, y + 7, al ? { align: al } : undefined)); y += 11; doc.setDrawColor(226, 232, 240); doc.line(M, y, W - M, y); };
-  if (d.remuneration === 'Pourcentage') {
+  if (d.type === 'avance') {
+    const mt = parseFloat(p.montant) || 0;
+    entete([['Désignation', M + 4], ['Montant', W - M - 4, 'right']]);
+    ligne([[`Avance sur salaire du ${dateFr(d.date)}${d.note ? ` (${d.note})` : ''}`, M + 4], [montantPdf(mt), W - M - 4, 'right']]);
+    y += 6; doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text('Remboursement par retenue sur salaire', M, y); y += 4;
+    entete([['Mois de la retenue', M + 4], ['Retenue prévue', W - M - 4, 'right']]);
+    echeancierAvance(mt, Math.max(1, parseInt(d.nb_mois, 10) || 1), d.mois_debut || p.mois).forEach(x => ligne([[moisFr(x.mois), M + 4], [montantPdf(x.montant), W - M - 4, 'right']]));
+  } else if (d.remuneration === 'Pourcentage') {
     entete([['Discipline', M + 4], ['Adhérents', 130, 'right'], ['CA du mois', W - M - 4, 'right']]);
     (d.lignes || []).forEach(l => ligne([[l.sport, M + 4], [l.adherents, 130, 'right'], [montantPdf(l.ca), W - M - 4, 'right']]));
     doc.setFont('helvetica', 'bold');
@@ -14683,6 +14966,9 @@ async function ouvrirRecuSalaire(id) {
     if (d.prorata) ligne([[`Prorata : ${d.prorata.jours}/${d.prorata.jours_mois} jours (embauche le ${dateFr(d.prorata.debut)})`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
   }
 
+  // Retenues sur avance
+  (d.retenues || []).forEach(r => ligne([[`Retenue sur avance${r.date_avance ? ` du ${dateFr(r.date_avance)}` : ''}`, M + 4], [`- ${montantPdf(r.montant)}`, W - M - 4, 'right']]));
+  if (y > 222) { doc.addPage(); y = 20; }
   // Montant versé
   const verse = parseFloat(p.montant) || 0;
   doc.setFillColor(239, 246, 255); doc.rect(W - M - 85, y + 4, 85, 11, 'F');
@@ -14692,7 +14978,8 @@ async function ouvrirRecuSalaire(id) {
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...noir);
   doc.text(doc.splitTextToSize(`Arrêté le présent reçu à la somme de : ${montantEnLettres(verse)}.`, W - 2 * M), M, y);
   y += 7; doc.setTextColor(...gris); doc.text(`Mode de paiement : ${p.mode || '-'}`, M, y);
-  if (Math.abs(verse - (d.total || 0)) > 0.009) { y += 5.5; doc.text(`Montant calculé : ${montantPdf(d.total)} (ajusté lors du paiement)`, M, y); }
+  const attendu = (d.total || 0) - (d.retenues || []).reduce((a, r) => a + (parseFloat(r.montant) || 0), 0);
+  if (d.type !== 'avance' && Math.abs(verse - attendu) > 0.009) { y += 5.5; doc.text(`Montant calculé : ${montantPdf(attendu)} (ajusté lors du paiement)`, M, y); }
 
   // Signatures
   doc.setDrawColor(203, 213, 225); doc.setLineDashPattern([1.2, 1.2], 0);
@@ -14707,7 +14994,7 @@ async function ouvrirRecuSalaire(id) {
   if (_recu?.blobUrl) URL.revokeObjectURL(_recu.blobUrl);
   const blobUrl = URL.createObjectURL(doc.output('blob'));
   _recu = { doc, blobUrl, paiements: [{ id: p.id, numero_recu: null }], numero: `paie-${d.semaine_debut || p.mois}`, client: { prenom: e.prenom, nom: e.nom } };
-  document.getElementById('recu-title').textContent = `${t('remu.recu_title')} — ${e.prenom || ''} ${e.nom || ''}`;
+  document.getElementById('recu-title').textContent = `${t(d.type === 'avance' ? 'av.recu_title' : 'remu.recu_title')} — ${e.prenom || ''} ${e.nom || ''}`;
   document.getElementById('recu-preview').src = blobUrl;
   document.getElementById('btn-recu-mail').style.display = 'none';
   document.getElementById('recu-mail-info').textContent = '';
@@ -15233,7 +15520,8 @@ async function validerSalairePresence() {
   if (!ctx) return;
   const { empId, mois, salaireCalc, emp } = ctx;
   if (!salaireCalc) { showToast('Salaire calculé est 0 — vérifiez les présences','e'); return; }
-  const { data: exist } = await sb.from('salaires_paie').select('id').eq('employe_id',empId).eq('mois',mois).maybeSingle();
+  const { data: existL } = await sb.from('salaires_paie').select('id,detail').eq('employe_id',empId).eq('mois',mois);
+  const exist = (existL || []).find(x => !estAvance(x));   // une avance n'est pas le salaire du mois
   if (exist) {
     if (!confirm(t('presence.pay_exists').replace('%s',`${emp.prenom} ${emp.nom}`).replace('%s',mois).replace('%s',fmt(salaireCalc)))) return;
     await sb.from('salaires_paie').update({ montant:salaireCalc, mode:'Calculé auto', created_by:ME.id }).eq('id',exist.id);
