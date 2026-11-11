@@ -579,6 +579,11 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 html[data-theme="dark"] .bvl-c input{background:var(--bg3)}
 .bvl-c select{width:100%;min-width:0;font-size:13px;padding:9px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)}
 html[data-theme="dark"] .bvl-c select{background:var(--bg3)}
+#rt-lignes input{font-size:13px;padding:7px 9px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)}
+#rt-lignes input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+#rt-lignes input:disabled{opacity:.5}
+html[data-theme="dark"] #rt-lignes input{background:var(--bg3)}
+#rt-modal th,#rt-modal td{padding:8px 8px}
 /* Paiement pour plusieurs personnes */
 .pg-entete,.pg-ligne{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.3fr) minmax(0,1fr) 34px;gap:8px;align-items:start}
 .pg-entete{font-size:12px;color:var(--text2);font-weight:500;padding:0 2px 4px}
@@ -2184,6 +2189,26 @@ html[data-theme="dark"] .bvl-c select{background:var(--bg3)}
         </div>
       </div>
 
+      <div class="mo" id="rt-modal">
+        <div class="mo-box" style="max-width:760px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <div class="mo-title" style="margin-bottom:0">↩ <span data-i18n="rt.title">Retour de marchandise</span></div>
+            <button class="btn btn-sm" onclick="document.getElementById('rt-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <div id="rt-info" style="font-size:13px;margin-bottom:10px"></div>
+          <div style="overflow-x:auto"><table style="font-size:13px"><thead><tr><th data-i18n="bq.article">Article</th><th data-i18n="rt.vendu">Vendu</th><th data-i18n="rt.deja">Déjà retourné</th><th data-i18n="rt.qte">Qté retournée</th><th data-i18n="rt.pu">Remboursé / unité (DH)</th><th style="text-align:end" data-i18n="rt.montant">Montant</th></tr></thead><tbody id="rt-lignes"></tbody></table></div>
+          <div class="fr" style="margin-top:12px">
+            <div class="fg"><label data-i18n="rt.date">Date du retour</label><input id="rt-date" type="date"></div>
+            <div class="fg"><label data-i18n="rt.motif">Motif du retour</label><input id="rt-motif" placeholder="Ex. mauvaise taille, article défectueux…" data-i18n-ph="rt.motif_ph"></div>
+          </div>
+          <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:2px 0 12px;cursor:pointer"><input type="checkbox" id="rt-recu" style="width:auto;margin:0"> <span data-i18n="rt.recu">Le client demande un reçu de retour</span></label>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);font-size:13px">
+            <span data-i18n="rt.a_rembourser">À rembourser au client (sortie de caisse)</span><b id="rt-total" style="color:var(--red);font-size:16px;white-space:nowrap">—</b>
+          </div>
+          <div class="mo-footer"><button class="btn" onclick="document.getElementById('rt-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button><button class="btn btn-d" id="rt-save" onclick="enregistrerRetour()" data-i18n="rt.enregistrer">Enregistrer le retour</button></div>
+        </div>
+      </div>
+
       <div class="mo" id="rj-modal">
         <div class="mo-box" style="max-width:1000px">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:.75rem">
@@ -3186,9 +3211,10 @@ const I18N = {
     'rj.ce_mois':        'Ce mois',
     'rj.base_saisie':    'Paiements au jour de l\'encaissement (saisie)',
     'rj.base_date':      'Paiements à la date du paiement',
-    'rj.note':           'Cliquez sur un jour pour voir le détail. Entrées = paiements des clients + ventes de la boutique (date de la vente, comptées en espèces). Sorties = charges (date de la charge) + salaires (jour où le salaire a été enregistré).',
+    'rj.note':           'Cliquez sur un jour pour voir le détail. Entrées = paiements des clients + ventes de la boutique (date de la vente, comptées en espèces). Sorties = charges (date de la charge) + salaires (jour où le salaire a été enregistré) + retours boutique remboursés.',
     'rj.boutique':       'Boutique',
     'rj.dont_boutique':  'dont boutique',
+    'rj.retour_boutique':'Retour boutique',
     'rj.boutique_ko':    'Ventes de la boutique non lues',
     'rj.entrees':        'Entrées',
     'rj.sorties':        'Sorties',
@@ -3627,6 +3653,33 @@ const I18N = {
     "bq.nom_requis": "Nom de l'article obligatoire",
     "bq.nom_existe": "Un article porte déjà ce nom",
     "bq.sql_27": "Exécutez d'abord le script SQL 27 (Boutique avec stock) dans Supabase.",
+    "rt.title": "Retour de marchandise",
+    "rt.btn": "Retour",
+    "rt.btn_aide": "Le client rapporte un article : remboursement (sortie de caisse) et remise en stock",
+    "rt.vente_du": "vente du",
+    "rt.vendu": "Vendu",
+    "rt.deja": "Déjà retourné",
+    "rt.qte": "Qté retournée",
+    "rt.pu": "Remboursé / unité (DH)",
+    "rt.montant": "Montant",
+    "rt.date": "Date du retour",
+    "rt.motif": "Motif du retour",
+    "rt.motif_ph": "Ex. mauvaise taille, article défectueux…",
+    "rt.recu": "Le client demande un reçu de retour",
+    "rt.a_rembourser": "À rembourser au client (sortie de caisse)",
+    "rt.enregistrer": "Enregistrer le retour",
+    "rt.badge": "Retour",
+    "rt.retourne": "retourné(s)",
+    "rt.annuler": "Annuler le retour",
+    "rt.tout_rendu": "Tous les articles de cette vente ont déjà été retournés.",
+    "rt.trop": "Quantité retournée trop grande pour",
+    "rt.max": "maximum",
+    "rt.aucun": "Indiquez la quantité retournée d'au moins un article.",
+    "rt.ok": "Retour enregistré : %s remboursés, article(s) remis en stock.",
+    "rt.sql_41": "Les retours ne sont pas encore activés. Exécutez le script supabase/41_boutique_retours.sql dans Supabase.",
+    "rt.suppr_confirm": "Annuler ce retour ? Le remboursement sera retiré de la caisse et l'article ressortira du stock.",
+    "rt.suppr_vente_retour": "Cette vente a un retour : annulez d'abord le retour.",
+    "rt.recu_titre": "Reçu de retour",
     "bq.suppr_article_confirm": "Supprimer l'article « %s » ?\nSon historique de stock sera supprimé ; les ventes passées restent enregistrées.\nAstuce : le statut « Archivé » le retire de la vente sans rien effacer.",
     "bq.entree_titre": "Entrée de stock (achat)",
     "bq.inventaire_titre": "Inventaire : stock compté",
@@ -4561,9 +4614,10 @@ const I18N = {
     'rj.ce_mois':        'هذا الشهر',
     'rj.base_saisie':    'الأداءات حسب يوم التحصيل (التسجيل)',
     'rj.base_date':      'الأداءات حسب تاريخ الأداء',
-    'rj.note':           'اضغط على يوم لرؤية التفاصيل. المداخيل = أداءات الزبناء + مبيعات المتجر (تاريخ البيع، نقدا). المصاريف = التكاليف + الأجور (يوم تسجيل الأجر).',
+    'rj.note':           'اضغط على يوم لرؤية التفاصيل. المداخيل = أداءات الزبناء + مبيعات المتجر (تاريخ البيع، نقدا). المصاريف = التكاليف + الأجور (يوم تسجيل الأجر) + المبالغ المستردة عن إرجاع سلع المتجر.',
     'rj.boutique':       'المتجر',
     'rj.dont_boutique':  'منها المتجر',
+    'rj.retour_boutique':'إرجاع للمتجر',
     'rj.boutique_ko':    'تعذرت قراءة مبيعات المتجر',
     'rj.entrees':        'المداخيل',
     'rj.sorties':        'المصاريف',
@@ -5002,6 +5056,33 @@ const I18N = {
     "bq.nom_requis": "اسم المنتج إلزامي",
     "bq.nom_existe": "يوجد منتج بنفس الاسم",
     "bq.sql_27": "نفّذ أولاً سكريبت SQL رقم 27 (المتجر مع المخزون) في Supabase.",
+    "rt.title": "إرجاع سلعة",
+    "rt.btn": "إرجاع",
+    "rt.btn_aide": "الزبون يرجع سلعة: استرداد المبلغ (خروج من الصندوق) وإعادتها للمخزون",
+    "rt.vente_du": "بيع بتاريخ",
+    "rt.vendu": "المباع",
+    "rt.deja": "أُرجع سابقا",
+    "rt.qte": "الكمية المرجعة",
+    "rt.pu": "المبلغ المسترد للوحدة (درهم)",
+    "rt.montant": "المبلغ",
+    "rt.date": "تاريخ الإرجاع",
+    "rt.motif": "سبب الإرجاع",
+    "rt.motif_ph": "مثلا: مقاس غير مناسب، سلعة معيبة…",
+    "rt.recu": "الزبون يطلب وصل إرجاع",
+    "rt.a_rembourser": "المبلغ المسترد للزبون (خروج من الصندوق)",
+    "rt.enregistrer": "تسجيل الإرجاع",
+    "rt.badge": "إرجاع",
+    "rt.retourne": "مُرجع",
+    "rt.annuler": "إلغاء الإرجاع",
+    "rt.tout_rendu": "جميع سلع هذا البيع أُرجعت من قبل.",
+    "rt.trop": "الكمية المرجعة أكبر من المسموح لـ",
+    "rt.max": "الحد الأقصى",
+    "rt.aucun": "أدخل الكمية المرجعة لسلعة واحدة على الأقل.",
+    "rt.ok": "تم تسجيل الإرجاع: %s مستردة، والسلعة أعيدت للمخزون.",
+    "rt.sql_41": "الإرجاع غير مفعل بعد. نفّذ السكريبت supabase/41_boutique_retours.sql في Supabase.",
+    "rt.suppr_confirm": "إلغاء هذا الإرجاع؟ سيُحذف المبلغ المسترد من الصندوق وتخرج السلعة من المخزون.",
+    "rt.suppr_vente_retour": "لهذا البيع إرجاع: ألغِ الإرجاع أولا.",
+    "rt.recu_titre": "وصل إرجاع",
     "bq.suppr_article_confirm": "حذف المنتج « %s » ؟\nسيُحذف سجل مخزونه، وتبقى المبيعات السابقة مسجلة.\nنصيحة : الحالة « مؤرشف » تزيله من البيع دون حذف أي شيء.",
     "bq.entree_titre": "إدخال إلى المخزون (شراء)",
     "bq.inventaire_titre": "الجرد : المخزون المعدود",
@@ -10659,11 +10740,14 @@ function renderVentes() {
   const liste = _bt.ventes.filter(v => !q || `${nomClientVente(v)} ${v.article || ''}`.toLowerCase().includes(q));
   const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
   document.getElementById('bv-tb').innerHTML = liste.length ? liste.map(v => {
-    const qte = qteVente(v), pv = parseFloat(v.prix_vente) || 0;
+    const qte = qteVente(v), pv = parseFloat(v.prix_vente) || 0, ret = qte < 0;
     const libre = !v.produit_id ? ` <span class="badge b-i" style="font-size:9px" title="${echapper(t('bq.hors_catalogue_aide'))}">${t('bq.hors_catalogue')}</span>` : '';
-    return `<tr><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || `<span style="color:var(--text3)">${t('bq.passage')}</span>`}</td>
-      <td><strong>${echapper(v.article || '—')}</strong>${libre}</td><td>${qte}</td><td>${fmtDH2(pv)}</td><td><strong>${fmtDH2(qte * pv)}</strong></td>
-      <td><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-sm" onclick="recuVenteListe('${v.id}')" title="${echapper(t('bq.recu_aide'))}">🧾 ${t('bq.recu')}</button>${canW ? `<button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
+    const rendu = ret ? 0 : _bt.ventes.filter(x => x.retour_de === v.id).reduce((a, x) => a - qteVente(x), 0);
+    const marque = ret ? ` <span class="badge b-d" style="font-size:9px">↩ ${t('rt.badge')}</span>${v.note ? `<div style="font-size:11px;color:var(--text3)">${echapper(v.note)}</div>` : ''}`
+      : rendu ? ` <span class="badge b-w" style="font-size:9px">↩ ${rendu} ${t('rt.retourne')}</span>` : '';
+    return `<tr${ret ? ' style="background:rgba(239,68,68,.04)"' : ''}><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || `<span style="color:var(--text3)">${t('bq.passage')}</span>`}</td>
+      <td><strong>${echapper(v.article || '—')}</strong>${libre}${marque}</td><td${ret ? ' style="color:var(--red)"' : ''}>${qte}</td><td>${fmtDH2(pv)}</td><td><strong${ret ? ' style="color:var(--red)"' : ''}>${fmtDH2(qte * pv)}</strong></td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-sm" onclick="recuVenteListe('${v.id}')" title="${echapper(t('bq.recu_aide'))}">🧾 ${t('bq.recu')}</button>${canW && !ret ? `<button class="btn btn-sm" onclick="ouvrirRetour('${v.id}')" title="${echapper(t('rt.btn_aide'))}">↩ ${t('rt.btn')}</button><button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${ret ? t('rt.annuler') : t('msg.suppr')}</button>` : ''}</div></td></tr>`;
   }).join('') : `<tr class="empty-row"><td colspan="7">${t(q ? 'bq.aucune_recherche' : 'bq.aucune_mois')}</td></tr>`;
 }
 
@@ -10824,12 +10908,86 @@ async function saveVente() {
 }
 
 // Reçu d'une vente de la liste : tous les articles enregistrés ensemble
-function recuVenteListe(id) {
-  const v = _bt.ventes.find(x => x.id === id); if (!v) return;
-  const groupe = v.created_at
+function groupeVente(v) {
+  return v.created_at
     ? _bt.ventes.filter(x => x.created_at === v.created_at && x.date_vente === v.date_vente && (x.client_id || null) === (v.client_id || null) && (x.client_nom || null) === (v.client_nom || null))
     : [v];
-  ouvrirRecuVente(groupe);
+}
+function recuVenteListe(id) {
+  const v = _bt.ventes.find(x => x.id === id); if (!v) return;
+  ouvrirRecuVente(groupeVente(v).filter(x => (qteVente(x) < 0) === (qteVente(v) < 0)));
+}
+
+// ── Retours de marchandise (script 41) ──
+// Un retour = ligne de vente à quantité négative reliée à la vente d'origine (retour_de) :
+// le montant est négatif (la caisse baisse) et le stock remonte (mouvement « Retour »).
+let _rt = null;
+async function ouvrirRetour(id) {
+  const v = _bt.ventes.find(x => x.id === id); if (!v || qteVente(v) < 0) return;
+  const lignes = groupeVente(v).filter(x => qteVente(x) > 0);
+  const { data: deja, error } = await sb.from('ventes').select('id,quantite,retour_de').in('retour_de', lignes.map(x => x.id));
+  if (error) { showToast(/retour_de|column|schema cache/i.test(error.message) ? t('rt.sql_41') : error.message, 'e'); return; }
+  const rendu = {}; (deja || []).forEach(x => { rendu[x.retour_de] = (rendu[x.retour_de] || 0) - qteVente(x); });
+  _rt = { lignes: lignes.map(x => ({ v: x, vendu: qteVente(x), rendu: rendu[x.id] || 0 })) };
+  if (!_rt.lignes.some(l => l.vendu - l.rendu > 0)) { showToast(t('rt.tout_rendu'), 's'); _rt = null; return; }
+  const quand = v.created_at && !isNaN(new Date(v.created_at)) ? new Date(v.created_at) : null;
+  document.getElementById('rt-info').innerHTML = `<b>${echapper(nomClientVente(v) || t('bq.passage'))}</b> · ${t('rt.vente_du')} ${dateFr(v.date_vente)}${quand ? ` · ${t('bq.recu')} ${numeroRecuVente(quand)}` : ''}`;
+  const seul = _rt.lignes.filter(l => l.vendu - l.rendu > 0).length === 1;
+  document.getElementById('rt-lignes').innerHTML = _rt.lignes.map(l => {
+    const max = l.vendu - l.rendu, dis = max > 0 ? '' : 'disabled';
+    return `<tr><td><strong>${echapper(l.v.article || '—')}</strong></td><td>${l.vendu}</td><td>${l.rendu || '—'}</td>
+      <td><input class="rt-qte" type="number" min="0" max="${max}" step="1" value="${seul && max > 0 ? max : 0}" ${dis} oninput="majRetour()" style="width:64px"></td>
+      <td><input class="rt-pu" type="number" min="0" step="0.01" value="${parseFloat(l.v.prix_vente) || 0}" ${dis} oninput="majRetour()" style="width:90px"></td>
+      <td class="rt-mnt" style="text-align:end;font-weight:600;white-space:nowrap">—</td></tr>`;
+  }).join('');
+  document.getElementById('rt-date').value = today();
+  document.getElementById('rt-motif').value = '';
+  document.getElementById('rt-recu').checked = false;
+  majRetour();
+  document.getElementById('rt-modal').classList.add('open');
+}
+function rtSaisie() {
+  const q = [...document.querySelectorAll('#rt-lignes .rt-qte')], pu = [...document.querySelectorAll('#rt-lignes .rt-pu')];
+  return _rt.lignes.map((l, i) => ({ ...l, qte: parseInt(q[i].value, 10) || 0, pu: parseFloat(pu[i].value) || 0, max: l.vendu - l.rendu }));
+}
+function majRetour() {
+  if (!_rt) return;
+  const cells = document.querySelectorAll('#rt-lignes .rt-mnt');
+  let tot = 0;
+  rtSaisie().forEach((l, i) => {
+    cells[i].textContent = l.qte ? fmtDH2(l.qte * l.pu) : '—';
+    cells[i].style.color = l.qte > l.max || l.qte < 0 ? 'var(--red)' : '';
+    if (l.qte > 0) tot += l.qte * l.pu;
+  });
+  document.getElementById('rt-total').textContent = fmtDH2(tot);
+  document.getElementById('rt-save').textContent = t('rt.enregistrer') + (tot ? ` · ${fmtDH2(tot)}` : '');
+}
+async function enregistrerRetour() {
+  if (!_rt) return;
+  const saisie = rtSaisie();
+  const trop = saisie.find(l => l.qte > l.max || l.qte < 0);
+  if (trop) { showToast(`${t('rt.trop')} « ${trop.v.article} » (${t('rt.max')} : ${trop.max})`, 'e'); return; }
+  const lignes = saisie.filter(l => l.qte > 0);
+  if (!lignes.length) { showToast(t('rt.aucun'), 'e'); return; }
+  const motif = document.getElementById('rt-motif').value.trim();
+  const date = document.getElementById('rt-date').value || today();
+  const objs = lignes.map(l => ({
+    date_vente: date, client_id: l.v.client_id || null, client_nom: l.v.client_id ? null : (l.v.client_nom || null),
+    article: l.v.article, prix_achat: parseFloat(l.v.prix_achat) || 0, prix_vente: l.pu,
+    produit_id: l.v.produit_id || null, quantite: -l.qte, retour_de: l.v.id, ...(motif ? { note: motif } : {})
+  }));
+  const total = lignes.reduce((a, l) => a + l.qte * l.pu, 0);
+  const btn = document.getElementById('rt-save'); btn.disabled = true;
+  const res = await sb.from('ventes').insert(objs).select('id,created_at,created_by');
+  btn.disabled = false;
+  if (res.error) { showToast(/retour_de|quantite_positive|check constraint|note|column|schema cache|facture fournisseur/i.test(res.error.message) ? t('rt.sql_41') : res.error.message, 'e'); return; }
+  await logAudit('CREATE', 'boutique', `Retour ${lignes.map(l => `${l.qte} × ${l.v.article}`).join(', ')} — ${fmtDH2(total)}${motif ? ' — ' + motif : ''}`);
+  const recu = document.getElementById('rt-recu').checked;
+  document.getElementById('rt-modal').classList.remove('open');
+  _rt = null;
+  showToast(t('rt.ok').replace('%s', fmtDH2(total)), 's');
+  await loadBoutique();
+  if (recu) ouvrirRecuVente(objs.map((o, k) => ({ ...o, ...((Array.isArray(res.data) && res.data[k]) || {}) })));
 }
 
 function numeroRecuVente(d) {
@@ -10851,9 +11009,13 @@ async function ouvrirRecuVente(rows) {
       if (prof) vendeur = `${prof.prenom || ''} ${prof.nom || ''}`.trim();
     } catch (_) {}
   }
+  const retour = rows.every(v => qteVente(v) < 0);
+  const orig = retour && _bt.ventes.find(x => x.id === v0.retour_de);
   const r = {
-    numero: numeroRecuVente(quand), date: v0.date_vente, client, passage: !c, vendeur,
-    lignes: rows.map(v => ({ article: v.article || '-', qte: qteVente(v), pu: parseFloat(v.prix_vente) || 0 }))
+    numero: (retour ? 'RT' : 'V') + numeroRecuVente(quand).slice(1), date: v0.date_vente, client, passage: !c, vendeur, retour,
+    ref: orig?.created_at && !isNaN(new Date(orig.created_at)) ? numeroRecuVente(new Date(orig.created_at)) : '',
+    dateVente: orig?.date_vente || '', motif: retour ? (v0.note || '') : '',
+    lignes: rows.map(v => ({ article: v.article || '-', qte: Math.abs(qteVente(v)), pu: parseFloat(v.prix_vente) || 0 }))
   };
   r.total = r.lignes.reduce((a, l) => a + l.qte * l.pu, 0);
   r.nb = r.lignes.reduce((a, l) => a + l.qte, 0);
@@ -10864,7 +11026,7 @@ async function ouvrirRecuVente(rows) {
   const blobUrl = URL.createObjectURL(doc.output('blob'));
   _recu = { doc, blobUrl, paiements: [{ id: null, numero_recu: r.numero, montant: r.total }], numero: r.numero, client, vente: r };
   try { const l = localStorage.getItem('ticket_largeur'); if (l) document.getElementById('recu-ticket-largeur').value = l; } catch (_) {}
-  document.getElementById('recu-title').textContent = `${t('bq.recu_titre')} ${r.numero}`;
+  document.getElementById('recu-title').textContent = `${t(retour ? 'rt.recu_titre' : 'bq.recu_titre')} ${r.numero}`;
   document.getElementById('recu-preview').src = blobUrl;
   document.getElementById('btn-recu-mail').style.display = 'none';      // l'envoi par mail concerne les paiements
   document.getElementById('btn-recu-email-add').style.display = 'none';
@@ -10878,7 +11040,7 @@ async function genererRecuVentePdf(r) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = 210, M = 18;
-  const bleu = [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42];
+  const bleu = r.retour ? [220, 38, 38] : [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42];   // retour : en rouge
   const fD = s => s ? s.split('-').reverse().join('/') : '-';
   const c = r.client || {};
 
@@ -10893,7 +11055,7 @@ async function genererRecuVentePdf(r) {
   doc.text(RECU_ASSO.adresse, xTxt, 31);
   doc.text(`Tél. ${RECU_ASSO.tel}  |  ${RECU_ASSO.email}`, xTxt, 35.5);
   doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
-  doc.text('REÇU DE VENTE', W - M, 21, { align: 'right' });
+  doc.text(r.retour ? 'REÇU DE RETOUR' : 'REÇU DE VENTE', W - M, 21, { align: 'right' });
   doc.setTextColor(...noir); doc.setFontSize(10);
   doc.text(`N° ${r.numero}`, W - M, 28, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
@@ -10918,7 +11080,7 @@ async function genererRecuVentePdf(r) {
   const entete = () => {
     doc.setFillColor(...bleu); doc.rect(M, y, W - 2 * M, 9, 'F');
     doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
-    doc.text('Article', cDes, y + 6); doc.text('Qté', cQte, y + 6, { align: 'center' });
+    doc.text(r.retour ? 'Article retourné' : 'Article', cDes, y + 6); doc.text('Qté', cQte, y + 6, { align: 'center' });
     doc.text('Prix unitaire', cPu, y + 6, { align: 'right' }); doc.text('Montant', cMnt, y + 6, { align: 'right' });
     y += 9; doc.setTextColor(...noir); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
   };
@@ -10937,18 +11099,24 @@ async function genererRecuVentePdf(r) {
 
   // Total, montant en lettres, signature
   if (y + 62 > 272) { doc.addPage(); y = 20; }
-  doc.setFillColor(239, 246, 255); doc.rect(W - M - 80, y + 4, 80, 11, 'F');
+  if (r.retour) doc.setFillColor(254, 242, 242); else doc.setFillColor(239, 246, 255);
+  doc.rect(W - M - 80, y + 4, 80, 11, 'F');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
-  doc.text('TOTAL', W - M - 76, y + 11.5);
+  doc.text(r.retour ? 'REMBOURSÉ' : 'TOTAL', W - M - 76, y + 11.5);
   doc.text(montantPdf(r.total), cMnt, y + 11.5, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
-  doc.text(`${r.nb} article${r.nb > 1 ? 's' : ''}`, M, y + 11.5);
+  doc.text(`${r.nb} article${r.nb > 1 ? 's' : ''}${r.retour ? ` retourné${r.nb > 1 ? 's' : ''}` : ''}`, M, y + 11.5);
   y += 24;
   doc.setFontSize(9.5); doc.setTextColor(...noir);
-  doc.text(doc.splitTextToSize(`Arrêté le présent reçu à la somme de : ${montantEnLettres(r.total)}.`, W - 2 * M), M, y);
+  doc.text(doc.splitTextToSize(r.retour ? `Somme remboursée au client : ${montantEnLettres(r.total)}.` : `Arrêté le présent reçu à la somme de : ${montantEnLettres(r.total)}.`, W - 2 * M), M, y);
   y += 8;
+  if (r.retour) {
+    doc.setTextColor(...gris);
+    const det = [r.ref ? `Vente d'origine : ${r.ref}${r.dateVente ? ` du ${fD(r.dateVente)}` : ''}` : '', r.motif ? `Motif : ${r.motif}` : ''].filter(Boolean);
+    det.forEach(x => { doc.text(doc.splitTextToSize(x, W - 2 * M - 80), M, y); y += 6; });
+  }
   doc.setTextColor(...gris);
-  if (r.vendeur) doc.text(`Vendu par : ${r.vendeur}`, M, y);
+  if (r.vendeur) doc.text(`${r.retour ? 'Retour enregistré par' : 'Vendu par'} : ${r.vendeur}`, M, y);
   doc.setDrawColor(203, 213, 225); doc.setLineDashPattern([1.2, 1.2], 0);
   doc.roundedRect(W - M - 70, y + 6, 70, 28, 2, 2, 'S');
   doc.setLineDashPattern([], 0);
@@ -10961,7 +11129,7 @@ async function genererRecuVentePdf(r) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gris);
     doc.text(`${RECU_ASSO.nom} - ${RECU_ASSO.adresse} - Merci de votre confiance`, W / 2, 285, { align: 'center' });
   }
-  doc.setProperties({ title: `Reçu de vente ${r.numero}`, author: 'Association Les Collines' });
+  doc.setProperties({ title: `${r.retour ? 'Reçu de retour' : 'Reçu de vente'} ${r.numero}`, author: 'Association Les Collines' });
   return doc;
 }
 
@@ -10993,10 +11161,11 @@ function imprimerTicketVente() {
     <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
     <div class="c pt">${e(RECU_ASSO.adresse)}<br>Tél. ${e(RECU_ASSO.tel)}<br>${e(RECU_ASSO.email)}</div>
     <div class="sep"></div>
-    <div class="c titre">REÇU DE VENTE</div>
+    <div class="c titre">${r.retour ? 'REÇU DE RETOUR' : 'REÇU DE VENTE'}</div>
     <div class="c pt">Boutique</div>
     <div class="c"><b>N° ${e(r.numero)}</b></div>
-    <div class="kv"><span>Date</span><b>${fD(r.date)}</b></div>
+    <div class="kv"><span>${r.retour ? 'Date du retour' : 'Date'}</span><b>${fD(r.date)}</b></div>
+    ${r.retour && r.ref ? `<div class="kv pt"><span>Vente d'origine</span><span>${e(r.ref)}${r.dateVente ? ` du ${fD(r.dateVente)}` : ''}</span></div>` : ''}
     <div class="kv pt"><span>Imprimé le</span><span>${imprime}</span></div>
     <div class="sep"></div>
     <div class="kv"><span>Client</span><b>${e(nom || 'Client de passage')}</b></div>
@@ -11004,10 +11173,11 @@ function imprimerTicketVente() {
     <div class="sep"></div>
     ${lignes}
     <div class="sep"></div>
-    <div class="kv pt"><span>Nombre d'articles</span><span>${r.nb}</span></div>
-    <div class="total"><span>TOTAL</span><span>${mt(r.total)}</span></div>
-    <div class="pt">Arrêté à la somme de : ${e(montantEnLettres(r.total))}.</div>
-    ${r.vendeur ? `<div class="sep"></div><div class="kv"><span>Vendu par</span><b>${e(r.vendeur)}</b></div>` : ''}
+    <div class="kv pt"><span>${r.retour ? 'Articles retournés' : "Nombre d'articles"}</span><span>${r.nb}</span></div>
+    <div class="total"><span>${r.retour ? 'REMBOURSÉ' : 'TOTAL'}</span><span>${mt(r.total)}</span></div>
+    <div class="pt">${r.retour ? 'Somme remboursée' : 'Arrêté à la somme de'} : ${e(montantEnLettres(r.total))}.</div>
+    ${r.retour && r.motif ? `<div class="pt">Motif : ${e(r.motif)}</div>` : ''}
+    ${r.vendeur ? `<div class="sep"></div><div class="kv"><span>${r.retour ? 'Retour par' : 'Vendu par'}</span><b>${e(r.vendeur)}</b></div>` : ''}
     <div class="sep"></div>
     <div class="c merci">Merci de votre confiance !</div>
     <div class="c pt">Conservez ce ticket comme justificatif.</div>
@@ -11019,11 +11189,13 @@ function imprimerTicketVente() {
 }
 
 async function delVente(id) {
-  const v = _bt.ventes.find(x => x.id === id);
-  if (!confirm(`${t('bq.suppr_confirm')} « ${v?.article || ''} » ?${v?.produit_id ? '\n' + t('bq.suppr_stock_remis') : ''}`)) return;
+  const v = _bt.ventes.find(x => x.id === id), ret = v && qteVente(v) < 0;
+  if (!ret && _bt.ventes.some(x => x.retour_de === id)) { showToast(t('rt.suppr_vente_retour'), 'e'); return; }
+  if (!confirm(ret ? `${t('rt.suppr_confirm')}\n« ${v.article || ''} »`
+    : `${t('bq.suppr_confirm')} « ${v?.article || ''} » ?${v?.produit_id ? '\n' + t('bq.suppr_stock_remis') : ''}`)) return;
   const { error } = await sb.from('ventes').delete().eq('id', id);
-  if (error) { showToast(error.message, 'e'); return; }
-  await logAudit('DELETE', 'boutique', `Vente ${v?.article || id}`);
+  if (error) { showToast(/retour_de|foreign key/i.test(error.message) ? t('rt.suppr_vente_retour') : error.message, 'e'); return; }
+  await logAudit('DELETE', 'boutique', `${ret ? 'Retour annulé' : 'Vente'} ${v?.article || id}`);
   if (document.getElementById('bv-id').value === id) resetVente();
   loadBoutique();
 }
@@ -13047,8 +13219,9 @@ async function loadSoldeJour() {
   ]);
   if (rp.error) { el.textContent = '—'; sub.textContent = ''; return; }
   const som = (r, f) => (r.error ? [] : r.data || []).reduce((a, x) => a + f(x), 0);
-  const entrees = som(rp, x => parseFloat(x.montant) || 0) + som(rv, x => (parseInt(x.quantite, 10) || 1) * (parseFloat(x.prix_vente) || 0));
-  const sorties = som(rc, x => parseFloat(x.montant) || 0) + som(rs, x => parseFloat(x.montant) || 0);
+  const mv = x => (parseInt(x.quantite, 10) || 1) * (parseFloat(x.prix_vente) || 0);   // retour boutique : négatif
+  const entrees = som(rp, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, mv(x)));
+  const sorties = som(rc, x => parseFloat(x.montant) || 0) + som(rs, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, -mv(x)));
   const solde = entrees - sorties;
   el.textContent = fmt(solde);
   el.style.color = solde < 0 ? 'var(--red)' : solde > 0 ? 'var(--green)' : 'var(--text3)';
@@ -13110,8 +13283,14 @@ async function chargerRapportJour() {
     if (!x.date_vente) return;
     const q = parseInt(x.quantite, 10) || 1, v = q * (parseFloat(x.prix_vente) || 0), o = jour(x.date_vente);
     if (!v) return;
-    o.entrees += v; o.boutique += v;
     const client = x.clients ? `${x.clients.prenom || ''} ${x.clients.nom || ''}`.trim() : (x.client_nom || '');
+    if (q < 0) {   // retour de marchandise : remboursement = sortie de caisse
+      o.sorties += -v;
+      o.lignesS.push({ heure: heure(x.created_at), qui: `${-q > 1 ? -q + ' × ' : ''}${x.article || t('rj.boutique')}`, quoi: t('rj.retour_boutique'),
+        mode: 'Espèces', note: [client, x.note].filter(Boolean).join(' · '), montant: -v });
+      return;
+    }
+    o.entrees += v; o.boutique += v;
     o.lignesE.push({ heure: heure(x.created_at), qui: `${q > 1 ? q + ' × ' : ''}${x.article || t('rj.boutique')}`, quoi: t('rj.boutique'),
       mode: '', note: client, montant: v, boutique: true });
   });
