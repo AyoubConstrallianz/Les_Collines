@@ -22,6 +22,8 @@ app.set('views', path.join(__dirname, 'views'));
 
 // ── API (avant le parseur JSON global : accepte des PDF jusqu'à 3 Mo) ──
 app.use('/api', apiRouter);
+// Appareils de contrôle d'accès ZKTeco (texte brut, sans session)
+app.use('/iclock', require('./routes/iclock'));
 
 // ── Middleware ──
 app.use(express.urlencoded({ extended: true }));

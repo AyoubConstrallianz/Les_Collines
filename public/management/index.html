@@ -692,6 +692,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
 .al-s{background:var(--green-bg);color:var(--green-text);border-left-color:var(--green)}
 .al-e{background:var(--red-bg);color:var(--red-text);border-left-color:var(--red)}
 .al-i{background:var(--blue-bg);color:var(--blue-text);border-left-color:var(--blue)}
+.al-w{background:var(--amber-bg);color:var(--amber-text);border-left-color:var(--amber-text)}
 
 /* ══════════════════════════════════════════
    TOOLBAR
@@ -964,6 +965,10 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
           <button class="nav" data-page="paiements" onclick="nav('paiements',this)">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
             <span data-i18n="nav.paiements_text">Paiements</span>
+          </button>
+          <button class="nav" data-page="acces" onclick="nav('acces',this)">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><circle cx="14.5" cy="12" r="1"/></svg>
+            <span data-i18n="nav.acces_text">Accès & Portes</span>
           </button>
         </div>
       </div>
@@ -1491,6 +1496,72 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
       </div>
 
       <!-- SPORTS -->
+      <div id="page-acces" class="page">
+        <p class="ptitle" data-i18n="ac.title">Accès & Portes</p>
+        <p class="psubtitle" data-i18n="ac.subtitle">Appareils de reconnaissance faciale : qui peut entrer par quelle porte, et les entrées du jour</p>
+        <div id="ac-alerte"></div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.75rem">
+            <div class="ct" style="margin-bottom:0" data-i18n="ac.appareils">Appareils</div>
+            <button class="btn btn-sm ac-ecrire" onclick="synchroAcces(null, false)" data-i18n="ac.synchro_tout">↻ Synchroniser les deux portes</button>
+          </div>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th data-i18n="ac.appareil">Appareil</th><th data-i18n="ac.serie">N° de série</th><th data-i18n="ac.porte">Porte</th><th data-i18n="ac.etat">État</th><th data-i18n="ac.sur_appareil">Sur l'appareil</th><th data-i18n="ac.en_attente">Envois en attente</th><th class="ac-ecrire" data-i18n="common.actions">Actions</th></tr></thead>
+            <tbody id="ac-app-tb"></tbody>
+          </table></div>
+          <details style="margin-top:10px;font-size:12px;color:var(--text2)">
+            <summary style="cursor:pointer;font-weight:600" data-i18n="ac.reglage_titre">Réglage d'un appareil (Menu → COMM → Configuration Serveur Cloud)</summary>
+            <table style="margin-top:6px;max-width:460px"><tbody>
+              <tr><td>Mode Serveur</td><td><strong>ADMS</strong></td></tr>
+              <tr><td>Activer le nom de domaine</td><td><strong>Oui</strong></td></tr>
+              <tr><td>Adresse du serveur</td><td><strong>www.lescollinesfitness.com</strong></td></tr>
+              <tr><td>Port du serveur</td><td><strong>443</strong></td></tr>
+              <tr><td>Permettre Serveur Proxy</td><td><strong>Non</strong></td></tr>
+              <tr><td>HTTPS</td><td><strong>Oui</strong></td></tr>
+            </tbody></table>
+            <p style="margin-top:6px" data-i18n="ac.reglage_aide">Enregistrement d'un visage : sur l'appareil, Menu → Utilisateurs → Nouvel utilisateur, avec comme ID le N° d'adhérent du client (ou le N° d'accès du salarié). Le visage est gardé par le site et envoyé automatiquement à l'autre porte si le client y a droit.</p>
+          </details>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="ct" data-i18n="ac.disciplines">Porte de chaque discipline</div>
+            <div style="overflow-x:auto"><table>
+              <thead><tr><th data-i18n="ac.discipline">Discipline</th><th data-i18n="sports.lbl_coach">Coach</th><th data-i18n="ac.porte">Porte</th></tr></thead>
+              <tbody id="ac-sports-tb"></tbody>
+            </table></div>
+            <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="ac.disciplines_aide">Un client à jour de son abonnement entre par la porte de chacune de ses disciplines. Une discipline sans porte ne donne accès à aucune porte.</p>
+          </div>
+          <div class="card">
+            <div class="ct" data-i18n="ac.personnel">Personnel</div>
+            <div style="overflow-x:auto"><table>
+              <thead><tr><th data-i18n="coaches.salarie">Salarié</th><th data-i18n="ac.num_acces">N° d'accès</th><th data-i18n="ac.portes">Portes</th><th data-i18n="ac.visage">Visage</th></tr></thead>
+              <tbody id="ac-emp-tb"></tbody>
+            </table></div>
+            <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="ac.personnel_aide">Un coach passe par les portes de ses disciplines ; les autres salariés actifs par les deux portes. Un salarié inactif est retiré des appareils.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.75rem">
+            <div class="ct" style="margin-bottom:0"><span data-i18n="ac.entrees">Entrées</span> <span id="ac-ent-total" style="font-weight:400;font-size:12px;color:var(--text2)"></span></div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="ac-date" type="date" onchange="loadEntreesAcces()" style="width:auto">
+              <select id="ac-porte-f" onchange="loadEntreesAcces()" style="width:auto"><option value="" data-i18n="ac.toutes_portes">Toutes les portes</option><option value="1">Porte 1</option><option value="2">Porte 2</option></select>
+              <input id="ac-search" placeholder="Nom ou N°" oninput="renderEntreesAcces()" style="width:150px">
+            </div>
+          </div>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th data-i18n="ac.heure">Heure</th><th data-i18n="ac.porte">Porte</th><th data-i18n="ac.numero">N°</th><th data-i18n="ac.nom">Nom</th><th data-i18n="ac.qui">Type</th></tr></thead>
+            <tbody id="ac-ent-tb"></tbody>
+          </table></div>
+        </div>
+        <div class="card ac-ecrire">
+          <details ontoggle="if(this.open) loadJournalAcces()">
+            <summary style="cursor:pointer;font-weight:600;font-size:13px" data-i18n="ac.journal">Journal technique (échanges avec les appareils)</summary>
+            <div id="ac-journal" style="margin-top:8px;font-size:11px;font-family:monospace;white-space:pre-wrap;max-height:420px;overflow:auto"></div>
+          </details>
+        </div>
+      </div>
+
       <div id="page-sports" class="page">
         <p class="ptitle" data-i18n="sports.title">Sports & Tarifs</p>
         <p class="psubtitle" data-i18n="sports.subtitle">Configurez les disciplines et leurs tarifs</p>
@@ -1509,6 +1580,10 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <div class="fr">
               <div class="fg"><label data-i18n="sports.coach">Coach assigné</label><select id="s-coach"><option value="">— Aucun coach —</option></select></div>
               <div class="fg"><label data-i18n="sports.horaires">Horaires</label><input id="s-horaires" placeholder="Lun-Mer 18h-20h"></div>
+            </div>
+            <div class="fr">
+              <div class="fg"><label data-i18n="ac.porte_sport">Porte (contrôle d'accès)</label><select id="s-porte"><option value="" data-i18n="ac.porte_nd">— Non définie —</option><option value="1">Porte 1</option><option value="2">Porte 2</option><option value="0" data-i18n="ac.porte_deux">Les deux portes</option></select></div>
+              <div class="fg"></div>
             </div>
             <div class="fg" style="margin-bottom:10px"><label data-i18n="sports.desc">Description</label><textarea id="s-desc" rows="2" style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text)"></textarea></div>
             <div class="btns"><button class="btn btn-p" onclick="saveSport()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="resetSportForm()" data-i18n="common.annuler">Annuler</button></div>
@@ -2886,10 +2961,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // ── État global ─────────────────────────────────────────────
 let ME = null;      // utilisateur connecté
 let PERMS = {};     // habilitations
-const MODULES = ['dashboard','clients','paiements','sports','charges','coaches','presence','salaires','planning','boutique','stats','associes','utilisateurs'];
+const MODULES = ['dashboard','clients','paiements','acces','sports','charges','coaches','presence','salaires','planning','boutique','stats','associes','utilisateurs'];
 function getModuleLabels() {
   return {
-    dashboard:t('nav.dashboard_text'), clients:t('nav.clients_text'), paiements:t('nav.paiements_text'),
+    dashboard:t('nav.dashboard_text'), clients:t('nav.clients_text'), paiements:t('nav.paiements_text'), acces:t('nav.acces_text'),
     sports:t('nav.sports_text'), charges:t('nav.charges_text'), coaches:t('nav.coaches_text'),
     presence:t('nav.presence_text'), salaires:t('nav.salaires_text'),
     planning:t('nav.planning_text'), boutique:t('nav.boutique_text'), stats:t('nav.stats_text'), associes:t('nav.associes_text'), utilisateurs:t('nav.utilisateurs_text')
@@ -3124,6 +3199,60 @@ const I18N = {
     'nav.membres_text':  'Membres',
     'nav.clients_text':  'Clients',
     'nav.paiements_text':'Paiements',
+    'nav.acces_text':    'Accès & Portes',
+    'ac.title':          'Accès & Portes',
+    'ac.subtitle':       'Appareils de reconnaissance faciale : qui peut entrer par quelle porte, et les entrées du jour',
+    'ac.appareils':      'Appareils',
+    'ac.appareil':       'Appareil',
+    'ac.serie':          'N° de série',
+    'ac.porte':          'Porte',
+    'ac.portes':         'Portes',
+    'ac.etat':           'État',
+    'ac.sur_appareil':   "Sur l'appareil",
+    'ac.en_attente':     'Envois en attente',
+    'ac.synchro_tout':   '↻ Synchroniser les deux portes',
+    'ac.synchro':        '↻ Synchroniser',
+    'ac.tout_renvoyer':  'Tout renvoyer',
+    'ac.reglage_titre':  "Réglage d'un appareil (Menu → COMM → Configuration Serveur Cloud)",
+    'ac.reglage_aide':   "Enregistrement d'un visage : sur l'appareil, Menu → Utilisateurs → Nouvel utilisateur, avec comme ID le N° d'adhérent du client (ou le N° d'accès du salarié). Le visage est gardé par le site et envoyé automatiquement à l'autre porte si le client y a droit.",
+    'ac.disciplines':    'Porte de chaque discipline',
+    'ac.discipline':     'Discipline',
+    'ac.disciplines_aide':'Un client à jour de son abonnement entre par la porte de chacune de ses disciplines. Une discipline sans porte ne donne accès à aucune porte.',
+    'ac.personnel':      'Personnel',
+    'ac.num_acces':      "N° d'accès",
+    'ac.visage':         'Visage',
+    'ac.personnel_aide': 'Un coach passe par les portes de ses disciplines ; les autres salariés actifs par les deux portes. Un salarié inactif est retiré des appareils.',
+    'ac.entrees':        'Entrées',
+    'ac.toutes_portes':  'Toutes les portes',
+    'ac.heure':          'Heure',
+    'ac.numero':         'N°',
+    'ac.nom':            'Nom',
+    'ac.qui':            'Type',
+    'ac.journal':        'Journal technique (échanges avec les appareils)',
+    'ac.porte_sport':    "Porte (contrôle d'accès)",
+    'ac.porte_nd':       '— Non définie —',
+    'ac.porte_nd2':      'Porte non définie',
+    'ac.porte_deux':     'Les deux portes',
+    'ac.portes_12':      'Portes 1 et 2',
+    'ac.sans_porte':     'Ses disciplines n\'ont pas de porte',
+    'ac.jamais':         'Jamais connecté',
+    'ac.en_ligne':       'En ligne',
+    'ac.hors_ligne':     'Hors ligne depuis',
+    'ac.personnes':      'personne(s)',
+    'ac.visages':        'visage(s)',
+    'ac.passages':       'passage(s)',
+    'ac.a_enregistrer':  'À enregistrer',
+    'ac.client':         'Client',
+    'ac.salarie':        'Salarié',
+    'ac.inconnu':        'Inconnu',
+    'ac.aucune_entree':  'Aucune entrée ce jour-là.',
+    'ac.al_appareil':    "Choisissez la porte de chaque appareil : tant qu'elle n'est pas choisie, le site ne modifie pas l'appareil.",
+    'ac.al_sports':      'Disciplines sans porte (leurs clients ne peuvent entrer nulle part) :',
+    'ac.confirm_porte':  "Cet appareil devient la porte {p}.\n\nLe site va y ajouter les personnes autorisées sur cette porte et retirer les autres (les administrateurs de l'appareil ne sont pas touchés). Continuer ?",
+    'ac.confirm_tout':   "Renvoyer toutes les personnes (et leurs visages) à cet appareil ?\n\nÀ utiliser si l'appareil a été réinitialisé ou si des personnes ont été supprimées directement sur l'appareil.",
+    'ac.ok_porte':       'Porte enregistrée',
+    'ac.ok_synchro':     "Synchronisation demandée : l'appareil la reçoit dans moins d'une minute.",
+    'ac.sql_43':         "Contrôle d'accès non installé : exécutez le script supabase/43_acces_portes.sql dans Supabase (SQL Editor → New query → Run), puis Ctrl+F5.",
     'nav.activites_text':'Activités',
     'nav.sports_text':   'Sports & Tarifs',
     'nav.planning_text': 'Planning',
@@ -4588,6 +4717,8 @@ const I18N = {
     'nav.membres_text':  'الأعضاء',
     'nav.clients_text':  'الزبناء',
     'nav.paiements_text':'المدفوعات',
+    'nav.acces_text':    'الدخول والأبواب',
+    'ac.title':          'الدخول والأبواب',
     'nav.activites_text':'الأنشطة',
     'nav.sports_text':   'الرياضات والأسعار',
     'nav.planning_text': 'الجدول الزمني',
@@ -6515,7 +6646,7 @@ sb.auth.onAuthStateChange(event => {
 // Mapping page → groupe
 const PAGE_GROUP = {
   dashboard: null,
-  clients:'membres', paiements:'membres',
+  clients:'membres', paiements:'membres', acces:'membres',
   sports:'activites', planning:'activites', boutique:'activites',
   coaches:'rh', presence:'rh', salaires:'rh',
   charges:'finances', stats:'finances', associes:'finances',
@@ -6564,6 +6695,7 @@ function nav(page, btn) {
   if (page==='clients')     { loadSportsForSelect('sc-sport',true).then(()=>{ loadSportsCheckboxes([]); loadClients(); loadImpayes(); }); }
   if (page==='paiements')   { loadClientsForSelect('p-client'); loadPaiements(); if (_pf.vue === 'famille') loadFamillesListe(); }
   if (page==='sports')      { loadSports(); }
+  if (page==='acces')       loadAcces();
   if (page==='charges')     loadCharges();
   if (page==='presence')    { loadPresenceInit(); }
   if (page==='coaches')     {
@@ -10472,6 +10604,7 @@ async function loadSports() {
             ${s.tarif_annuel?`<span>${t('sports.lbl_annuel')}: <strong style="color:var(--green)">${fmt(s.tarif_annuel)}</strong></span>`:''}
             <span>${t('sports.lbl_inscription')}: <strong>${fmt(s.tarif_inscription)}</strong></span>
             ${['famille_mensuel', 'famille_trimestriel', 'famille_semestriel', 'famille_annuel'].some(k => parseFloat(s[k])) ? `<span style="flex-basis:100%;color:var(--blue-text)">${t('fam.badge')} : ${[['famille_mensuel', 'fam.l_mensuel'], ['famille_trimestriel', 'fam.l_trim'], ['famille_semestriel', 'fam.l_sem'], ['famille_annuel', 'fam.l_annuel']].filter(([k]) => parseFloat(s[k])).map(([k, l]) => `${t(l)} <strong>${fmt(s[k])}</strong>`).join(' · ')}</span>` : ''}
+            ${'porte' in s ? `<span class="badge ${s.porte == null ? 'b-w' : 'b-i'}" style="font-size:10px">🚪 ${libellePorte(s.porte)}</span>` : ''}
             ${s.coach?`<span style="display:flex;align-items:center;gap:4px;color:var(--text2)">${t('sports.lbl_coach')}: <strong style="color:var(--text)">${s.coach}</strong> ${coachBadge}</span>`:''}
           </div>
           ${s.horaires?`<div style="font-size:11px;color:var(--text3);margin-top:3px">${s.horaires}</div>`:''}
@@ -10509,11 +10642,14 @@ async function saveSport() {
       famille_annuel:      parseFloat(document.getElementById('s-fam-annuel').value) || 0 } : {}),
     horaires:         document.getElementById('s-horaires').value,
     coach:            document.getElementById('s-coach').value||null,
-    description:      document.getElementById('s-desc').value
+    description:      document.getElementById('s-desc').value,
+    // Porte : envoyée si elle est choisie ou déjà connue (script 43 non exécuté = pas d'erreur)
+    ...((document.getElementById('s-porte').value !== '' || window._sportEditPorteConnu)
+      ? { porte: document.getElementById('s-porte').value === '' ? null : parseInt(document.getElementById('s-porte').value) } : {})
   };
   if (!obj.nom) { showToast(t('sports.name_required'),'e'); return; }
   const { error } = id ? await sb.from('sports').update(obj).eq('id',id) : await sb.from('sports').insert(obj);
-  if (error) { showToast(/famille_/.test(error.message) ? t('fam.sql_32') : /tarif_semestriel/.test(error.message) ? t('sports.sem_sql') : error.message,'e'); return; }
+  if (error) { showToast(/porte/.test(error.message) ? t('ac.sql_43') : /famille_/.test(error.message) ? t('fam.sql_32') : /tarif_semestriel/.test(error.message) ? t('sports.sem_sql') : error.message,'e'); return; }
   SPORTS_CACHE = [];
   showToast(id?'Modifié':'Ajouté','s'); resetSportForm(); loadSports();
 }
@@ -10532,6 +10668,8 @@ function editSport(s) {
   document.getElementById('s-fam-sem').value     = parseFloat(s.famille_semestriel) || '';
   document.getElementById('s-fam-annuel').value  = parseFloat(s.famille_annuel) || '';
   window._sportEditFamConnu = 'famille_mensuel' in s;
+  document.getElementById('s-porte').value = s.porte ?? '';
+  window._sportEditPorteConnu = 'porte' in s;
   document.getElementById('s-horaires').value = s.horaires||'';
   document.getElementById('s-desc').value     = s.description||'';
   // Sélectionne le coach dans le select après chargement
@@ -10548,9 +10686,182 @@ function editSport(s) {
 function resetSportForm() {
   window._sportEditSemConnu = false;
   window._sportEditFamConnu = false;
+  window._sportEditPorteConnu = false;
+  document.getElementById('s-porte').value = '';
   ['s-id','s-nom','s-tarif','s-tarif-trim','s-tarif-sem','s-tarif-annuel','s-inscr','s-horaires','s-desc','s-fam-mensuel','s-fam-trim','s-fam-sem','s-fam-annuel'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('s-coach').value = '';
   document.getElementById('sport-form-title').textContent = t('sports.add_title');
+}
+
+// ════════════════════════════════════════════════════════════
+// ACCÈS & PORTES (appareils ZKTeco, script 43)
+// ════════════════════════════════════════════════════════════
+let _ac = { appareils: [], sports: [], employes: [], users: [], visages: new Set(), attente: {}, entrees: [] };
+const libellePorte = p => p == null || p === '' ? t('ac.porte_nd2') : +p === 0 ? t('ac.porte_deux') : `${t('ac.porte')} ${p}`;
+const nomPersonne = (p, n) => `${p || ''} ${n || ''}`.trim();
+const dateLocaleAuj = () => isoLocal(new Date());
+
+function etatAppareil(a) {
+  if (!a.derniere_connexion) return `<span class="badge b-w">⚪ ${t('ac.jamais')}</span>`;
+  const min = Math.round((Date.now() - new Date(a.derniere_connexion)) / 60000);
+  if (min <= 2) return `<span class="badge b-g">🟢 ${t('ac.en_ligne')}</span>`;
+  const dur = min < 60 ? `${min} min` : min < 2880 ? `${Math.round(min / 60)} h` : `${Math.round(min / 1440)} j`;
+  return `<span class="badge b-d">🔴 ${t('ac.hors_ligne')} ${dur}</span>`;
+}
+
+// Portes d'un salarié : celles de ses disciplines s'il est coach, sinon les deux
+function portesEmploye(e) {
+  const sp = _ac.sports.filter(s => s.coach && cleNom(s.coach) === cleNom(nomPersonne(e.prenom, e.nom)));
+  if (!sp.length) return { txt: t('ac.portes_12'), ok: true };
+  const p = new Set();
+  sp.forEach(s => { if (s.porte === 0) { p.add(1); p.add(2); } else if (s.porte != null) p.add(s.porte); });
+  if (!p.size) return { txt: '⚠ ' + t('ac.sans_porte'), ok: false };
+  return { txt: p.size === 2 ? t('ac.portes_12') : `${t('ac.porte')} ${[...p][0]}`, ok: true };
+}
+
+async function loadAcces() {
+  const ecrire = !!PERMS.acces?.ecrire;
+  document.querySelectorAll('#page-acces .ac-ecrire').forEach(el => el.style.display = ecrire ? '' : 'none');
+  const dj = document.getElementById('ac-date'); if (!dj.value) dj.value = dateLocaleAuj();
+  const [app, sp, emp, us, vis, cmd] = await Promise.all([
+    sb.from('acces_appareils').select('*').order('sn'),
+    sb.from('sports').select('*').order('nom'),
+    sb.from('employes').select('*').order('nom'),
+    fetchAllRows(() => sb.from('acces_utilisateurs').select('sn,pin,pri').order('pin')),
+    fetchAllRows(() => sb.from('acces_visages').select('pin,cle').order('pin')),
+    fetchAllRows(() => sb.from('acces_commandes').select('id,sn').is('termine_le', null).order('id'))
+  ]);
+  const al = document.getElementById('ac-alerte');
+  if (app.error) {
+    al.innerHTML = `<div class="al al-w">${t('ac.sql_43')}</div>`;
+    ['ac-app-tb', 'ac-sports-tb', 'ac-emp-tb', 'ac-ent-tb'].forEach(i => document.getElementById(i).innerHTML = '');
+    return;
+  }
+  _ac.appareils = app.data || [];
+  _ac.sports = sp.data || [];
+  _ac.employes = (emp.data || []).filter(e => e.actif !== false);
+  _ac.users = us.data || [];
+  _ac.visages = new Set((vis.data || []).filter(v => v.cle !== 'CARTE').map(v => v.pin));
+  _ac.attente = {}; (cmd.data || []).forEach(c => { _ac.attente[c.sn] = (_ac.attente[c.sn] || 0) + 1; });
+  // Alertes : appareil sans porte, discipline sans porte
+  const alertes = [];
+  if (_ac.appareils.some(a => a.porte == null)) alertes.push(t('ac.al_appareil'));
+  const sansPorte = _ac.sports.filter(s => s.porte == null).map(s => s.nom);
+  if (sansPorte.length) alertes.push(t('ac.al_sports') + ' ' + sansPorte.join(', '));
+  al.innerHTML = alertes.map(a => `<div class="al al-w">⚠ ${a}</div>`).join('');
+  renderAppareilsAcces(); renderSportsAcces(); renderEmployesAcces();
+  loadEntreesAcces();
+}
+
+function renderAppareilsAcces() {
+  const ecrire = !!PERMS.acces?.ecrire;
+  document.getElementById('ac-app-tb').innerHTML = _ac.appareils.map(a => {
+    const u = _ac.users.filter(x => x.sn === a.sn && !x.pri);
+    const nbVis = u.filter(x => _ac.visages.has(x.pin)).length;
+    const porte = ecrire
+      ? `<select onchange="changerPorteAppareil('${a.sn}', this.value)" style="width:auto"><option value="">${t('ac.porte_nd')}</option>${[1, 2].map(p => `<option value="${p}" ${a.porte === p ? 'selected' : ''}>${t('ac.porte')} ${p}</option>`).join('')}</select>`
+      : libellePorte(a.porte);
+    return `<tr>
+      <td><strong>${a.nom || '—'}</strong></td>
+      <td style="font-family:monospace;font-size:12px">${a.sn}</td>
+      <td>${porte}</td>
+      <td>${etatAppareil(a)}${a.ip ? `<div style="font-size:10px;color:var(--text3)">${a.ip}</div>` : ''}</td>
+      <td>${u.length} ${t('ac.personnes')} · ${nbVis} ${t('ac.visages')}</td>
+      <td>${_ac.attente[a.sn] || 0}</td>
+      <td class="ac-ecrire" style="${ecrire ? '' : 'display:none'}"><div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="synchroAcces('${a.sn}', false)">${t('ac.synchro')}</button>
+        <button class="btn btn-sm" onclick="synchroAcces('${a.sn}', true)">${t('ac.tout_renvoyer')}</button>
+      </div></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" style="color:var(--text3)">—</td></tr>`;
+}
+
+function renderSportsAcces() {
+  const ecrire = !!PERMS.sports?.ecrire;
+  document.getElementById('ac-sports-tb').innerHTML = _ac.sports.map(s => `<tr>
+    <td><strong>${s.nom}</strong></td>
+    <td style="font-size:12px;color:var(--text2)">${s.coach || '—'}</td>
+    <td>${ecrire
+      ? `<select onchange="changerPorteSport('${s.id}', this.value)" style="width:auto;${s.porte == null ? 'border-color:var(--amber,#d97706)' : ''}">
+           <option value="" ${s.porte == null ? 'selected' : ''}>${t('ac.porte_nd')}</option>
+           <option value="1" ${s.porte === 1 ? 'selected' : ''}>${t('ac.porte')} 1</option>
+           <option value="2" ${s.porte === 2 ? 'selected' : ''}>${t('ac.porte')} 2</option>
+           <option value="0" ${s.porte === 0 ? 'selected' : ''}>${t('ac.porte_deux')}</option></select>`
+      : libellePorte(s.porte)}</td>
+  </tr>`).join('') || `<tr><td colspan="3" style="color:var(--text3)">${t('msg.no_sport')}</td></tr>`;
+}
+
+function renderEmployesAcces() {
+  document.getElementById('ac-emp-tb').innerHTML = _ac.employes.map(e => {
+    const p = portesEmploye(e), pin = e.numero_acces != null ? String(e.numero_acces) : '';
+    return `<tr>
+      <td><strong>${nomPersonne(e.prenom, e.nom)}</strong>${e.poste ? `<div style="font-size:11px;color:var(--text3)">${e.poste}</div>` : ''}</td>
+      <td style="font-family:monospace;font-weight:700">${pin || '—'}</td>
+      <td style="${p.ok ? '' : 'color:var(--red)'}">${p.txt}</td>
+      <td>${pin && _ac.visages.has(pin) ? '✅' : `<span style="color:var(--text3)">${t('ac.a_enregistrer')}</span>`}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="4" style="color:var(--text3)">—</td></tr>`;
+}
+
+async function changerPorteAppareil(sn, val) {
+  const porte = val === '' ? null : parseInt(val);
+  if (porte != null && !confirm(t('ac.confirm_porte').replace('{p}', porte))) { renderAppareilsAcces(); return; }
+  const { error } = await sb.from('acces_appareils').update({ porte, synchro_demandee: true }).eq('sn', sn);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('UPDATE', 'acces_appareils', `${sn} → ${libellePorte(porte)}`);
+  showToast(t('ac.ok_porte'), 's'); loadAcces();
+}
+
+async function changerPorteSport(id, val) {
+  const porte = val === '' ? null : parseInt(val);
+  const { error } = await sb.from('sports').update({ porte }).eq('id', id);
+  if (error) { showToast(/porte/.test(error.message) ? t('ac.sql_43') : error.message, 'e'); return; }
+  SPORTS_CACHE = [];
+  const s = _ac.sports.find(x => x.id === id); if (s) s.porte = porte;
+  showToast(t('ac.ok_porte'), 's'); loadAcces();
+}
+
+async function synchroAcces(sn, tout) {
+  if (tout && !confirm(t('ac.confirm_tout'))) return;
+  const { error } = await sb.rpc('acces_demander_synchro', { p_sn: sn, p_tout: !!tout });
+  if (error) { showToast(error.message, 'e'); return; }
+  showToast(t('ac.ok_synchro'), 's'); loadAcces();
+}
+
+async function loadEntreesAcces() {
+  const d = document.getElementById('ac-date').value || dateLocaleAuj();
+  const [y, m, j] = d.split('-').map(Number);
+  const fin = isoLocal(new Date(y, m - 1, j + 1));
+  const porte = document.getElementById('ac-porte-f').value;
+  let q = sb.from('acces_entrees').select('*, clients(prenom,nom,numero_adherent), employes(prenom,nom)')
+    .gte('date_heure', d + 'T00:00:00').lt('date_heure', fin + 'T00:00:00').order('date_heure', { ascending: false }).limit(3000);
+  if (porte) q = q.eq('porte', parseInt(porte));
+  const { data, error } = await q;
+  _ac.entrees = error ? [] : (data || []);
+  renderEntreesAcces();
+}
+
+function renderEntreesAcces() {
+  const qs = cleNom(document.getElementById('ac-search').value);
+  const lignes = _ac.entrees.map(e => {
+    const nom = e.clients ? nomPersonne(e.clients.prenom, e.clients.nom) : e.employes ? nomPersonne(e.employes.prenom, e.employes.nom) : '';
+    return { ...e, _nom: nom };
+  }).filter(e => !qs || cleNom(e._nom).includes(qs) || String(e.pin).includes(qs));
+  const pers = new Set(lignes.map(e => e.pin)).size;
+  document.getElementById('ac-ent-total').textContent = `— ${lignes.length} ${t('ac.passages')} · ${pers} ${t('ac.personnes')}`;
+  document.getElementById('ac-ent-tb').innerHTML = lignes.map(e => {
+    const type = e.client_id ? `<span class="badge b-i">${t('ac.client')}</span>` : e.employe_id ? `<span class="badge b-g">${t('ac.salarie')}</span>` : `<span class="badge b-w">${t('ac.inconnu')}</span>`;
+    const nom = e.client_id ? `<a href="#" onclick="ouvrirFicheClient('${e.client_id}');return false">${e._nom}</a>` : (e._nom || '—');
+    return `<tr><td>${String(e.date_heure).slice(11, 16)}</td><td>${e.porte ?? '—'}</td><td style="font-family:monospace">${e.pin}</td><td>${nom}</td><td>${type}</td></tr>`;
+  }).join('') || `<tr><td colspan="5" style="color:var(--text3)">${t('ac.aucune_entree')}</td></tr>`;
+}
+
+async function loadJournalAcces() {
+  const { data, error } = await sb.from('acces_journal').select('*').order('id', { ascending: false }).limit(60);
+  const esc = x => String(x ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  document.getElementById('ac-journal').innerHTML = error ? esc(error.message) : (data || []).map(j =>
+    `<div style="border-bottom:1px solid var(--border);padding:4px 0"><strong>${new Date(j.le).toLocaleString('fr-FR')}</strong> ${esc(j.sn)} · ${esc(j.requete)}${j.corps ? '\n' + esc(j.corps) : ''}${j.reponse ? '\n→ ' + esc(j.reponse) : ''}</div>`
+  ).join('') || '—';
 }
 
 async function delSport(id) { if(!confirm(t('msg.confirm_delete')))return; await sb.from('sports').delete().eq('id',id); loadSports(); }
