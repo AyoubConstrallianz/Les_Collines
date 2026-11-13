@@ -110,6 +110,7 @@ router.get('/cdata', async (req, res) => {
     texte(res, rep);
   } catch (e) {
     console.error('[iclock] cdata GET', e.message);
+    await journal(sn, req, null, 'ERREUR : ' + e.message);
     texte(res, 'ERROR', 500);
   }
 });
@@ -128,6 +129,7 @@ router.post('/cdata', async (req, res) => {
     texte(res, 'OK');
   } catch (e) {
     console.error('[iclock] cdata POST', e.message);
+    await journal(sn, req, corps.replace(/(Tmp|TMP|Content)=[^\t\r\n]{40,}/g, '$1=…').slice(0, 1000), 'ERREUR : ' + e.message);
     // Erreur : l'appareil renverra les mêmes données plus tard
     texte(res, 'ERROR', 500);
   }
@@ -144,6 +146,7 @@ router.get('/getrequest', async (req, res) => {
     texte(res, cmds || 'OK');
   } catch (e) {
     console.error('[iclock] getrequest', e.message);
+    await journal(sn, req, null, 'ERREUR : ' + e.message);
     texte(res, 'OK');
   }
 });
@@ -161,6 +164,7 @@ router.post('/devicecmd', async (req, res) => {
     await journal(sn, req, corps.slice(0, 2000), 'OK');
   } catch (e) {
     console.error('[iclock] devicecmd', e.message);
+    await journal(sn, req, corps.slice(0, 1000), 'ERREUR : ' + e.message);
   }
   texte(res, 'OK');
 });
