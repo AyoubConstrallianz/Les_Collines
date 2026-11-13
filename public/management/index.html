@@ -3245,6 +3245,8 @@ const I18N = {
     'ac.client':         'Client',
     'ac.salarie':        'Salarié',
     'ac.inconnu':        'Inconnu',
+    'ac.refuse':         'Refusé',
+    'ac.refus':          'refus',
     'ac.aucune_entree':  'Aucune entrée ce jour-là.',
     'ac.al_appareil':    "Choisissez la porte de chaque appareil : tant qu'elle n'est pas choisie, le site ne modifie pas l'appareil.",
     'ac.al_sports':      'Disciplines sans porte (leurs clients ne peuvent entrer nulle part) :',
@@ -10847,10 +10849,14 @@ function renderEntreesAcces() {
     const nom = e.clients ? nomPersonne(e.clients.prenom, e.clients.nom) : e.employes ? nomPersonne(e.employes.prenom, e.employes.nom) : '';
     return { ...e, _nom: nom };
   }).filter(e => !qs || cleNom(e._nom).includes(qs) || String(e.pin).includes(qs));
-  const pers = new Set(lignes.map(e => e.pin)).size;
-  document.getElementById('ac-ent-total').textContent = `— ${lignes.length} ${t('ac.passages')} · ${pers} ${t('ac.personnes')}`;
+  // Contrôle d'accès : codes 20 à 199 = accès refusé (abonnement, horaire, anti-retour…)
+  const refuse = e => e.statut != null && e.statut >= 20 && e.statut < 200;
+  const ok = lignes.filter(e => !refuse(e)), nbRefus = lignes.length - ok.length;
+  const pers = new Set(ok.map(e => e.pin)).size;
+  document.getElementById('ac-ent-total').textContent = `— ${ok.length} ${t('ac.passages')} · ${pers} ${t('ac.personnes')}${nbRefus ? ` · ${nbRefus} ${t('ac.refus')}` : ''}`;
   document.getElementById('ac-ent-tb').innerHTML = lignes.map(e => {
-    const type = e.client_id ? `<span class="badge b-i">${t('ac.client')}</span>` : e.employe_id ? `<span class="badge b-g">${t('ac.salarie')}</span>` : `<span class="badge b-w">${t('ac.inconnu')}</span>`;
+    const type = (e.client_id ? `<span class="badge b-i">${t('ac.client')}</span>` : e.employe_id ? `<span class="badge b-g">${t('ac.salarie')}</span>` : `<span class="badge b-w">${t('ac.inconnu')}</span>`)
+      + (refuse(e) ? ` <span class="badge b-d" title="code ${e.statut}">⛔ ${t('ac.refuse')}</span>` : '');
     const nom = e.client_id ? `<a href="#" onclick="ouvrirFicheClient('${e.client_id}');return false">${e._nom}</a>` : (e._nom || '—');
     return `<tr><td>${String(e.date_heure).slice(11, 16)}</td><td>${e.porte ?? '—'}</td><td style="font-family:monospace">${e.pin}</td><td>${nom}</td><td>${type}</td></tr>`;
   }).join('') || `<tr><td colspan="5" style="color:var(--text3)">${t('ac.aucune_entree')}</td></tr>`;
