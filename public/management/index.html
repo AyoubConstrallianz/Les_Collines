@@ -3247,6 +3247,14 @@ const I18N = {
     'ac.inconnu':        'Inconnu',
     'ac.refuse':         'Refusé',
     'ac.refus':          'refus',
+    'ac.cli_acces':      'Accès portes',
+    'ac.cli_visage':     'Visage',
+    'ac.cli_badge':      'Badge',
+    'ac.cli_visage_t':   "Visage enregistré sur l'appareil",
+    'ac.cli_badge_t':    "Badge enregistré sur l'appareil",
+    'ac.cli_aucun':      "Visage ou badge à enregistrer sur l'appareil (ID %s)",
+    'ac.cli_sans_num':   "Sans N° d'adhérent : impossible à enregistrer sur l'appareil",
+    'ac.cli_aucune':     "Aucune porte en ce moment (abonnement non valide ?)",
     'ac.aucune_entree':  'Aucune entrée ce jour-là.',
     'ac.al_appareil':    "Choisissez la porte de chaque appareil : tant qu'elle n'est pas choisie, le site ne modifie pas l'appareil.",
     'ac.al_sports':      'Disciplines sans porte (leurs clients ne peuvent entrer nulle part) :',
@@ -4721,6 +4729,9 @@ const I18N = {
     'nav.paiements_text':'المدفوعات',
     'nav.acces_text':    'الدخول والأبواب',
     'ac.title':          'الدخول والأبواب',
+    'ac.cli_acces':      'الدخول عبر الأبواب',
+    'ac.cli_visage':     'الوجه',
+    'ac.cli_badge':      'البطاقة',
     'nav.activites_text':'الأنشطة',
     'nav.sports_text':   'الرياضات والأسعار',
     'nav.planning_text': 'الجدول الزمني',
@@ -7869,13 +7880,46 @@ async function validerTousClientsAttente() {
   validerClients(ids);
 }
 
+// Visage / badge / portes de chaque N° d'accès (appareils ZKTeco) — null si pas le droit « acces »
+let _accesCli = null;
+async function chargerAccesClients() {
+  if (!PERMS.acces?.lire) return (_accesCli = null);
+  const [vis, us, app] = await Promise.all([
+    fetchAllRows(() => sb.from('acces_visages').select('pin,cle').order('pin')),
+    fetchAllRows(() => sb.from('acces_utilisateurs').select('sn,pin,pri').order('pin')),
+    sb.from('acces_appareils').select('sn,porte')
+  ]);
+  if (vis.error || us.error || app.error) return (_accesCli = null);
+  const porteDe = {}; (app.data || []).forEach(a => { porteDe[a.sn] = a.porte; });
+  const m = new Map(), get = pin => m.get(pin) || (m.set(pin, { visage: false, badge: false, portes: new Set() }), m.get(pin));
+  (vis.data || []).forEach(v => { if (v.cle === 'CARTE') get(v.pin).badge = true; else get(v.pin).visage = true; });
+  (us.data || []).forEach(u => { if (porteDe[u.sn]) get(u.pin).portes.add(porteDe[u.sn]); });
+  return (_accesCli = m);
+}
+function badgesAccesClient(c) {
+  const a = _accesCli && c.numero_adherent != null ? _accesCli.get(String(c.numero_adherent)) : null;
+  if (!a) return '';
+  return (a.visage ? ` <span class="badge b-g" style="font-size:9px" title="${t('ac.cli_visage_t')}">${t('ac.cli_visage')}</span>` : '')
+       + (a.badge ? ` <span class="badge b-g" style="font-size:9px" title="${t('ac.cli_badge_t')}">${t('ac.cli_badge')}</span>` : '');
+}
+function ligneAccesClient(c) {
+  if (!_accesCli) return '';
+  if (c.numero_adherent == null || c.numero_adherent === '') return `<span style="color:var(--text3)">${t('ac.cli_sans_num')}</span>`;
+  const a = _accesCli.get(String(c.numero_adherent));
+  if (!a || (!a.visage && !a.badge)) return `<span class="badge b-w" style="font-size:10px">${t('ac.cli_aucun').replace('%s', c.numero_adherent)}</span>`;
+  const portes = [...a.portes].sort();
+  return badgesAccesClient(c) + ' '
+    + (portes.length ? portes.map(p => `<span class="badge b-i" style="font-size:10px;margin-left:3px">${libellePorte(p)}</span>`).join('')
+                     : `<span style="font-size:11px;color:var(--text3)">${t('ac.cli_aucune')}</span>`);
+}
+
 async function loadClients() {
   const q = document.getElementById('sc-q')?.value.toLowerCase()||'';
   const sport = document.getElementById('sc-sport')?.value||'';
   const stat  = document.getElementById('sc-stat')?.value||'';
   let query = sb.from('clients').select('*').order('created_at',{ascending:false});
   if (stat) query = query.eq('statut', stat);
-  const { data } = await query;
+  const [{ data }] = await Promise.all([query, chargerAccesClients().catch(() => null)]);
   if (!stat) majBadgeDoublons(data||[]);
 
   // Calcul tarifs depuis cache sports
@@ -7924,7 +7968,7 @@ async function loadClients() {
         const badges  = sports.map(s=>`<span class="badge b-i" style="margin-right:3px">${s}</span>`).join('');
         return `<tr style="cursor:pointer" onclick="showClientFiche(${i},event)">
           <td style="color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600">${c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '—'}</td>
-          <td><div style="display:flex;align-items:center;gap:8px">${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}<strong>${c.prenom} ${c.nom}</strong>${c.famille_id || c.pack_famille ? ` <span class="badge ${c.famille_id && c.famille_actif === false ? 'b-d' : 'b-i'}" style="font-size:9px">${t('fam.badge')}${c.famille_id && c.famille_actif === false ? ' · ' + t('fm.arrete') : ''}</span>` : ''}</div></td>
+          <td><div style="display:flex;align-items:center;gap:8px">${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}<strong>${c.prenom} ${c.nom}</strong>${badgesAccesClient(c)}${c.famille_id || c.pack_famille ? ` <span class="badge ${c.famille_id && c.famille_actif === false ? 'b-d' : 'b-i'}" style="font-size:9px">${t('fam.badge')}${c.famille_id && c.famille_actif === false ? ' · ' + t('fm.arrete') : ''}</span>` : ''}</div></td>
           <td style="font-size:12px">${c.cin||'—'}</td>
           <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>')||'—'}</td>
           <td>${badges||'—'}</td>
@@ -8184,6 +8228,7 @@ async function showClientFiche(idx, event) {
         <div style="font-size:18px;font-weight:700;margin-bottom:2px">${c.prenom} ${c.nom}</div>
         <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${t('clients.fiche_inscrit')} ${c.date_inscription||'—'}</div>
         ${infoLine(t('clients.num_adh'), c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '')}
+        ${infoLine(t('ac.cli_acces'), ligneAccesClient(c))}
         ${infoLine(t('fam.badge'), !c.famille_id && c.pack_famille ? t('fam.oui') : '')}
         ${infoLine(t('clients.tel'), c.telephone)}
         ${infoLine(t('clients.tel2'), c.telephone2)}
