@@ -246,6 +246,41 @@ body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Inter','Sego
    APP SHELL
    ══════════════════════════════════════════ */
 #app{display:none;min-height:100vh;flex-direction:column}
+/* ══ ÉCRAN CLIENT (2e écran, ?ecran=1) ══ */
+#ecran-client{display:none;position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 30% 15%,#1b2436,#05070c 70%);color:#f1f5f9;font-family:'Outfit','Inter',-apple-system,sans-serif;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;padding:120px 32px 60px}
+.mode-ecran #login-screen,.mode-ecran #app,.mode-ecran #err-globale{display:none!important}
+.mode-ecran #ecran-client{display:flex}
+.ec-haut{position:absolute;top:24px;left:32px;right:32px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.ec-haut img{width:64px;height:64px;border-radius:50%}
+.ec-club{font-size:24px;font-weight:700;letter-spacing:-.3px}
+.ec-heure{font-size:42px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;line-height:1}
+.ec-date{font-size:16px;color:#94a3b8;text-align:right;margin-top:4px;text-transform:capitalize}
+.ec-repos{text-align:center;animation:ecIn .5s ease}
+.ec-repos img{width:180px;height:180px;border-radius:50%;margin-bottom:28px;box-shadow:0 0 90px rgba(217,229,25,.25)}
+.ec-repos h1{font-size:64px;font-weight:800;letter-spacing:-1px}
+.ec-repos .ar{font-size:48px;font-weight:700;margin-top:8px;color:#D9E519}
+.ec-repos p{font-size:22px;color:#94a3b8;margin-top:18px}
+.ec-carte{width:min(1150px,100%);background:rgba(255,255,255,.05);border:3px solid rgba(255,255,255,.12);border-radius:36px;padding:48px 56px;display:flex;gap:52px;align-items:center;animation:ecIn .35s ease}
+.ec-carte.ok{border-color:#22c55e;box-shadow:0 0 90px rgba(34,197,94,.25)}
+.ec-carte.ko{border-color:#ef4444;background:rgba(239,68,68,.12);box-shadow:0 0 90px rgba(239,68,68,.35)}
+.ec-carte.info{border-color:#D9E519;box-shadow:0 0 90px rgba(217,229,25,.15)}
+.ec-photo{width:260px;height:260px;border-radius:50%;object-fit:cover;flex-shrink:0;border:6px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:96px;font-weight:800;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff}
+.ec-carte.ko .ec-photo{border-color:rgba(239,68,68,.6)}
+.ec-txt{flex:1;min-width:0}
+.ec-titre{font-size:32px;font-weight:700;color:#94a3b8}
+.ec-carte.ok .ec-titre{color:#4ade80}.ec-carte.ko .ec-titre{color:#f87171}.ec-carte.info .ec-titre{color:#D9E519}
+.ec-nom{font-size:68px;font-weight:800;line-height:1.05;margin:8px 0 16px;letter-spacing:-1px;overflow-wrap:anywhere}
+.ec-puces span{display:inline-block;padding:7px 18px;border-radius:999px;background:rgba(255,255,255,.1);font-size:21px;font-weight:600;margin:0 8px 8px 0}
+.ec-puces .ec-porte{background:rgba(217,229,25,.15);color:#D9E519}
+.ec-ligne{font-size:30px;font-weight:600;margin-top:16px}
+.ec-vert{color:#4ade80}.ec-orange{color:#fbbf24}.ec-rouge{color:#f87171}
+.ec-lignes{margin-top:18px;font-size:22px;border-top:1px solid rgba(255,255,255,.12)}
+.ec-lignes div{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.ec-lignes .ec-total{font-size:30px;font-weight:800;border-bottom:none}
+.ec-etat{position:absolute;bottom:18px;left:28px;font-size:15px;color:#fbbf24}
+.ec-pe{position:absolute;bottom:14px;right:24px;background:rgba(255,255,255,.08);color:#cbd5e1;border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:8px 18px;font-size:14px;cursor:pointer}
+@keyframes ecIn{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+@media (max-width:900px){#ecran-client{padding:100px 16px 50px}.ec-carte{flex-direction:column;text-align:center;padding:28px 22px;gap:20px}.ec-photo{width:150px;height:150px;font-size:56px}.ec-nom{font-size:40px}.ec-titre{font-size:24px}.ec-ligne{font-size:22px}.ec-repos h1{font-size:40px}.ec-repos .ar{font-size:32px}.ec-club{font-size:16px}.ec-heure{font-size:28px}.ec-lignes{font-size:17px}}
 
 /* ── Topbar ── */
 .topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 1.25rem;position:sticky;top:0;z-index:100;gap:10px;box-shadow:var(--shadow-xs)}
@@ -906,6 +941,18 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
 </style>
 </head>
 <body>
+<script>if (/[?&]ecran(=|&|$)/.test(location.search)) document.documentElement.classList.add('mode-ecran');</script>
+
+<!-- ══ ÉCRAN CLIENT (2e écran) ══════════════════════════════ -->
+<div id="ecran-client">
+  <div class="ec-haut">
+    <div style="display:flex;align-items:center;gap:14px"><img src="/images/logo-rond-128.png" alt=""><span class="ec-club">Association Les Collines</span></div>
+    <div><div class="ec-heure" id="ec-heure"></div><div class="ec-date" id="ec-date"></div></div>
+  </div>
+  <div id="ec-contenu" style="width:100%;display:flex;justify-content:center"></div>
+  <div class="ec-etat" id="ec-etat"></div>
+  <button class="ec-pe" id="ec-pe" onclick="document.documentElement.requestFullscreen?.().catch(() => {})">⛶ Plein écran</button>
+</div>
 
 <!-- ══ LOGIN ════════════════════════════════════════════════ -->
 <div id="login-screen">
@@ -931,6 +978,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
     <span class="topbar-logo"><img src="/images/logo-rond-128.png" alt="Logo Les Collines" class="topbar-logo-img" width="38" height="38"><span class="topbar-logo-txt">Association Les Collines</span></span>
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Basculer mode clair/sombre"><svg id="theme-icon-sun" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><svg id="theme-icon-moon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
     <button class="theme-toggle" id="tb-cloche" onclick="basculerNotifs(event)" aria-label="Modifications à valider" style="display:none;position:relative"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="tb-badge-valid" class="tb-badge" style="display:none"></span></button>
+    <button class="theme-toggle" id="tb-ecran" onclick="ouvrirEcranClient()" aria-label="Écran client" title="Écran client (2e écran)"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
     <button id="lang-btn" onclick="toggleLang()" style="margin-inline-start:auto;padding:5px 14px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:var(--r-full);background:var(--bg3);color:var(--text2);cursor:pointer;letter-spacing:.3px;transition:all .2s" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">العربية</button>
     <div class="tbu">
       <div class="avatar" id="tb-av">?</div>
@@ -2434,6 +2482,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
           <div id="client-fiche-body"></div>
           <div class="mo-footer">
             <button class="btn" onclick="document.getElementById('client-fiche-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button>
+            <button class="btn" id="fiche-btn-ecran" title="Afficher sur l'écran client" data-i18n="ec.btn_fiche">🖥️ Écran client</button>
             <button class="btn" id="fiche-btn-carte" style="background:var(--purple);color:#fff;border:none" data-i18n="clients.carte_btn">Carte adhérent</button>
             <button class="btn btn-p" id="fiche-btn-edit" data-i18n="common.modifier">Modifier</button>
           </div>
@@ -2897,6 +2946,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
 // CONFIG SUPABASE — Remplacez par vos clés
 // ════════════════════════════════════════════════════════════
 // Stockage local protégé : si le navigateur bloque cookies et données de site, l'application continue de fonctionner
+const MODE_ECRAN = document.documentElement.classList.contains('mode-ecran');   // 2e écran (?ecran=1)
 const stockage = {
   get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
@@ -2907,6 +2957,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_ltLpJObbU2HXbbZbwA4dgg_sGFg5BAc';
 // ── Diagnostic à distance : erreurs et problèmes réseau affichés à l'écran (capture à envoyer) ──
 let _errAffichee = 0;
 function afficherErreurGlobale(msg, reseau) {
+  if (document.documentElement.classList.contains('mode-ecran')) return;
   msg = String(msg || '');
   if (!msg || /ResizeObserver loop|^Script error\.?$/i.test(msg)) return;
   const dejaVu = document.getElementById('err-globale');
@@ -3248,6 +3299,32 @@ const I18N = {
     'ac.refuse':         'Refusé',
     'ac.refus':          'refus',
     'ac.cli_acces':      'Accès portes',
+    'ec.btn_fiche':      '🖥️ Écran client',
+    'ec.envoye':         'Affiché sur l’écran client',
+    'ec.ouvert':         'Écran client ouvert : glissez la fenêtre sur le 2e écran, puis « Plein écran ».',
+    'ec.popup_bloque':   'Le navigateur a bloqué la fenêtre : autorisez les fenêtres pop-up pour ce site.',
+    'ec.titre_onglet':   'Écran client — Les Collines',
+    'ec.bienvenue':      'Bienvenue',
+    'ec.bienvenue_club': 'Bienvenue au club !',
+    'ec.bonjour':        'Bonjour',
+    'ec.bonne_seance':   'Bonne séance !',
+    'ec.refuse':         '⛔ Accès refusé',
+    'ec.inconnu':        'Visage non reconnu',
+    'ec.accueil':        'Merci de passer à l’accueil.',
+    'ec.valable':        'Abonnement valable jusqu’au %s',
+    'ec.finit':          'Votre abonnement se termine le %s (dans %n jour(s))',
+    'ec.finit_auj':      'Votre abonnement se termine aujourd’hui',
+    'ec.fini':           'Votre abonnement a pris fin le %s',
+    'ec.aucun':          'Aucun abonnement en cours',
+    'ec.merci':          'Merci ! Paiement enregistré',
+    'ec.inscrit':        'Inscription enregistrée',
+    'ec.vos_infos':      'Vos informations',
+    'ec.num':            'N° d’adhérent : %s',
+    'ec.total':          'Total payé',
+    'ec.reste':          'Reste à payer',
+    'ec.repos_sous':     'Présentez votre visage à la borne d’entrée',
+    'ec.non_connecte':   '⚠ Session fermée : reconnectez-vous dans la fenêtre principale du site.',
+    'ec.sans_acces':     '⚠ Pointages non affichés : ce compte n’a pas le droit « Accès & Portes ».',
     'ac.cli_visage':     'Visage',
     'ac.cli_badge':      'Badge',
     'ac.cli_visage_t':   "Visage enregistré sur l'appareil",
@@ -4730,6 +4807,12 @@ const I18N = {
     'nav.acces_text':    'الدخول والأبواب',
     'ac.title':          'الدخول والأبواب',
     'ac.cli_acces':      'الدخول عبر الأبواب',
+    'ec.bienvenue':      'مرحبا',
+    'ec.bienvenue_club': 'مرحبا بك في النادي!',
+    'ec.bonne_seance':   'حصة موفقة!',
+    'ec.refuse':         '⛔ الدخول مرفوض',
+    'ec.accueil':        'المرجو التوجه إلى الاستقبال.',
+    'ec.merci':          'شكرا! تم تسجيل الأداء',
     'ac.cli_visage':     'الوجه',
     'ac.cli_badge':      'البطاقة',
     'nav.activites_text':'الأنشطة',
@@ -6619,6 +6702,7 @@ setInterval(() => {
 
 // Vérifie la session au chargement (session corrompue ou expirée → nettoyée, retour à l'écran de connexion)
 (async () => {
+  if (MODE_ECRAN) { setTimeout(demarrerEcran, 0); return; }   // après le chargement complet du script
   try {
     const { data: { session }, error } = await sb.auth.getSession();
     if (error) throw error;
@@ -7412,7 +7496,7 @@ async function enregistrerReste() {
     const i = CLIENTS_CACHE.findIndex(x => x.id === o.client_id);
     if (i >= 0) showClientFiche(i);
   }
-  if (saved?.id) ouvrirRecu(saved.id);
+  if (saved?.id) { envoyerEcran({ type: 'paiement', ids: [saved.id] }); ouvrirRecu(saved.id); }
 }
 
 // Liste « Restes à payer » (page Clients)
@@ -8073,6 +8157,7 @@ async function saveClient() {
   const encaissement = !id ? lignesEncaissementInscription() : null;
   closeClientForm(); loadClients(); loadImpayes();
   if (!id && saved && encaissement?.lignes.length) await encaisserInscription(saved, encaissement);
+  else if (!id && saved) envoyerEcran({ type: 'client', id: saved.id, inscription: true });
 }
 
 // Lignes à encaisser (abonnement, inscription, assurance) : montant payé ; s'il est inférieur
@@ -8132,6 +8217,7 @@ async function encaisserInscription(client, { lignes, mode }) {
   showToast(t('clients.inscr_saved').replace('%s', fmt(total)), 's');
   loadClients(); loadImpayes();
   if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
+  envoyerEcran({ type: 'paiement', ids: res.ids, inscription: true });
   ouvrirRecu(res.ids);
 }
 
@@ -8277,6 +8363,7 @@ async function showClientFiche(idx, event) {
     editClient(c);
   };
   document.getElementById('fiche-btn-carte').onclick = () => generateCarteAdherent(c, sports, mensuel);
+  document.getElementById('fiche-btn-ecran').onclick = () => { envoyerEcran({ type: 'client', id: c.id }); showToast(t('ec.envoye'), 's'); };
   document.getElementById('client-fiche-modal').classList.add('open');
   if (c.famille_id) afficherFamilleFiche(c, idx);
 }
@@ -9941,7 +10028,7 @@ async function savePaiement() {
   closePaiementForm();
   loadPaiements();
   if (document.getElementById('page-clients').classList.contains('active')) loadImpayes();
-  if (savedPaie?.id) ouvrirRecu(savedPaie.id);
+  if (savedPaie?.id) { envoyerEcran({ type: 'paiement', ids: [savedPaie.id] }); ouvrirRecu(savedPaie.id); }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -10747,6 +10834,168 @@ let _ac = { appareils: [], sports: [], employes: [], users: [], visages: new Set
 const libellePorte = p => p == null || p === '' ? t('ac.porte_nd2') : +p === 0 ? t('ac.porte_deux') : `${t('ac.porte')} ${p}`;
 const nomPersonne = (p, n) => `${p || ''} ${n || ''}`.trim();
 const dateLocaleAuj = () => isoLocal(new Date());
+
+// ════════════════════════════════════════════════════════════
+// ÉCRAN CLIENT (2e écran) — fenêtre ?ecran=1 tournée vers le client :
+// passages à la pointeuse (les 2 portes, refus en rouge), inscriptions et paiements.
+// La fenêtre principale lui envoie les événements (BroadcastChannel, même navigateur) ;
+// les passages sont lus dans acces_entrees toutes les 4 secondes.
+// ════════════════════════════════════════════════════════════
+const _canalEcran = (() => { try { return new BroadcastChannel('lc-ecran'); } catch (_) { return null; } })();
+function envoyerEcran(msg) { try { _canalEcran?.postMessage(msg); } catch (_) {} }
+function ouvrirEcranClient() {
+  const w = window.open(location.pathname + '?ecran=1', 'lc_ecran_client', 'popup,width=1280,height=800');
+  showToast(w ? t('ec.ouvert') : t('ec.popup_bloque'), w ? 's' : 'e');
+}
+
+const _ec = { file: [], minuteur: null, jeton: 0, dernierId: null, session: false, acces: null, vus: {}, occupe: false };
+async function demarrerEcran() {
+  document.title = t('ec.titre_onglet');
+  const tick = () => {
+    const d = new Date();
+    document.getElementById('ec-heure').textContent = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('ec-date').textContent = d.toLocaleDateString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  };
+  tick(); setInterval(tick, 1000);
+  const pe = () => { document.getElementById('ec-pe').style.display = document.fullscreenElement ? 'none' : ''; };
+  document.addEventListener('fullscreenchange', pe); pe();
+  ecranRepos();
+  if (_canalEcran) _canalEcran.onmessage = ev => ecranRecevoir(ev.data);
+  sb.auth.onAuthStateChange((_e, session) => { _ec.session = !!session; ecranEtat(); });
+  try { const { data } = await sb.auth.getSession(); _ec.session = !!data?.session; } catch (_) { _ec.session = false; }
+  ecranEtat();
+  ecranPointages(); setInterval(ecranPointages, 4000);
+}
+function ecranEtat() {
+  document.getElementById('ec-etat').textContent = !_ec.session ? t('ec.non_connecte') : _ec.acces === false ? t('ec.sans_acces') : '';
+}
+function ecranRepos() {
+  document.getElementById('ec-contenu').innerHTML = `<div class="ec-repos"><img src="/images/logo-rond-128.png" alt="">
+    <h1>Bienvenue</h1><div class="ar" dir="rtl">مرحبا بكم</div><p>${t('ec.repos_sous')}</p></div>`;
+}
+// Inscription / paiement / fiche envoyés par la fenêtre principale : affichés tout de suite
+function ecranRecevoir(m) {
+  if (!m || !['client', 'paiement'].includes(m.type)) return;
+  _ec.file.unshift(m); ecranSuivant();
+}
+function ecranAjouter(m) { _ec.file.push(m); if (!_ec.minuteur) ecranSuivant(); }
+async function ecranSuivant() {
+  clearTimeout(_ec.minuteur); _ec.minuteur = null;
+  const jeton = ++_ec.jeton, m = _ec.file.shift();
+  if (!m) { ecranRepos(); return; }
+  _ec.minuteur = -1;   // occupé
+  let duree = 0;
+  try { duree = await ecranAfficher(m); } catch (_) { duree = 0; }
+  if (jeton !== _ec.jeton) return;   // remplacé entre-temps
+  _ec.minuteur = setTimeout(ecranSuivant, _ec.file.length ? Math.min(duree, 4000) : duree);
+}
+// Passages à la pointeuse (les 2 portes)
+async function ecranPointages() {
+  if (!_ec.session || _ec.occupe) return;
+  _ec.occupe = true;
+  try {
+    if (_ec.dernierId == null) {
+      const { data, error } = await sb.from('acces_entrees').select('id').order('id', { ascending: false }).limit(1);
+      _ec.acces = !error; ecranEtat();
+      if (!error) _ec.dernierId = data?.[0]?.id || 0;
+      return;
+    }
+    const { data, error } = await sb.from('acces_entrees')
+      .select('id,porte,pin,date_heure,statut,client_id,employe_id,clients(id,prenom,nom,photo_url,numero_adherent,sports,sport),employes(prenom,nom)')
+      .gt('id', _ec.dernierId).order('id').limit(30);
+    if (error) return;
+    for (const e of data || []) {
+      _ec.dernierId = Math.max(_ec.dernierId, e.id);
+      // Historique renvoyé par l'appareil après une coupure : pas affiché
+      if (!(Math.abs(Date.now() - new Date(e.date_heure).getTime()) < 10 * 60000)) continue;
+      // Même personne à la même porte en moins de 15 s : une seule fois
+      const k = `${e.porte}:${e.pin}:${e.statut >= 20 && e.statut < 200 ? 'r' : 'o'}`;
+      if (_ec.vus[k] && Date.now() - _ec.vus[k] < 15000) continue;
+      _ec.vus[k] = Date.now();
+      ecranAjouter({ type: 'pointage', e });
+    }
+  } catch (_) {} finally { _ec.occupe = false; }
+}
+const ecranSports = c => c ? (c.sports?.length ? c.sports : c.sport ? [c.sport] : []) : [];
+function ecranPhoto(c) {
+  const ini = echapper(((c?.prenom || '?')[0] + ((c?.nom || '')[0] || '')).toUpperCase());
+  return c?.photo_url
+    ? `<img class="ec-photo" src="${echapper(c.photo_url)}" alt="" onerror="this.outerHTML='<div class=&quot;ec-photo&quot;>${ini}</div>'">`
+    : `<div class="ec-photo">${ini}</div>`;
+}
+// Situation d'abonnement d'un client : ligne colorée
+async function ecranSituation(clientId, paies) {
+  if (!paies) ({ data: paies } = await sb.from('paiements').select('*').eq('client_id', clientId));
+  const auj = dateLocaleAuj(), s = situationAbonnements((paies || []).map(p => ({ ...p, client_id: clientId })), auj)[clientId];
+  let ligne;
+  if (s?.aJour) {
+    const j = Math.round((new Date(s.fin + 'T00:00') - new Date(auj + 'T00:00')) / 86400000);
+    ligne = j <= 0 ? `<div class="ec-ligne ec-orange">${t('ec.finit_auj')}</div>`
+      : j <= 5 ? `<div class="ec-ligne ec-orange">${t('ec.finit').replace('%s', dateFr(s.fin)).replace('%n', j)}</div>`
+      : `<div class="ec-ligne ec-vert">✓ ${t('ec.valable').replace('%s', dateFr(s.fin))}</div>`;
+  } else ligne = `<div class="ec-ligne ec-orange">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>`;
+  return { s, ligne, paies: paies || [] };
+}
+const ecranCarte = (cls, photo, titre, nom, corps) =>
+  `<div class="ec-carte ${cls}">${photo}<div class="ec-txt"><div class="ec-titre">${titre}</div><div class="ec-nom">${nom}</div>${corps}</div></div>`;
+const ecranPuces = (sports, porte) => `<div class="ec-puces">${porte != null ? `<span class="ec-porte">🚪 ${echapper(libellePorte(porte))}</span>` : ''}${sports.map(s => `<span>${echapper(s)}</span>`).join('')}</div>`;
+const ecranNom = c => echapper(`${c.prenom || ''} ${c.nom || ''}`.trim());
+
+// Affiche un événement ; renvoie la durée d'affichage (ms)
+async function ecranAfficher(m) {
+  const zone = document.getElementById('ec-contenu');
+  if (m.type === 'pointage') {
+    const e = m.e, c = e.clients, refus = e.statut >= 20 && e.statut < 200;
+    if (refus) {
+      let corps = `<div class="ec-ligne">${t('ec.accueil')}</div>`;
+      if (c) { const { s } = await ecranSituation(c.id);
+        if (!s?.aJour) corps = `<div class="ec-ligne ec-rouge">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>` + corps; }
+      zone.innerHTML = ecranCarte('ko', c ? ecranPhoto(c) : '<div class="ec-photo" style="background:#7f1d1d">?</div>', t('ec.refuse'),
+        c ? ecranNom(c) : e.employes ? ecranNom(e.employes) : t('ec.inconnu'), ecranPuces([], e.porte) + corps);
+      return 8000;
+    }
+    if (c) {
+      const { ligne } = await ecranSituation(c.id);
+      zone.innerHTML = ecranCarte('ok', ecranPhoto(c), `${t('ec.bienvenue')} 👋`, ecranNom(c), ecranPuces(ecranSports(c), e.porte) + ligne);
+      return 7000;
+    }
+    zone.innerHTML = ecranCarte('ok', ecranPhoto(e.employes), `${e.employes ? t('ec.bonjour') : t('ec.bienvenue')} 👋`,
+      e.employes ? ecranNom(e.employes) : t('ec.bonne_seance'), ecranPuces([], e.porte));
+    return 5000;
+  }
+  if (m.type === 'client') {
+    const { data: c } = await sb.from('clients').select('*').eq('id', m.id).maybeSingle();
+    if (!c) return 0;
+    const { ligne, paies } = await ecranSituation(c.id);
+    const reste = Object.values(calculerRestes(paies)).reduce((a, r) => a + r.reste, 0);
+    zone.innerHTML = ecranCarte('info', ecranPhoto(c), m.inscription ? t('ec.bienvenue_club') : t('ec.vos_infos'), ecranNom(c),
+      (c.numero_adherent ? `<div class="ec-ligne" style="margin:0 0 12px;color:#cbd5e1">${t('ec.num').replace('%s', String(c.numero_adherent).padStart(4, '0'))}</div>` : '')
+      + ecranPuces(ecranSports(c)) + ligne
+      + (reste > 0 ? `<div class="ec-ligne ec-orange">${t('ec.reste')} : ${fmt(reste)}</div>` : ''));
+    return 20000;
+  }
+  if (m.type === 'paiement') {
+    const { data: lignes } = await sb.from('paiements').select('*').in('id', m.ids || []);
+    if (!lignes?.length) return 0;
+    // Famille : un écran par client
+    const parClient = {};
+    lignes.forEach(p => (parClient[p.client_id] ??= []).push(p));
+    const ids = Object.keys(parClient);
+    ids.slice(1).reverse().forEach(id => _ec.file.unshift({ ...m, ids: parClient[id].map(p => p.id) }));
+    const cid = ids[0], mes = parClient[cid];
+    const { data: c } = await sb.from('clients').select('*').eq('id', cid).maybeSingle();
+    if (!c) return 0;
+    const { ligne, paies } = await ecranSituation(c.id);
+    const sports = ecranSports(c), total = mes.reduce((a, p) => a + (parseFloat(p.montant) || 0), 0);
+    const reste = Object.values(calculerRestes(paies)).reduce((a, r) => a + r.reste, 0);
+    zone.innerHTML = ecranCarte('ok', ecranPhoto(c), m.inscription ? `${t('ec.bienvenue_club')} · ${t('ec.inscrit')}` : `✓ ${t('ec.merci')}`, ecranNom(c),
+      `<div class="ec-lignes">${mes.map(p => `<div><span>${echapper(libelleEncaissement(p, sports))}</span><b>${fmt(p.montant)}</b></div>`).join('')}
+        <div class="ec-total"><span>${t('ec.total')}</span><span>${fmt(total)}</span></div></div>`
+      + ligne + (reste > 0 ? `<div class="ec-ligne ec-orange">${t('ec.reste')} : ${fmt(reste)}</div>` : ''));
+    return 25000;
+  }
+  return 0;
+}
 
 function etatAppareil(a) {
   if (!a.derniere_connexion) return `<span class="badge b-w">⚪ ${t('ac.jamais')}</span>`;
@@ -13040,7 +13289,7 @@ async function savePaiementFamille() {
   if (document.getElementById('page-paiements').classList.contains('active')) loadPaiements();
   if (document.getElementById('page-clients').classList.contains('active')) { loadClients(); loadImpayes(); }
   if (_pf.vue === 'famille') loadFamillesListe();
-  if (ids.length) ouvrirRecu(ids);   // une seule facture pour toute la famille
+  if (ids.length) { envoyerEcran({ type: 'paiement', ids }); ouvrirRecu(ids); }   // une seule facture pour toute la famille
 }
 
 // ── Fiche client : la famille, arrêter / reprendre l'abonnement d'un membre ──

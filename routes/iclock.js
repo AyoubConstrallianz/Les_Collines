@@ -126,8 +126,10 @@ function analyser(table, corps) {
     if (T === 'RTLOG') {
       // time=… \t pin=… \t cardno=… \t eventaddr=… \t event=… \t inoutstatus=… \t verifytype=… …
       const f = champs(l.replace(/^rtlog\s+/i, ''));
-      if (f.pin && f.pin !== '0' && okDate(f.time))
-        out.push({ type: 'ATTLOG', pin: f.pin, date_heure: f.time, statut: f.event || '', verification: f.verifytype || '' });
+      // pin 0 : états de porte (ignorés), sauf refus d'une personne non reconnue (événements 20 à 199)
+      const ev = parseInt(f.event, 10), connu = f.pin && f.pin !== '0';
+      if ((connu || (ev >= 20 && ev < 200)) && okDate(f.time))
+        out.push({ type: 'ATTLOG', pin: connu ? f.pin : '0', date_heure: f.time, statut: f.event || '', verification: f.verifytype || '' });
       continue;
     }
     const esp = l.indexOf(' ');
