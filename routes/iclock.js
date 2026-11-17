@@ -25,6 +25,7 @@ const cleServeur = () => process.env.SUPABASE_SERVICE_KEY || '';
 
 // Les appareils envoient du texte brut (pas du JSON)
 router.use(express.text({ type: () => true, limit: '10mb' }));
+router.use(async (req, res, next) => { await signeDeVie(req, snDe(req)); next(); });
 
 async function rpc(fn, args) {
   const cle = cleServeur();
@@ -48,21 +49,26 @@ const journal = (sn, req, corps, reponse) =>
   rpc('acces_journaliser', { p_sn: sn || null, p_requete: requeteDe(req), p_corps: corps ? sansModeles(corps).slice(0, 2000) : null, p_reponse: reponse ? sansModeles(reponse) : null })
     .catch(e => console.error('[iclock] journal', e.message));
 
-// Signe de vie : toute requête d'un appareil compte comme « en ligne » (ping, heure, résultats…).
-// Au plus une mise à jour toutes les 30 s par appareil ; une ligne de journal toutes les 5 min.
+// Signe de vie : toute requête d'un appareil compte comme « en ligne » (getrequest, ping, état des portes…).
+// Au plus une mise à jour toutes les 30 s par appareil. Chaque type de requête est aussi noté au journal
+// (au plus une fois toutes les 5 min) : on voit ainsi tout ce que l'appareil demande au site.
 const _vu = new Map(), _vuJournal = new Map();
 async function signeDeVie(req, sn) {
   if (!sn) return;
   const now = Date.now();
-  if (now - (_vu.get(sn) || 0) < 30000) return;
-  _vu.set(sn, now);
-  try {
-    // acces_recevoir sans données : met seulement à jour la dernière connexion
-    await rpc('acces_recevoir', { p_sn: sn, p_table: 'PING', p_stamp: '', p_donnees: [] });
-  } catch (e) { console.error('[iclock] signe de vie', e.message); }
-  if (now - (_vuJournal.get(sn) || 0) >= 300000) {
-    _vuJournal.set(sn, now);
-    await journal(sn, req, null, 'OK (signe de vie)');
+  if (now - (_vu.get(sn) || 0) >= 30000) {
+    _vu.set(sn, now);
+    try {
+      // acces_recevoir sans données : met seulement à jour la dernière connexion
+      await rpc('acces_recevoir', { p_sn: sn, p_table: 'PING', p_stamp: '', p_donnees: [] });
+    } catch (e) { console.error('[iclock] signe de vie', e.message); }
+  }
+  const q = req.query || {};
+  const sorte = `${req.method} ${req.path} ${q.table || ''} ${q.tablename || ''} ${q.type || ''}`.replace(/s+/g, ' ').trim();
+  const cle = sn + '|' + sorte;
+  if (now - (_vuJournal.get(cle) || 0) >= 300000) {
+    _vuJournal.set(cle, now);
+    await journal(sn, req, null, 'vu (' + sorte + ')');
   }
 }
 
@@ -256,7 +262,6 @@ router.post('/querydata', (req, res) => {
 
 // Heure du serveur (acc)
 router.get('/rtdata', async (req, res) => {
-  await signeDeVie(req, snDe(req));
   if (String(req.query.type || '') === 'time') return texte(res, `DateTime=${heureZk()},ServerTZ=+0100`);
   texte(res, 'OK');
 });
@@ -286,7 +291,6 @@ router.post('/devicecmd', async (req, res) => {
       const p = new URLSearchParams(l.trim());
       return { id: p.get('ID'), retour: p.get('Return') };
     }).filter(x => /^\d+$/.test(x.id || ''));
-    await signeDeVie(req, sn);
     if (sn && res_.length) await rpc('acces_resultats', { p_sn: sn, p_res: res_ });
     await journal(sn, req, corps, 'OK');
   } catch (e) {
@@ -297,13 +301,11 @@ router.post('/devicecmd', async (req, res) => {
 });
 
 router.get('/ping', async (req, res) => {
-  await signeDeVie(req, snDe(req));
   texte(res, 'OK');
 });
 
 // Autres adresses : notées dans le journal pour diagnostic
 router.all('*', async (req, res) => {
-  await signeDeVie(req, snDe(req));
   await journal(snDe(req), req, corpsDe(req), 'OK (adresse non gérée)');
   texte(res, 'OK');
 });
