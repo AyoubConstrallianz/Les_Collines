@@ -75,7 +75,7 @@ BEGIN
     END IF;
   END LOOP;
 
-  IF v_change THEN UPDATE public.acces_appareils SET synchro_demandee = true; END IF;
+  IF v_change THEN UPDATE public.acces_appareils SET synchro_demandee = true WHERE NOT synchro_demandee; END IF;
   RETURN v_n;
 END;
 $$;
@@ -189,7 +189,7 @@ BEGIN
   END IF;
   -- La fiche de la personne sera renvoyée aux appareils (avec le nouveau badge), sans toucher aux visages
   UPDATE public.acces_utilisateurs SET nom = NULL WHERE pin = p_pin AND pri = 0;
-  UPDATE public.acces_appareils SET synchro_demandee = true;
+  UPDATE public.acces_appareils SET synchro_demandee = true WHERE NOT synchro_demandee;
 END;
 $$;
 

@@ -372,7 +372,7 @@ BEGIN
     END IF;
   END LOOP;
 
-  IF v_change THEN UPDATE public.acces_appareils SET synchro_demandee = true; END IF;
+  IF v_change THEN UPDATE public.acces_appareils SET synchro_demandee = true WHERE NOT synchro_demandee; END IF;
   RETURN v_n;
 END;
 $$;
