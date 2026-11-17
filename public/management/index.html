@@ -9486,13 +9486,13 @@ async function loadDeclarations() {
     if (!p.client_id || !p.date_paiement || finAssurance(p.date_paiement) < auj) return;
     if (!enCours[p.client_id] || p.date_paiement > enCours[p.client_id].date_paiement) enCours[p.client_id] = p;
   });
-  // Tous les clients actifs (et ceux qui ont une assurance payée en cours) pas encore déclarés cette année.
+  // Tous les clients inscrits (actifs ou non) pas encore déclarés cette année.
   // Sans le script 38, un client sans paiement d'assurance ne peut pas être marqué : seuls les payés sont listés.
   const sans38 = !!errCli;
   _declaration = (clients || []).filter(c => {
     const paie = enCours[c.id];
     if (paie) return !paie.assurance_declaree_le && !declareSansPaiement(c, paie.date_paiement);
-    return !sans38 && c.statut === 'Actif' && !declareSansPaiement(c, auj);
+    return !sans38 && !declareSansPaiement(c, auj);
   }).map(c => ({ c, paie: enCours[c.id] || null }))
     // ID (n° adhérent) décroissant ; sans n° à la fin, par nom
     .sort((a, b) => (b.c.numero_adherent ?? -1) - (a.c.numero_adherent ?? -1) || (a.c.nom || '').localeCompare(b.c.nom || '', 'fr'));
