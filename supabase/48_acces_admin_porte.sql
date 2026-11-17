@@ -38,7 +38,7 @@ BEGIN
       -- Administrateur de l'appareil : sa fiche n'est jamais modifiée, mais il reçoit le droit d'ouvrir la porte
       IF v_acc AND NOT r.u_autorise THEN
         INSERT INTO public.acces_commandes (sn, pin, commande)
-        VALUES (p_sn, r.pin, 'DATA UPDATE userauthorize Pin=' || r.pin || E'	AuthorizeTimezoneId=1	AuthorizeDoorId=1');
+        VALUES (p_sn, r.pin, 'DATA UPDATE userauthorize Pin=' || r.pin || E'\tAuthorizeTimezoneId=1\tAuthorizeDoorId=1');
         UPDATE public.acces_utilisateurs SET autorise = true WHERE sn = p_sn AND pin = r.pin;
       END IF;
       CONTINUE;
