@@ -1223,7 +1223,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" id="decl-actions">
               <input id="decl-q" type="search" placeholder="Rechercher (ID, nom, prénom)..." data-i18n-ph="decl.recherche" oninput="rechercherDeclaration()" style="width:220px;padding:4px 8px;font-size:12px">
               <button class="btn btn-sm" onclick="imprimerListeDeclaration()" style="font-size:12px" data-i18n="decl.imprimer">🖨️ Liste pour l'assurance</button>
-              <button class="btn btn-sm btn-p" id="decl-tout" onclick="marquerDeclares(_declaration.map(x => x.paie.id))" style="font-size:12px" data-i18n="decl.tout_marquer">✓ Marquer la liste comme déclarée</button>
+              <button class="btn btn-sm btn-p" id="decl-tout" onclick="marquerToutDeclare()" style="font-size:12px" data-i18n="decl.tout_marquer">✓ Marquer la liste comme déclarée</button>
               <button class="btn btn-sm" id="decl-toggle" onclick="const z=document.getElementById('decl-zone');z.style.display=z.style.display==='none'?'block':'none';this.textContent=z.style.display==='none'?t('msg.show'):t('msg.hide')" style="font-size:12px" data-i18n="msg.show">Afficher</button>
             </div>
           </div>
@@ -1231,6 +1231,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
           <div id="decl-zone" style="overflow-x:auto;display:none">
             <table><thead><tr><th>ID</th><th data-i18n="decl.nom">Nom</th><th data-i18n="decl.prenom">Prénom</th><th data-i18n="clients.dob">Date de naissance</th><th data-i18n="decl.payee_le">Assurance payée le</th><th data-i18n="clients.action_rapide">Action rapide</th></tr></thead>
             <tbody id="decl-tb"></tbody></table>
+            <div id="decl-emp" style="margin-top:14px"></div>
           </div>
         </div>
         <!-- RESTES À PAYER : paiements partiels pas encore soldés (script 39) -->
@@ -2627,6 +2628,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <div class="fr">
               <div class="fg"><label data-i18n="coaches.date_embauche">Date d'embauche</label><input id="co-emb" type="date"></div>
               <div class="fg"><label data-i18n="coaches.cin">CIN / N° Identité</label><input id="co-cin" placeholder="AB123456"></div>
+              <div class="fg"><label data-i18n="clients.dob">Date de naissance</label><input id="co-dob" type="date"></div>
             </div>
             <div class="fr">
               <div class="fg"><label data-i18n="common.statut">Statut</label>
@@ -3591,6 +3593,16 @@ const I18N = {
     'decl.declarer_sans_paie': 'Déclarer (sans paiement)',
     'decl.sans_paie_confirm': 'Déclarer ce client à l\'assurance aujourd\'hui, sans paiement d\'assurance ? (valable 1 an)',
     'decl.refuse_cli':   'Modification refusée : il faut le droit de modifier les clients.',
+    'decl.non_payee':    'Non payée',
+    'decl.salaries':     'Salariés',
+    'decl.salaries_aide': 'Cochez les salariés à déclarer à l’assurance : seuls les salariés cochés sont ajoutés à la liste et au PDF. Déclaration valable 1 an.',
+    'decl.poste':        'Poste',
+    'decl.a_declarer':   'À déclarer',
+    'decl.refuse_emp':   'Modification refusée : il faut le droit de modifier « Coaches & Salariés ».',
+    'decl.ok_emp':       '%n salarié(s) marqué(s) déclaré(s) à l\'assurance',
+    'decl.confirm_tout': 'Marquer comme déclarés à l\'assurance aujourd\'hui :\n• %c client(s)\n• %s salarié(s) ?',
+    'decl.ok_tout':      'Déclarés à l\'assurance : %c client(s), %s salarié(s)',
+    'decl.sql_52':       'Pour déclarer des salariés, exécutez une fois le script supabase/52_assurance_salaries.sql dans Supabase (SQL Editor → New query → Run), puis Ctrl+F5.',
     'paie.suite':        'Suite de la dernière période payée (fin le %d) · date modifiable',
     'paie.suite_fin':    'Dernière période payée jusqu\'au %d',
     'paie.suite_retard': '%n jour(s) de retard',
@@ -5072,6 +5084,12 @@ const I18N = {
     'decl.declarer_sans_paie': 'تصريح (بدون أداء)',
     'decl.sans_paie_confirm': 'التصريح بهذا الزبون لدى التأمين اليوم بدون أداء التأمين؟ (صالح لسنة)',
     'decl.refuse_cli':   'تم الرفض: يلزم حق تعديل الزبناء.',
+    'decl.non_payee':    'غير مؤدى',
+    'decl.salaries':     'الموظفون',
+    'decl.salaries_aide': 'ضع علامة على الموظفين الذين يجب التصريح بهم لدى التأمين. التصريح صالح لسنة.',
+    'decl.poste':        'المنصب',
+    'decl.a_declarer':   'للتصريح',
+    'decl.ok_emp':       'تم تسجيل %n موظف كمصرّح به لدى التأمين',
     'paie.suite':        'تتمة آخر فترة مدفوعة (انتهت في %d) · التاريخ قابل للتعديل',
     'paie.suite_fin':    'آخر فترة مدفوعة إلى غاية %d',
     'paie.suite_retard': '%n يوم تأخير',
@@ -9444,14 +9462,17 @@ async function loadAssuranceAlertes() {
 
 // ── Déclaration à l'assurance : assurance en cours (payée, non expirée) pas encore déclarée ──
 // Chaque paiement d'assurance se déclare : un renouvellement repart « non déclaré »
-let _declaration = []; // [{ c, paie }]
+let _declaration = []; // [{ c, paie }] — paie = null : client actif sans assurance payée en cours
+let _declEmps = [], _declarationEmp = [], _declEmpOk = true;   // salariés actifs / cochés et pas encore déclarés
+const salarieDeclare = (e, ref = today()) => !!e?.assurance_declaree_le && finAssurance(e.assurance_declaree_le) >= ref;
 async function loadDeclarations() {
   const card = document.getElementById('decl-card');
   if (!card) return;
-  const colsCli = 'id,numero_adherent,prenom,nom,date_naissance';
-  let [{ data: clients, error: errCli }, { data: assur, error }] = await Promise.all([
+  const colsCli = 'id,numero_adherent,prenom,nom,date_naissance,statut';
+  let [{ data: clients, error: errCli }, { data: assur, error }, emp] = await Promise.all([
     fetchAllRows(() => sb.from('clients').select(colsCli + ',assurance_declaree_le').order('id')),
-    fetchAllRows(() => sb.from('paiements').select('id,client_id,date_paiement,assurance_declaree_le').eq('type', 'Assurance').order('id'))
+    fetchAllRows(() => sb.from('paiements').select('id,client_id,date_paiement,assurance_declaree_le').eq('type', 'Assurance').order('id')),
+    sb.from('employes').select('id,prenom,nom,poste,actif,numero_acces,date_naissance,assurance_a_declarer,assurance_declaree_le').order('nom')
   ]);
   // Script 38 pas encore exécuté : pas de déclaration sans paiement
   if (errCli) ({ data: clients } = await fetchAllRows(() => sb.from('clients').select(colsCli).order('id')));
@@ -9465,14 +9486,23 @@ async function loadDeclarations() {
     if (!p.client_id || !p.date_paiement || finAssurance(p.date_paiement) < auj) return;
     if (!enCours[p.client_id] || p.date_paiement > enCours[p.client_id].date_paiement) enCours[p.client_id] = p;
   });
-  const parId = Object.fromEntries((clients || []).map(c => [c.id, c]));
-  _declaration = Object.values(enCours).filter(p => !p.assurance_declaree_le && parId[p.client_id] && !declareSansPaiement(parId[p.client_id], p.date_paiement))
-    .map(paie => ({ c: parId[paie.client_id], paie }))
+  // Tous les clients actifs (et ceux qui ont une assurance payée en cours) pas encore déclarés cette année.
+  // Sans le script 38, un client sans paiement d'assurance ne peut pas être marqué : seuls les payés sont listés.
+  const sans38 = !!errCli;
+  _declaration = (clients || []).filter(c => {
+    const paie = enCours[c.id];
+    if (paie) return !paie.assurance_declaree_le && !declareSansPaiement(c, paie.date_paiement);
+    return !sans38 && c.statut === 'Actif' && !declareSansPaiement(c, auj);
+  }).map(c => ({ c, paie: enCours[c.id] || null }))
     // ID (n° adhérent) décroissant ; sans n° à la fin, par nom
     .sort((a, b) => (b.c.numero_adherent ?? -1) - (a.c.numero_adherent ?? -1) || (a.c.nom || '').localeCompare(b.c.nom || '', 'fr'));
-  document.getElementById('decl-count').textContent = _declaration.length;
-  card.style.display = _declaration.length ? 'block' : 'none';
-  document.getElementById('decl-tout').style.display = PERMS.paiements?.ecrire ? '' : 'none';
+  // Salariés : seuls ceux cochés sont à déclarer (déclaration valable 1 an)
+  _declEmpOk = !emp?.error;
+  _declEmps = (emp?.data || []).filter(e => e.actif !== false);
+  _declarationEmp = _declEmps.filter(e => e.assurance_a_declarer && !salarieDeclare(e, auj));
+  document.getElementById('decl-count').textContent = _declaration.length + _declarationEmp.length;
+  card.style.display = _declaration.length || _declarationEmp.length || (_declEmps.length && PERMS.coaches?.ecrire) ? 'block' : 'none';
+  document.getElementById('decl-tout').style.display = PERMS.paiements?.ecrire || PERMS.clients?.ecrire || PERMS.coaches?.ecrire ? '' : 'none';
   renderDeclarations();
 }
 
@@ -9499,16 +9529,99 @@ function renderDeclarations() {
       <td><strong>${echapper((c.nom || '').toUpperCase())}</strong></td>
       <td>${echapper(c.prenom || '')}</td>
       <td>${c.date_naissance ? dateFr(c.date_naissance) : `<span class="badge b-w" style="font-size:10px">${t('decl.dob_manque')}</span>`}</td>
-      <td>${dateFr(paie.date_paiement)}</td>
-      <td>${canWrite ? `<button class="btn btn-sm" onclick="event.stopPropagation();marquerDeclares(['${paie.id}'])">${t('decl.marquer')}</button>` : '—'}</td>
+      <td>${paie ? dateFr(paie.date_paiement) : `<span class="badge b-w" style="font-size:10px">${t('decl.non_payee')}</span>`}</td>
+      <td>${paie ? (canWrite ? `<button class="btn btn-sm" onclick="event.stopPropagation();marquerDeclares(['${paie.id}'])">${t('decl.marquer')}</button>` : '—')
+                 : (PERMS.clients?.ecrire ? `<button class="btn btn-sm" onclick="event.stopPropagation();marquerClientsDeclares(['${c.id}'])">${t('decl.marquer')}</button>` : '—')}</td>
     </tr>`).join('');
+  renderDeclEmp(q, sansAccents);
+}
+
+// Salariés : une case par salarié actif (cochée = à déclarer à l'assurance)
+function renderDeclEmp(q, sansAccents) {
+  const zone = document.getElementById('decl-emp');
+  if (!zone) return;
+  if (!_declEmpOk) { zone.innerHTML = `<div class="al al-i" style="margin:0">${t('decl.sql_52')}</div>`; return; }
+  const ecr = PERMS.coaches?.ecrire;
+  const liste = !q ? _declEmps : _declEmps.filter(e => /^\d+$/.test(q) ? String(e.numero_acces ?? '').includes(q) : sansAccents(`${e.nom} ${e.prenom} ${e.prenom} ${e.nom}`).includes(q));
+  zone.innerHTML = `<div style="font-weight:600;font-size:13px;margin-bottom:6px">${t('decl.salaries')}
+      <span class="badge b-i" style="font-size:10px">${_declarationEmp.length}</span></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${t('decl.salaries_aide')}</div>
+    <table><thead><tr><th style="width:34px"></th><th data-i18n="decl.nom">${t('decl.nom')}</th><th>${t('decl.prenom')}</th><th>${t('decl.poste')}</th><th>${t('clients.dob')}</th><th>${t('decl.fiche')}</th></tr></thead>
+    <tbody>${!liste.length ? `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:12px">—</td></tr>` : liste.map(e => {
+      const dec = salarieDeclare(e);
+      const etat = dec ? `<span class="badge b-g" style="font-size:10px">${t('decl.declaree_le')} ${dateFr(e.assurance_declaree_le)}</span>${ecr ? ` <button class="btn btn-sm" style="font-size:10px;padding:1px 7px" onclick="marquerSalariesDeclares(['${e.id}'], false)">${t('decl.annuler')}</button>` : ''}`
+        : e.assurance_a_declarer ? `<span class="badge b-w" style="font-size:10px">${t('decl.a_declarer')}</span>${ecr ? ` <button class="btn btn-sm" style="font-size:10px;padding:1px 7px" onclick="marquerSalariesDeclares(['${e.id}'])">${t('decl.marquer')}</button>` : ''}`
+        : '<span style="color:var(--text3)">—</span>';
+      return `<tr style="${e.assurance_a_declarer ? '' : 'opacity:.6'}">
+        <td><input type="checkbox" ${e.assurance_a_declarer ? 'checked' : ''} ${ecr ? '' : 'disabled'} onchange="cocherSalarieAssurance('${e.id}', this.checked)" style="width:16px;height:16px;cursor:pointer"></td>
+        <td><strong>${echapper((e.nom || '').toUpperCase())}</strong></td>
+        <td>${echapper(e.prenom || '')}</td>
+        <td style="font-size:12px">${echapper(e.poste || '')}</td>
+        <td>${e.date_naissance ? dateFr(e.date_naissance) : `<span class="badge b-w" style="font-size:10px">${t('decl.dob_manque')}</span>`}</td>
+        <td>${etat}</td></tr>`; }).join('')}</tbody></table>`;
+}
+
+// Mise à jour par lots de 100 (une liste de plusieurs centaines d'identifiants dépasse la taille d'une adresse web)
+async function majParLots(table, valeurs, ids) {
+  let n = 0;
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await sb.from(table).update(valeurs).in('id', ids.slice(i, i + 100)).select('id');
+    if (error) return { n, error };
+    n += (data || []).length;
+  }
+  return { n, error: null };
+}
+// Clients sans assurance payée : déclaration notée sur la fiche (script 38, valable 1 an)
+async function marquerClientsDeclares(ids) {
+  const { n, error } = await majParLots('clients', { assurance_declaree_le: today(), updated_at: new Date().toISOString() }, ids);
+  if (error) { showToast(error.message, 'e'); return; }
+  if (!n) { showToast(t('decl.refuse_cli'), 'e'); return; }
+  await logAudit('UPDATE', 'clients', `Assurance déclarée sans paiement (${n})`);
+  showToast(t('decl.ok').replace('%n', n), 's');
+  loadDeclarations();
+}
+async function cocherSalarieAssurance(id, oui) {
+  const e = _declEmps.find(x => x.id === id);
+  const { data, error } = await sb.from('employes').update({ assurance_a_declarer: oui }).eq('id', id).select('id');
+  if (error || !data?.length) {
+    showToast(error ? (/assurance_a_declarer/.test(error.message) ? t('decl.sql_52') : error.message) : t('decl.refuse_emp'), 'e');
+    loadDeclarations(); return;
+  }
+  await logAudit('UPDATE', 'employes', `Assurance : ${e ? nomPersonne(e.prenom, e.nom) : id} ${oui ? 'à déclarer' : 'retiré de la déclaration'}`);
+  loadDeclarations();
+}
+async function marquerSalariesDeclares(ids, declare = true) {
+  const { n, error } = await majParLots('employes', { assurance_declaree_le: declare ? today() : null }, ids);
+  if (error) { showToast(/assurance_declaree_le/.test(error.message) ? t('decl.sql_52') : error.message, 'e'); return; }
+  if (!n) { showToast(t('decl.refuse_emp'), 'e'); return; }
+  await logAudit('UPDATE', 'employes', `Assurance salarié(s) ${declare ? 'déclaré(s)' : 'déclaration annulée'} (${n})`);
+  showToast(declare ? t('decl.ok_emp').replace('%n', n) : t('decl.annule_ok'), 's');
+  loadDeclarations();
+}
+// « Marquer la liste comme déclarée » : clients (avec ou sans assurance payée) + salariés cochés
+async function marquerToutDeclare() {
+  const paies = _declaration.filter(x => x.paie).map(x => x.paie.id);
+  const clis = _declaration.filter(x => !x.paie).map(x => x.c.id);
+  const emps = _declarationEmp.map(e => e.id);
+  if (!paies.length && !clis.length && !emps.length) { showToast(t('relance.vide'), 'e'); return; }
+  if (!confirm(t('decl.confirm_tout').replace('%c', paies.length + clis.length).replace('%s', emps.length))) return;
+  const msgs = []; let nc = 0, ns = 0;
+  if (paies.length) { const r = await majParLots('paiements', { assurance_declaree_le: today() }, paies); if (r.error) msgs.push(r.error.message); else if (!r.n) msgs.push(t('decl.refuse')); nc += r.n; }
+  if (clis.length) { const r = await majParLots('clients', { assurance_declaree_le: today(), updated_at: new Date().toISOString() }, clis); if (r.error) msgs.push(r.error.message); else if (!r.n) msgs.push(t('decl.refuse_cli')); nc += r.n; }
+  if (emps.length) { const r = await majParLots('employes', { assurance_declaree_le: today() }, emps); if (r.error) msgs.push(r.error.message); else if (!r.n) msgs.push(t('decl.refuse_emp')); ns += r.n; }
+  if (nc || ns) {
+    await logAudit('UPDATE', 'paiements', `Assurance : liste déclarée (${nc} client(s), ${ns} salarié(s))`);
+    showToast(t('decl.ok_tout').replace('%c', nc).replace('%s', ns), msgs.length ? 'i' : 's');
+  }
+  if (msgs.length) showToast(msgs.join(' · '), 'e');
+  loadDeclarations();
 }
 
 // Liste à envoyer à l'assurance : PDF A4 (ID, NOM, PRÉNOM, DATE DE NAISSANCE) avec cachet en bas.
 // Un vrai PDF A4 garde son format même si la dernière imprimante utilisée est la thermique.
 async function imprimerListeDeclaration() {
-  const liste = _declaration;
-  if (!liste.length) { showToast(t('relance.vide'), 'e'); return; }
+  const liste = _declaration, emps = _declarationEmp;
+  if (!liste.length && !emps.length) { showToast(t('relance.vide'), 'e'); return; }
   if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
   // Onglet ouvert tout de suite (sinon bloqué comme fenêtre surgissante), rempli quand le PDF est prêt
   const onglet = window.open('', '_blank');
@@ -9526,9 +9639,9 @@ async function imprimerListeDeclaration() {
   doc.setLineWidth(0.6); doc.line(M, y, W - M, y);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.text('DÉCLARATION ASSURANCE', W / 2, y + 8, { align: 'center' });
   y += 11.5; doc.line(M, y, W - M, y);
-  doc.setFontSize(11); doc.text(`${RECU_ASSO.nom} — Adhérents à déclarer`, W / 2, y + 6, { align: 'center' });
+  doc.setFontSize(11); doc.text(`${RECU_ASSO.nom} — ${emps.length ? 'Adhérents et salariés' : 'Adhérents'} à déclarer`, W / 2, y + 6, { align: 'center' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  doc.text(`${liste.length} adhérent${liste.length > 1 ? 's' : ''} — liste du ${le}`, W / 2, y + 11, { align: 'center' });
+  doc.text(`${liste.length} adhérent${liste.length > 1 ? 's' : ''}${emps.length ? ` et ${emps.length} salarié${emps.length > 1 ? 's' : ''}` : ''} — liste du ${le}`, W / 2, y + 11, { align: 'center' });
   y += 16;
 
   const entete = () => {
@@ -9538,16 +9651,26 @@ async function imprimerListeDeclaration() {
     cols.forEach(col => { doc.setFillColor(235, 235, 235); doc.rect(x, y, col.w, 8, 'FD'); doc.setTextColor(0); doc.text(col.t, col.c ? x + col.w / 2 : x + 2.5, y + 5.4, col.c ? { align: 'center' } : {}); x += col.w; });
     y += 8; doc.setFont('helvetica', 'normal');
   };
-  entete();
-  liste.forEach(({ c }) => {
-    const vals = [String(c.numero_adherent ?? ''), (c.nom || '').toUpperCase(), (c.prenom || '').toUpperCase(), c.date_naissance ? dateFr(c.date_naissance) : ''];
+  const ligne = vals => {
     const lignes = vals.map((v, i) => doc.splitTextToSize(v, cols[i].w - 5));
     const h = Math.max(6.8, ...lignes.map(l => l.length * 4.4 + 2.4));
     if (y + h > bas) { doc.addPage(); y = M; entete(); }
     let x = M;
     cols.forEach((col, i) => { doc.rect(x, y, col.w, h); doc.text(lignes[i], col.c ? x + col.w / 2 : x + 2.5, y + 4.6, col.c ? { align: 'center' } : {}); x += col.w; });
     y += h;
-  });
+  };
+  if (liste.length) {
+    entete();
+    liste.forEach(({ c }) => ligne([String(c.numero_adherent ?? ''), (c.nom || '').toUpperCase(), (c.prenom || '').toUpperCase(), c.date_naissance ? dateFr(c.date_naissance) : '']));
+  }
+  if (emps.length) {
+    if (y + 30 > bas) { doc.addPage(); y = M; }
+    if (liste.length) y += 6;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.text(`SALARIÉS (${emps.length})`, M, y + 4); y += 7;
+    entete();
+    emps.forEach(e => ligne([String(e.numero_acces ?? ''), (e.nom || '').toUpperCase(), (e.prenom || '').toUpperCase(), e.date_naissance ? dateFr(e.date_naissance) : '']));
+  }
 
   // Bas de la dernière page : lieu et date, cadre pour le cachet et la signature
   const hCachet = 38, yCachet = bas - hCachet;
@@ -9567,7 +9690,7 @@ async function imprimerListeDeclaration() {
   const url = URL.createObjectURL(doc.output('blob'));
   if (onglet) onglet.location.href = url;
   else doc.save(`declaration-assurance-${today()}.pdf`);
-  logAudit('PRINT', 'clients', `Liste déclaration assurance (${liste.length})`);
+  logAudit('PRINT', 'clients', `Liste déclaration assurance (${liste.length} client(s), ${emps.length} salarié(s))`);
 }
 
 // ── Relevé des paiements d'un client (fiche client), imprimable sur ticket 75 mm ──
@@ -15314,6 +15437,9 @@ async function saveCoach() {
     notes:         document.getElementById('co-notes').value.trim(),
     actif
   };
+  // Date de naissance (script 52) : envoyée seulement si remplie ou déjà connue
+  const dob = document.getElementById('co-dob').value || null;
+  if (dob || window._coachDobConnu) obj.date_naissance = dob;
   // Rémunération (n'envoie les colonnes que si utile ou déjà connues : script 13 non exécuté = pas d'erreur)
   const remu = document.getElementById('co-remu').value;
   if (remu !== 'Mensuel' || window._coachRemuConnu) {
@@ -15336,7 +15462,7 @@ async function saveCoach() {
   const { data: saved, error } = id
     ? await sb.from('employes').update(obj).eq('id',id).select().single()
     : await sb.from('employes').insert(obj).select().single();
-  if (error) { showToast(/montant_semaine/.test(error.message) ? t('remu.sql_semaine') : /remuneration|nb_groupes|montant_groupe|pourcentage/.test(error.message) ? t('remu.sql') : error.message,'e'); return; }
+  if (error) { showToast(/date_naissance/.test(error.message) ? t('decl.sql_52') : /montant_semaine/.test(error.message) ? t('remu.sql_semaine') : /remuneration|nb_groupes|montant_groupe|pourcentage/.test(error.message) ? t('remu.sql') : error.message,'e'); return; }
 
   // Upload photo et CIN si fichiers sélectionnés
   const empId = saved?.id || id;
@@ -15403,6 +15529,8 @@ function editCoach(e) {
   document.getElementById('co-emb').value     = e.date_embauche||'';
   document.getElementById('co-depart').value  = e.date_depart||'';
   document.getElementById('co-cin').value     = e.cin||'';
+  document.getElementById('co-dob').value     = e.date_naissance||'';
+  window._coachDobConnu = 'date_naissance' in e;
   document.getElementById('co-notes').value   = e.notes||'';
   document.getElementById('co-actif').value   = String(e.actif !== false);
   document.getElementById('coach-form-title').textContent = t('coaches.edit_title');
@@ -15420,8 +15548,8 @@ function closeCoachForm() {
 }
 
 function resetCoachForm() {
-  window._coachSemaineConnu = false;
-  ['co-id','co-prenom','co-nom','co-salaire','co-tel','co-emb','co-depart','co-cin','co-notes','co-nb-groupes','co-montant-groupe','co-pourcentage','co-montant-semaine'].forEach(i=>document.getElementById(i).value='');
+  window._coachSemaineConnu = false; window._coachDobConnu = false;
+  ['co-id','co-prenom','co-nom','co-salaire','co-tel','co-emb','co-depart','co-cin','co-dob','co-notes','co-nb-groupes','co-montant-groupe','co-pourcentage','co-montant-semaine'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('co-remu').value = 'Mensuel';
   window._coachRemuConnu = false; window._coachEditNom = '';
   majFormRemu();
