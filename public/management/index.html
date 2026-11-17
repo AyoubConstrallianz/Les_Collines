@@ -3351,6 +3351,8 @@ const I18N = {
     'ec.finit':          'Votre abonnement se termine le %s (dans %n jour(s))',
     'ec.finit_auj':      'Votre abonnement se termine aujourd’hui',
     'ec.fini':           'Votre abonnement a pris fin le %s',
+    'ec.assur_non':      'Assurance non payée — merci de la régler à l’accueil',
+    'ec.assur_expiree':  'Votre assurance a expiré le %s — merci de la renouveler à l’accueil',
     'ec.aucun':          'Aucun abonnement en cours',
     'ec.merci':          'Merci ! Paiement enregistré',
     'ec.inscrit':        'Inscription enregistrée',
@@ -4818,6 +4820,8 @@ const I18N = {
     'presence.recap_salarie':'Salarié',
   },
   ar: {
+    'ec.assur_non':      'التأمين غير مؤدى — المرجو أداؤه في الاستقبال',
+    'ec.assur_expiree':  'انتهت صلاحية تأمينك في %s — المرجو تجديده في الاستقبال',
     // Navigation (with emoji)
     'nav.dashboard':    'لوحة القيادة',
     'nav.membres':      'الأعضاء',
@@ -10979,7 +10983,13 @@ async function ecranSituation(clientId, paies) {
       ligne = `<div class="ec-ligne ec-orange">${t('ec.grace').replace('%s', dateFr(s.finPassee)).replace('%d', dateFr(limIso))}</div>`;
     } else ligne = `<div class="ec-ligne ec-orange">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>`;
   }
-  return { s, ligne, paies: paies || [] };
+  // Assurance (valable 1 an à partir du paiement, même règle que l'alerte du tableau de bord)
+  let assur = '';
+  if (!assuranceValide(paies || [], auj)) {
+    const der = (paies || []).filter(p => p.type === 'Assurance' && p.date_paiement && p.date_paiement <= auj).map(p => p.date_paiement).sort().pop();
+    assur = `<div class="ec-ligne ec-rouge">⚠ ${der ? t('ec.assur_expiree').replace('%s', dateFr(finAssurance(der))) : t('ec.assur_non')}</div>`;
+  }
+  return { s, ligne: ligne + assur, assur, paies: paies || [] };
 }
 const ecranCarte = (cls, photo, titre, nom, corps) =>
   `<div class="ec-carte ${cls}">${photo}<div class="ec-txt"><div class="ec-titre">${titre}</div><div class="ec-nom">${nom}</div>${corps}</div></div>`;
@@ -10993,8 +11003,9 @@ async function ecranAfficher(m) {
     const e = m.e, c = e.clients, refus = e.statut >= 20 && e.statut < 200;
     if (refus) {
       let corps = `<div class="ec-ligne">${t('ec.accueil')}</div>`;
-      if (c) { const { s } = await ecranSituation(c.id);
-        if (!s?.aJour) corps = `<div class="ec-ligne ec-rouge">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>` + corps; }
+      if (c) { const { s, assur } = await ecranSituation(c.id);
+        if (!s?.aJour) corps = `<div class="ec-ligne ec-rouge">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>` + corps;
+        corps = assur + corps; }
       zone.innerHTML = ecranCarte('ko', c ? ecranPhoto(c) : '<div class="ec-photo" style="background:#7f1d1d">?</div>', t('ec.refuse'),
         c ? ecranNom(c) : e.employes ? ecranNom(e.employes) : t('ec.inconnu'), ecranPuces([], e.porte) + corps);
       return 8000;
