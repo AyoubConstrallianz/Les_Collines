@@ -1583,10 +1583,22 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
           <div class="card">
             <div class="ct" data-i18n="ac.disciplines">Porte de chaque discipline</div>
             <div style="overflow-x:auto"><table>
-              <thead><tr><th data-i18n="ac.discipline">Discipline</th><th data-i18n="sports.lbl_coach">Coach</th><th data-i18n="ac.porte">Porte</th></tr></thead>
+              <thead><tr><th data-i18n="ac.discipline">Discipline</th><th data-i18n="sports.lbl_coach">Coach</th><th data-i18n="ac.porte">Porte</th><th data-i18n="ac.h_col">Horaires</th></tr></thead>
               <tbody id="ac-sports-tb"></tbody>
             </table></div>
             <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="ac.disciplines_aide">Un client à jour de son abonnement entre par la porte de chacune de ses disciplines (et encore 5 jours après la fin de son abonnement). Une discipline sans porte ne donne accès à aucune porte.</p>
+            <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:12px">
+              <div style="font-weight:600;margin-bottom:6px" data-i18n="ac.h_titre">Horaires des séances (onglet Planning)</div>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <span data-i18n="ac.h_entree">Entrée possible</span>
+                <input id="ac-h-avant" type="number" min="0" max="180" style="width:64px;padding:4px 6px">
+                <span data-i18n="ac.h_avant">min avant le début, jusqu'à</span>
+                <input id="ac-h-fin" type="number" min="0" max="180" style="width:64px;padding:4px 6px">
+                <span data-i18n="ac.h_fin">min avant la fin de la séance.</span>
+                <button class="btn btn-sm btn-p ac-ecrire" onclick="enregistrerHorairesAcces()" data-i18n="common.enregistrer">Enregistrer</button>
+              </div>
+              <p style="font-size:11px;color:var(--text3);margin-top:6px" data-i18n="ac.h_aide">Une discipline sans aucune séance dans le Planning est accessible toute la journée. Le personnel entre toujours. Les appareils doivent être en mode « contrôle de porte ».</p>
+            </div>
           </div>
           <div class="card">
             <div class="ct" data-i18n="ac.personnel">Personnel</div>
@@ -3277,6 +3289,17 @@ const I18N = {
     'ac.reglage_aide':   "Enregistrement d'un visage : sur l'appareil, Menu → Utilisateurs → Nouvel utilisateur, avec comme ID le N° d'adhérent du client (ou le N° d'accès du salarié). Le visage est gardé par le site et envoyé automatiquement à l'autre porte si le client y a droit.",
     'ac.disciplines':    'Porte de chaque discipline',
     'ac.discipline':     'Discipline',
+    'ac.h_col':          'Horaires',
+    'ac.h_titre':        'Horaires des séances (onglet Planning)',
+    'ac.h_entree':       'Entrée possible',
+    'ac.h_avant':        "min avant le début, jusqu'à",
+    'ac.h_fin':          'min avant la fin de la séance.',
+    'ac.h_aide':         "Une discipline sans aucune séance dans le Planning est accessible toute la journée. Le personnel entre toujours. Les appareils doivent être en mode « contrôle de porte ».",
+    'ac.h_planning':     'Selon le planning (%n séances)',
+    'ac.h_journee':      'Toute la journée',
+    'ac.h_ok':           "Délais enregistrés : appliqués aux portes dans la minute.",
+    'ac.h_invalide':     'Délais invalides (entre 0 et 180 minutes).',
+    'ac.sql_50':         "Fonction non installée : exécutez le script supabase/50_acces_horaires_seances.sql dans Supabase (SQL Editor → New query → Run), puis Ctrl+F5.",
     'ac.disciplines_aide':'Un client à jour de son abonnement entre par la porte de chacune de ses disciplines (et encore 5 jours après la fin de son abonnement). Une discipline sans porte ne donne accès à aucune porte.',
     'ac.personnel':      'Personnel',
     'ac.num_acces':      "N° d'accès",
@@ -3347,6 +3370,10 @@ const I18N = {
     'ec.bonjour':        'Bonjour',
     'ec.bonne_seance':   'Bonne séance !',
     'ec.refuse':         '⛔ Accès refusé',
+    'ec.h_hors':         'En dehors des horaires de votre séance',
+    'ec.h_prochaine':    'Prochaine séance de %s : %j à %h (entrée dès %e)',
+    'ec.h_auj':          "aujourd'hui",
+    'ec.h_demain':       'demain',
     'ec.inconnu':        'Visage non reconnu',
     'ec.accueil':        'Merci de passer à l’accueil.',
     'ec.valable':        'Abonnement valable jusqu’au %s',
@@ -4854,6 +4881,10 @@ const I18N = {
     'ec.bienvenue_club': 'مرحبا بك في النادي!',
     'ec.bonne_seance':   'حصة موفقة!',
     'ec.refuse':         '⛔ الدخول مرفوض',
+    'ec.h_hors':         'خارج توقيت حصتك',
+    'ec.h_prochaine':    'الحصة القادمة (%s) : %j على الساعة %h (الدخول ابتداءً من %e)',
+    'ec.h_auj':          'اليوم',
+    'ec.h_demain':       'غداً',
     'ec.accueil':        'المرجو التوجه إلى الاستقبال.',
     'ec.merci':          'شكرا! تم تسجيل الأداء',
     'ac.cli_visage':     'الوجه',
@@ -11004,6 +11035,41 @@ const ecranCarte = (cls, photo, titre, nom, corps) =>
 const ecranPuces = (sports, porte) => `<div class="ec-puces">${porte != null ? `<span class="ec-porte">🚪 ${echapper(libellePorte(porte))}</span>` : ''}${sports.map(s => `<span>${echapper(s)}</span>`).join('')}</div>`;
 const ecranNom = c => echapper(`${c.prenom || ''} ${c.nom || ''}`.trim());
 
+// Horaires des séances (Planning) : rappel quand un client à jour est refusé en dehors de ses créneaux
+let _ecPlan = { t: 0, rows: [], avant: 15, fin: 30 };
+async function ecranHoraires(c) {
+  try {
+    if (Date.now() - _ecPlan.t > 300000) {
+      const [{ data: rows }, { data: prm }] = await Promise.all([
+        sb.from('planning').select('sport,jour,heure_debut,heure_fin'),
+        sb.from('parametres').select('cle,valeur').in('cle', ['acces_avant_min', 'acces_fin_min'])]);
+      const p = {}; (prm || []).forEach(x => { p[x.cle] = parseInt(x.valeur, 10); });
+      _ecPlan = { t: Date.now(), rows: rows || [], avant: p.acces_avant_min ?? 15, fin: p.acces_fin_min ?? 30 };
+    }
+    const cle = n => String(n || '').trim().toLowerCase();
+    const sports = ecranSports(c).map(cle);
+    const seances = _ecPlan.rows.filter(r => sports.includes(cle(r.sport)));
+    // Une discipline sans séance = accès toute la journée : le refus ne vient pas des horaires
+    if (!seances.length || sports.some(sp => !_ecPlan.rows.some(r => cle(r.sport) === sp))) return '';
+    const min = h => { const [a, b] = String(h).split(':').map(Number); return a * 60 + (b || 0); };
+    const hh = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), j0 = (now.getDay() + 6) % 7;
+    let best = null;
+    for (const r of seances) {
+      const jr = PLAN_JOURS.indexOf(r.jour); if (jr < 0) continue;
+      let d = (jr - j0 + 7) % 7;
+      if (d === 0 && min(r.heure_fin) - _ecPlan.fin <= nowMin) d = 7;
+      const k = d * 1440 + min(r.heure_debut);
+      if (!best || k < best.k) best = { k, d, r };
+    }
+    if (!best) return '';
+    const deb = min(best.r.heure_debut);
+    const quand = best.d === 0 ? t('ec.h_auj') : best.d === 1 ? t('ec.h_demain') : (t('jours.' + best.r.jour) !== 'jours.' + best.r.jour ? t('jours.' + best.r.jour) : best.r.jour).toLowerCase();
+    return `<div class="ec-ligne ec-orange">🕒 ${t('ec.h_hors')}</div><div class="ec-ligne">${echapper(t('ec.h_prochaine')
+      .replace('%s', best.r.sport).replace('%j', quand).replace('%h', hh(deb)).replace('%e', hh(Math.max(0, deb - _ecPlan.avant))))}</div>`;
+  } catch (e) { return ''; }
+}
+
 // Affiche un événement ; renvoie la durée d'affichage (ms)
 async function ecranAfficher(m) {
   const zone = document.getElementById('ec-contenu');
@@ -11013,6 +11079,7 @@ async function ecranAfficher(m) {
       let corps = `<div class="ec-ligne">${t('ec.accueil')}</div>`;
       if (c) { const { s, assur } = await ecranSituation(c.id);
         if (!s?.aJour) corps = `<div class="ec-ligne ec-rouge">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>` + corps;
+        else corps = (await ecranHoraires(c)) + corps;
         corps = assur + corps; }
       zone.innerHTML = ecranCarte('ko', c ? ecranPhoto(c) : '<div class="ec-photo" style="background:#7f1d1d">?</div>', t('ec.refuse'),
         c ? ecranNom(c) : e.employes ? ecranNom(e.employes) : t('ec.inconnu'), ecranPuces([], e.porte) + corps);
@@ -11083,13 +11150,15 @@ async function loadAcces() {
   const ecrire = !!PERMS.acces?.ecrire;
   document.querySelectorAll('#page-acces .ac-ecrire').forEach(el => el.style.display = ecrire ? '' : 'none');
   const dj = document.getElementById('ac-date'); if (!dj.value) dj.value = dateLocaleAuj();
-  const [app, sp, emp, us, vis, cmd] = await Promise.all([
+  const [app, sp, emp, us, vis, cmd, pla, par] = await Promise.all([
     sb.from('acces_appareils').select('*').order('sn'),
     sb.from('sports').select('*').order('nom'),
     sb.from('employes').select('*').order('nom'),
     fetchAllRows(() => sb.from('acces_utilisateurs').select('sn,pin,pri').order('pin')),
     fetchAllRows(() => sb.from('acces_visages').select('pin,cle').order('pin')),
-    fetchAllRows(() => sb.from('acces_commandes').select('id,sn').is('termine_le', null).order('id'))
+    fetchAllRows(() => sb.from('acces_commandes').select('id,sn').is('termine_le', null).order('id')),
+    sb.from('planning').select('sport,jour,heure_debut,heure_fin'),
+    sb.from('parametres').select('cle,valeur').in('cle', ['acces_avant_min', 'acces_fin_min'])
   ]);
   const al = document.getElementById('ac-alerte');
   if (app.error) {
@@ -11104,6 +11173,12 @@ async function loadAcces() {
   _ac.visages = new Set((vis.data || []).filter(v => v.cle !== 'CARTE').map(v => v.pin));
   _ac.cartes = new Set((vis.data || []).filter(v => v.cle === 'CARTE').map(v => v.pin));
   _ac.attente = {}; (cmd.data || []).forEach(c => { _ac.attente[c.sn] = (_ac.attente[c.sn] || 0) + 1; });
+  _ac.seances = {}; (pla?.data || []).forEach(p => { const k = cleSportAcces(p.sport); _ac.seances[k] = (_ac.seances[k] || 0) + 1; });
+  const prm = {}; (par?.data || []).forEach(x => { prm[x.cle] = x.valeur; });
+  _ac.horairesOk = !par?.error && 'acces_avant_min' in prm;
+  document.getElementById('ac-h-avant').value = prm.acces_avant_min ?? 15;
+  document.getElementById('ac-h-fin').value = prm.acces_fin_min ?? 30;
+  ['ac-h-avant', 'ac-h-fin'].forEach(id => { document.getElementById(id).disabled = !PERMS.acces?.ecrire; });
   // Alertes : appareil sans porte, discipline sans porte
   const alertes = [];
   if (_ac.appareils.some(a => a.porte == null)) alertes.push(t('ac.al_appareil'));
@@ -11149,7 +11224,10 @@ function renderSportsAcces() {
            <option value="2" ${s.porte === 2 ? 'selected' : ''}>${t('ac.porte')} 2</option>
            <option value="0" ${s.porte === 0 ? 'selected' : ''}>${t('ac.porte_deux')}</option></select>`
       : libellePorte(s.porte)}</td>
-  </tr>`).join('') || `<tr><td colspan="3" style="color:var(--text3)">${t('msg.no_sport')}</td></tr>`;
+    <td style="font-size:12px">${_ac.seances?.[cleSportAcces(s.nom)]
+      ? `<span class="badge b-i" style="font-size:10px">🕒 ${t('ac.h_planning').replace('%n', _ac.seances[cleSportAcces(s.nom)])}</span>`
+      : `<span style="color:var(--text3)">${t('ac.h_journee')}</span>`}</td>
+  </tr>`).join('') || `<tr><td colspan="4" style="color:var(--text3)">${t('msg.no_sport')}</td></tr>`;
 }
 
 function renderEmployesAcces() {
@@ -11313,6 +11391,17 @@ async function changerPorteAppareil(sn, val) {
   if (error) { showToast(error.message, 'e'); return; }
   await logAudit('UPDATE', 'acces_appareils', `${sn} → ${libellePorte(porte)}`);
   showToast(t('ac.ok_porte'), 's'); loadAcces();
+}
+
+const cleSportAcces = n => String(n || '').trim().toLowerCase();
+
+async function enregistrerHorairesAcces() {
+  const avant = parseInt(document.getElementById('ac-h-avant').value, 10), fin = parseInt(document.getElementById('ac-h-fin').value, 10);
+  if (!(avant >= 0 && avant <= 180 && fin >= 0 && fin <= 180)) { showToast(t('ac.h_invalide'), 'e'); return; }
+  const { error } = await sb.rpc('acces_regler_horaires', { p_avant: avant, p_fin: fin });
+  if (error) { showToast(/acces_regler_horaires/.test(error.message) ? t('ac.sql_50') : error.message, 'e'); return; }
+  await logAudit('UPDATE', 'parametres', `Accès : entrée ${avant} min avant la séance, jusqu'à ${fin} min avant la fin`);
+  showToast(t('ac.h_ok'), 's');
 }
 
 async function changerPorteSport(id, val) {
