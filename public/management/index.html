@@ -3315,8 +3315,11 @@ const I18N = {
     'ac.badge_delai':    "Aucun badge reçu depuis 3 minutes. Vérifiez que l'appareil est « 🟢 En ligne » dans la carte Appareils, puis réessayez.",
     'ac.badge_reessayer': 'Réessayer',
     'ac.badge_ok':       "Badge attribué : il sera envoyé aux appareils dans moins d'une minute.",
-    'ac.badge_confirm_retirer': 'Retirer le badge de {n} ? Il ne pourra plus ouvrir les portes avec.',
-    'ac.badge_retire':   'Badge retiré.',
+    'ac.badge_confirm_retirer': 'Retirer le badge de {n} ? Il ne pourra plus ouvrir les portes avec, et le badge pourra être donné à quelqu’un d’autre.',
+    'ac.badge_retire':   "Badge retiré. Il est libre : attendez 1 minute (le temps que l'appareil l'oublie), puis donnez-le à quelqu'un d'autre avec le bouton « 💳 Donner un badge ».",
+    'ac.badge_donner':   'Donner un badge',
+    'ac.badge_changer':  'Changer de badge',
+    'ac.badge_transferer': "Ce badge est encore enregistré pour {a}.\n\nLe lui retirer et le donner à {n} ?",
     'ac.visage_titre':   'Visage de {n}',
     'ac.visage_choix':   "Choisissez l'appareil devant lequel {n} va se placer :",
     'ac.visage_lancer':  "Ouvrir l'enregistrement sur l'appareil",
@@ -8030,11 +8033,16 @@ function ligneAccesClient(c) {
   if (!_accesCli) return '';
   if (c.numero_adherent == null || c.numero_adherent === '') return `<span style="color:var(--text3)">${t('ac.cli_sans_num')}</span>`;
   const a = _accesCli.get(String(c.numero_adherent));
-  if (!a || (!a.visage && !a.badge)) return `<span class="badge b-w" style="font-size:10px">${t('ac.cli_aucun').replace('%s', c.numero_adherent)}</span>`;
+  const pin = String(c.numero_adherent).replace(/\D/g, '');
+  const btns = PERMS.acces?.ecrire && pin ? `<div style="display:flex;gap:4px;justify-content:flex-end;margin-top:4px;flex-wrap:wrap">
+      <button class="btn btn-sm" style="font-size:11px;padding:2px 8px" onclick="badgeEmployeAcces('${pin}')">💳 ${a?.badge ? t('ac.badge_changer') : t('ac.badge_donner')}</button>
+      ${a?.badge ? `<button class="btn btn-sm" style="font-size:11px;padding:2px 8px" onclick="retirerBadgeAcces('${pin}')">✕ ${t('ac.btn_retirer_badge')}</button>` : ''}
+    </div>` : '';
+  if (!a || (!a.visage && !a.badge)) return `<span class="badge b-w" style="font-size:10px">${t('ac.cli_aucun').replace('%s', c.numero_adherent)}</span>` + btns;
   const portes = [...a.portes].sort();
   return badgesAccesClient(c) + ' '
     + (portes.length ? portes.map(p => `<span class="badge b-i" style="font-size:10px;margin-left:3px">${libellePorte(p)}</span>`).join('')
-                     : `<span style="font-size:11px;color:var(--text3)">${t('ac.cli_aucune')}</span>`);
+                     : `<span style="font-size:11px;color:var(--text3)">${t('ac.cli_aucune')}</span>`) + btns;
 }
 
 async function loadClients() {
@@ -11172,14 +11180,27 @@ function fermerEnrAcces() {
 function corpsEnrAcces(html) { document.getElementById('ac-enr-corps').innerHTML = html; }
 function ouvrirEnrAcces(titre, html) {
   _acEnr.jeton++; clearTimeout(_acEnr.minuteur);
+  const mo = document.getElementById('ac-enr-modal');
+  if (mo.parentElement !== document.body) document.body.appendChild(mo);
+  mo.style.zIndex = '1200';
   document.getElementById('ac-enr-titre').textContent = titre;
   corpsEnrAcces(html);
-  document.getElementById('ac-enr-modal').classList.add('open');
+  mo.classList.add('open');
   return _acEnr.jeton;
 }
 function nomPinAcces(pin) {
-  const e = _ac.employes.find(x => String(x.numero_acces) === String(pin));
-  return e ? nomPersonne(e.prenom, e.nom) : String(pin);
+  const e = (_ac.employes || []).find(x => String(x.numero_acces) === String(pin));
+  if (e) return nomPersonne(e.prenom, e.nom);
+  const c = (typeof CLIENTS_CACHE !== 'undefined' ? CLIENTS_CACHE : []).find(x => String(x.numero_adherent) === String(pin));
+  return c ? nomPersonne(c.prenom, c.nom) : 'N° ' + pin;
+}
+// Après un changement de badge : rafraîchit la page Accès et la fiche client ouverte
+async function rafraichirApresBadge() {
+  if (document.getElementById('page-acces')?.offsetParent) loadAcces();
+  if (document.getElementById('client-fiche-modal')?.classList.contains('open') && window._ficheClientId) {
+    await chargerAccesClients().catch(() => null);
+    ouvrirFicheClient(window._ficheClientId);
+  }
 }
 const manuelVisageAcces = pin => `<div class="al al-i" style="margin-top:10px">${t('ac.visage_manuel').split('{p}').join(pin)}</div>`;
 
@@ -11218,10 +11239,20 @@ async function badgeEmployeAcces(pin) {
 }
 
 async function attribuerBadgeAcces(pin, carte) {
-  const { error } = await sb.rpc('acces_attribuer_badge', { p_pin: String(pin), p_carte: carte });
+  let { error } = await sb.rpc('acces_attribuer_badge', { p_pin: String(pin), p_carte: carte });
+  const autre = error?.message.match(/attribué au N° (\d+)/)?.[1];
+  if (autre) {
+    // Badge encore noté pour une autre personne (ex. ancien client retiré de l'appareil) : transfert
+    if (!confirm(t('ac.badge_transferer').replace('{a}', `${nomPinAcces(autre)} (N° ${autre})`).replace('{n}', nomPinAcces(pin)))) return;
+    ({ error } = await sb.rpc('acces_attribuer_badge', { p_pin: autre, p_carte: '' }));
+    if (!error) {
+      await logAudit('UPDATE', 'acces_visages', `Badge retiré → N° ${autre} (${nomPinAcces(autre)}), donné au N° ${pin}`);
+      ({ error } = await sb.rpc('acces_attribuer_badge', { p_pin: String(pin), p_carte: carte }));
+    }
+  }
   if (error) { showToast(/acces_attribuer_badge/.test(error.message) ? t('ac.sql_45') : error.message, 'e'); return; }
   await logAudit('UPDATE', 'acces_visages', `Badge attribué → N° ${pin} (${nomPinAcces(pin)})`);
-  fermerEnrAcces(); showToast(t('ac.badge_ok'), 's'); loadAcces();
+  fermerEnrAcces(); showToast(t('ac.badge_ok'), 's'); rafraichirApresBadge();
 }
 
 async function retirerBadgeAcces(pin) {
@@ -11230,7 +11261,7 @@ async function retirerBadgeAcces(pin) {
   const { error } = await sb.rpc('acces_attribuer_badge', { p_pin: String(pin), p_carte: '' });
   if (error) { showToast(/acces_attribuer_badge/.test(error.message) ? t('ac.sql_45') : error.message, 'e'); return; }
   await logAudit('UPDATE', 'acces_visages', `Badge retiré → N° ${pin} (${nom})`);
-  showToast(t('ac.badge_retire'), 's'); loadAcces();
+  showToast(t('ac.badge_retire'), 's'); rafraichirApresBadge();
 }
 
 // Visage : demande à l'appareil choisi d'ouvrir son écran d'enregistrement
