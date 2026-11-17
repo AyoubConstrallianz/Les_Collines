@@ -11302,6 +11302,18 @@ async function loadEntreesAcces() {
   renderEntreesAcces();
 }
 
+// Motif d'un refus (codes d'événement des appareils ZKTeco en contrôle d'accès)
+function raisonRefusAcces(code) {
+  const R = {
+    20: 'Passages trop rapprochés', 21: 'Porte fermée à cet horaire', 22: 'Hors de sa plage horaire autorisée',
+    23: 'Pas de droit sur cette porte', 24: 'Anti-retour (déjà entré)', 25: 'Verrouillage entre portes', 26: 'Attente d’une 2e personne',
+    27: 'Personne / badge non enregistré', 28: 'Délai d’ouverture dépassé', 29: 'Validité expirée sur l’appareil', 30: 'Mot de passe faux',
+    33: 'Validité expirée sur l’appareil', 34: 'Personne non enregistrée', 35: 'Porte fermée à cet horaire', 38: 'Badge déclaré perdu',
+    39: 'Personne désactivée sur l’appareil', 40: 'Vérification à plusieurs échouée', 41: 'Mode de vérification incorrect (ex. visage + badge exigé)'
+  };
+  return R[code] || 'Refusé par l’appareil';
+}
+
 function renderEntreesAcces() {
   const qs = cleNom(document.getElementById('ac-search').value);
   const lignes = _ac.entrees.map(e => {
@@ -11315,7 +11327,7 @@ function renderEntreesAcces() {
   document.getElementById('ac-ent-total').textContent = `— ${ok.length} ${t('ac.passages')} · ${pers} ${t('ac.personnes')}${nbRefus ? ` · ${nbRefus} ${t('ac.refus')}` : ''}`;
   document.getElementById('ac-ent-tb').innerHTML = lignes.map(e => {
     const type = (e.client_id ? `<span class="badge b-i">${t('ac.client')}</span>` : e.employe_id ? `<span class="badge b-g">${t('ac.salarie')}</span>` : `<span class="badge b-w">${t('ac.inconnu')}</span>`)
-      + (refuse(e) ? ` <span class="badge b-d" title="code ${e.statut}">⛔ ${t('ac.refuse')}</span>` : '');
+      + (refuse(e) ? ` <span class="badge b-d" title="code ${e.statut}">⛔ ${t('ac.refuse')}</span><div style="font-size:11px;color:var(--red-text,#dc2626);margin-top:2px">${raisonRefusAcces(e.statut)} <span style="color:var(--text3)">(code ${e.statut})</span></div>` : '');
     const nom = e.client_id ? `<a href="#" onclick="ouvrirFicheClient('${e.client_id}');return false">${e._nom}</a>` : (e._nom || '—');
     return `<tr><td>${String(e.date_heure).slice(11, 16)}</td><td>${e.porte ?? '—'}</td><td style="font-family:monospace">${e.pin}</td><td>${nom}</td><td>${type}</td></tr>`;
   }).join('') || `<tr><td colspan="5" style="color:var(--text3)">${t('ac.aucune_entree')}</td></tr>`;
