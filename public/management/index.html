@@ -1586,7 +1586,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
               <thead><tr><th data-i18n="ac.discipline">Discipline</th><th data-i18n="sports.lbl_coach">Coach</th><th data-i18n="ac.porte">Porte</th></tr></thead>
               <tbody id="ac-sports-tb"></tbody>
             </table></div>
-            <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="ac.disciplines_aide">Un client à jour de son abonnement entre par la porte de chacune de ses disciplines. Une discipline sans porte ne donne accès à aucune porte.</p>
+            <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="ac.disciplines_aide">Un client à jour de son abonnement entre par la porte de chacune de ses disciplines (et encore 5 jours après la fin de son abonnement). Une discipline sans porte ne donne accès à aucune porte.</p>
           </div>
           <div class="card">
             <div class="ct" data-i18n="ac.personnel">Personnel</div>
@@ -3277,7 +3277,7 @@ const I18N = {
     'ac.reglage_aide':   "Enregistrement d'un visage : sur l'appareil, Menu → Utilisateurs → Nouvel utilisateur, avec comme ID le N° d'adhérent du client (ou le N° d'accès du salarié). Le visage est gardé par le site et envoyé automatiquement à l'autre porte si le client y a droit.",
     'ac.disciplines':    'Porte de chaque discipline',
     'ac.discipline':     'Discipline',
-    'ac.disciplines_aide':'Un client à jour de son abonnement entre par la porte de chacune de ses disciplines. Une discipline sans porte ne donne accès à aucune porte.',
+    'ac.disciplines_aide':'Un client à jour de son abonnement entre par la porte de chacune de ses disciplines (et encore 5 jours après la fin de son abonnement). Une discipline sans porte ne donne accès à aucune porte.',
     'ac.personnel':      'Personnel',
     'ac.num_acces':      "N° d'accès",
     'ac.visage':         'Visage',
@@ -3347,6 +3347,7 @@ const I18N = {
     'ec.inconnu':        'Visage non reconnu',
     'ec.accueil':        'Merci de passer à l’accueil.',
     'ec.valable':        'Abonnement valable jusqu’au %s',
+    'ec.grace':          'Abonnement terminé le %s — accès encore autorisé jusqu’au %d. Pensez à renouveler !',
     'ec.finit':          'Votre abonnement se termine le %s (dans %n jour(s))',
     'ec.finit_auj':      'Votre abonnement se termine aujourd’hui',
     'ec.fini':           'Votre abonnement a pris fin le %s',
@@ -10959,6 +10960,7 @@ function ecranPhoto(c) {
     : `<div class="ec-photo">${ini}</div>`;
 }
 // Situation d'abonnement d'un client : ligne colorée
+const GRACE_ACCES = 5;   // jours d'accès aux portes après la fin de l'abonnement (même valeur que le script 47)
 async function ecranSituation(clientId, paies) {
   if (!paies) ({ data: paies } = await sb.from('paiements').select('*').eq('client_id', clientId));
   const auj = dateLocaleAuj(), s = situationAbonnements((paies || []).map(p => ({ ...p, client_id: clientId })), auj)[clientId];
@@ -10968,7 +10970,15 @@ async function ecranSituation(clientId, paies) {
     ligne = j <= 0 ? `<div class="ec-ligne ec-orange">${t('ec.finit_auj')}</div>`
       : j <= 5 ? `<div class="ec-ligne ec-orange">${t('ec.finit').replace('%s', dateFr(s.fin)).replace('%n', j)}</div>`
       : `<div class="ec-ligne ec-vert">✓ ${t('ec.valable').replace('%s', dateFr(s.fin))}</div>`;
-  } else ligne = `<div class="ec-ligne ec-orange">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>`;
+  } else {
+    // Délai de grâce : l'accès aux portes reste ouvert GRACE_ACCES jours après la fin (script 47)
+    const jr = s?.finPassee ? Math.round((new Date(auj + 'T00:00') - new Date(s.finPassee + 'T00:00')) / 86400000) : null;
+    if (jr != null && jr >= 0 && jr <= GRACE_ACCES) {
+      const lim = new Date(s.finPassee + 'T00:00'); lim.setDate(lim.getDate() + GRACE_ACCES);
+      const limIso = `${lim.getFullYear()}-${String(lim.getMonth() + 1).padStart(2, '0')}-${String(lim.getDate()).padStart(2, '0')}`;
+      ligne = `<div class="ec-ligne ec-orange">${t('ec.grace').replace('%s', dateFr(s.finPassee)).replace('%d', dateFr(limIso))}</div>`;
+    } else ligne = `<div class="ec-ligne ec-orange">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>`;
+  }
   return { s, ligne, paies: paies || [] };
 }
 const ecranCarte = (cls, photo, titre, nom, corps) =>
