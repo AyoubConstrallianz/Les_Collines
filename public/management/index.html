@@ -2922,7 +2922,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
     <input type="hidden" id="vs-activite">
     <div class="fr"><div class="fg"><label data-i18n="as.associe">Associé</label><select id="vs-associe" onchange="majInfoVersement()"></select></div>
       <div class="fg"><label data-i18n="bq.date">Date</label><input id="vs-date" type="date"></div></div>
-    <div class="fr"><div class="fg"><label data-i18n="vs.nature">Nature</label><select id="vs-nature"><option value="Bénéfice" data-i18n="vs.nat_benefice">Part du bénéfice</option><option value="Capital" data-i18n="vs.nat_capital">Remboursement du capital</option></select></div>
+    <div class="fr"><div class="fg"><label data-i18n="vs.nature">Nature</label><select id="vs-nature" onchange="document.getElementById('vs-montant').dataset.auto='1';majInfoVersement()"><option value="Bénéfice" data-i18n="vs.nat_benefice">Part du bénéfice</option><option value="Capital" data-i18n="vs.nat_capital">Remboursement du capital</option><option value="Avance" class="vs-av" data-i18n="vs.nat_avance">Avance prise dans la caisse</option><option value="Retour avance" class="vs-av" data-i18n="vs.nat_retour">Remboursement d'avance</option></select></div>
       <div class="fg"><label data-i18n="vs.montant_dh">Montant versé (DH)</label><input id="vs-montant" type="number" min="0" step="0.01" placeholder="0" oninput="this.dataset.auto=''"></div></div>
     <div class="fr"><div class="fg"><label data-i18n="vs.mode">Mode</label><select id="vs-mode"><option value="Espèces">Espèces</option><option value="Virement">Virement</option><option value="Chèque">Chèque</option></select></div>
       <div class="fg"><label data-i18n="bq.note">Note</label><input id="vs-note"></div></div>
@@ -3913,6 +3913,27 @@ const I18N = {
     "vs.depasse_reste": "Ce versement dépasse ce qui reste à verser à cet associé (%s). Enregistrer quand même ?",
     "vs.enregistre": "Versement enregistré",
     "vs.suppr_confirm": "Supprimer ce versement de %s ?",
+    "vs.nat_avance": "Avance prise dans la caisse",
+    "vs.nat_retour": "Remboursement d'avance",
+    "vs.avance": "avance",
+    "vs.deduite": "déduite",
+    "vs.avances_cours": "Avances en cours",
+    "vs.aucune_avance": "aucune",
+    "vs.nouvelle_avance": "+ Avance prise",
+    "vs.avance_aide": "Une avance est déduite de la part de l'associé quand on partage la caisse, ou remboursée en espèces (bouton Rembourser).",
+    "vs.avance_info": "Avance en cours",
+    "vs.rembourser": "Rembourser",
+    "vs.partager": "Partager la caisse",
+    "vs.partager_montant": "Montant à partager entre les associés (DH) — caisse : %s",
+    "vs.partager_confirm": "Partager %s entre les associés (espèces, aujourd'hui) :",
+    "vs.avance_trop": "%n a pris plus que sa part : il doit d'abord rembourser au moins %s à la caisse, ou partager un montant plus grand.",
+    "vs.depasse_caisse_err": "Le montant dépasse la caisse (%s).",
+    "vs.depasse_avance": "Ce remboursement dépasse l'avance en cours (%s).",
+    "vs.note_deduite": "Avance déduite de sa part",
+    "vs.note_partage": "Partage de la caisse",
+    "vs.partage_ok": "Caisse partagée",
+    "vs.caisse_vide": "La caisse est vide.",
+    "vs.sql_53": "Exécutez le script 53_avances_associes.sql dans Supabase (SQL Editor → New query → Run), puis Ctrl+F5.",
     "vs.sql_30": "Exécutez le script SQL 30 (versements aux associés) dans Supabase pour enregistrer les versements.",
     "bb.onglet": "Bilan & associés",
     "bb.separe": "Bilan propre à la boutique : il n'est mélangé ni à la caisse du club, ni au bénéfice des associés du club.",
@@ -5400,6 +5421,27 @@ const I18N = {
     "vs.depasse_reste": "هذه الدفعة تتجاوز الباقي للدفع لهذا الشريك (%s). تسجيلها رغم ذلك ؟",
     "vs.enregistre": "تم تسجيل الدفعة",
     "vs.suppr_confirm": "حذف هذه الدفعة بمبلغ %s ؟",
+    "vs.nat_avance": "تسبيق من الصندوق",
+    "vs.nat_retour": "إرجاع التسبيق",
+    "vs.avance": "تسبيق",
+    "vs.deduite": "مخصوم",
+    "vs.avances_cours": "التسبيقات الجارية",
+    "vs.aucune_avance": "لا شيء",
+    "vs.nouvelle_avance": "+ تسبيق مأخوذ",
+    "vs.avance_aide": "يُخصم التسبيق من حصة الشريك عند تقسيم الصندوق، أو يُرجع نقداً (زر إرجاع).",
+    "vs.avance_info": "تسبيق جاري",
+    "vs.rembourser": "إرجاع",
+    "vs.partager": "تقسيم الصندوق",
+    "vs.partager_montant": "المبلغ المراد تقسيمه بين الشركاء (درهم) — الصندوق : %s",
+    "vs.partager_confirm": "تقسيم %s بين الشركاء (نقداً، اليوم) :",
+    "vs.avance_trop": "%n أخذ أكثر من حصته : يجب أن يُرجع أولاً %s على الأقل إلى الصندوق، أو قسّم مبلغاً أكبر.",
+    "vs.depasse_caisse_err": "المبلغ يتجاوز الصندوق (%s).",
+    "vs.depasse_avance": "هذا الإرجاع يتجاوز التسبيق الجاري (%s).",
+    "vs.note_deduite": "تسبيق مخصوم من حصته",
+    "vs.note_partage": "تقسيم الصندوق",
+    "vs.partage_ok": "تم تقسيم الصندوق",
+    "vs.caisse_vide": "الصندوق فارغ.",
+    "vs.sql_53": "نفّذ السكريبت 53_avances_associes.sql في Supabase (SQL Editor ← New query ← Run) ثم Ctrl+F5.",
     "vs.sql_30": "نفّذ سكريبت SQL رقم 30 (الدفعات للشركاء) في Supabase لتسجيل الدفعات.",
     "bb.onglet": "الحصيلة والشركاء",
     "bb.separe": "حصيلة خاصة بالمتجر : لا تختلط بصندوق النادي ولا بأرباح شركاء النادي.",
@@ -13971,15 +14013,27 @@ async function chargerVersements(activite) {
   return _vs[activite];
 }
 const versementsActifs = activite => Array.isArray(_vs[activite]);
+// Montant signé : une avance sort de la caisse, un remboursement d'avance y rentre
+const mV = v => (v.nature === 'Retour avance' ? -1 : 1) * (parseFloat(v.montant) || 0);
+// Avance en cours = avances prises − avances remboursées (ou déduites de sa part au partage)
+const avanceEnCours = (activite, id) => Math.round((_vs[activite] || []).filter(v => v.associe_id === id)
+  .reduce((s, v) => s + (v.nature === 'Avance' ? 1 : v.nature === 'Retour avance' ? -1 : 0) * (parseFloat(v.montant) || 0), 0) * 100) / 100;
+const VS_NAT = { 'Bénéfice': ['b-g', 'vs.nat_benefice'], 'Capital': ['b-w', 'vs.nat_capital'], 'Avance': ['b-d', 'vs.nat_avance'], 'Retour avance': ['b-i', 'vs.nat_retour'] };
+// Partage : (caisse partagée + avances en cours) réparti par parts, puis l'avance de chacun déduite de sa part
+function partsNettes(montant, actifs) {
+  const av = actifs.map(a => Math.max(avanceEnCours('club', a.id), 0));
+  const brut = repartir(montant + av.reduce((t, v) => t + v, 0), actifs);
+  return { av, brut, net: brut.map((b, j) => Math.round((b - av[j]) * 100) / 100) };
+}
 const verseA = (activite, a) => versementsActifs(activite)
-  ? _vs[activite].filter(v => v.associe_id === a.id).reduce((s, v) => s + (parseFloat(v.montant) || 0), 0)
+  ? _vs[activite].filter(v => v.associe_id === a.id).reduce((s, v) => s + mV(v), 0)
   : (parseFloat(activite === 'club' ? a.deja_verse : a.deja_verse_boutique) || 0);
 
 // soldes : { 'AAAA-MM': encaissements − dépenses du mois } → caisse en fin de chaque mois
 function serieCaisse(activite, soldes, capital, filtre, toutesDates) {
   const moisCourant = thisMonth(), vers = (_vs[activite] || []).filter(filtre || (() => true));
   const parMois = {};
-  vers.forEach(v => { const m = String(v.date_versement).slice(0, 7), o = parMois[m] ??= {}; o[v.associe_id] = (o[v.associe_id] || 0) + (parseFloat(v.montant) || 0); });
+  vers.forEach(v => { const m = String(v.date_versement).slice(0, 7), o = parMois[m] ??= {}; o[v.associe_id] = (o[v.associe_id] || 0) + mV(v); });
   const mois = [...new Set([...Object.keys(soldes), ...Object.keys(parMois)])].filter(m => toutesDates || m <= moisCourant).sort();
   let caisse = capital; const serie = {};
   mois.forEach(m => {
@@ -14017,14 +14071,58 @@ async function afficherCaisseClub(actifs, capital, an) {
 // C'est aussi le « reste à verser » proposé lors d'un versement.
 function repartirCaisseClub(actifs) {
   const caisse = _vs.caisse.club || 0, totalParts = actifs.reduce((s, a) => s + partsDe(a), 0);
-  const parts = repartir(Math.max(caisse, 0), actifs);
-  actifs.forEach((a, j) => { _vs.reste.club[a.id] = parts[j] || 0; });
+  const { av, net: parts } = partsNettes(Math.max(caisse, 0), actifs);
+  actifs.forEach((a, j) => { _vs.reste.club[a.id] = Math.max(parts[j] || 0, 0); });
   const cl = v => v < 0 ? 'color:var(--red)' : v > 0 ? 'color:var(--green)' : 'color:var(--text3)';
-  const ligne = (a, j) => `<div style="display:flex;justify-content:space-between;gap:8px"><span>${echapper(a.prenom)} (<span dir="ltr">${fractionParts(partsDe(a), totalParts)}</span>)</span><strong style="${cl(parts[j])}">${fmtDH2(parts[j] || 0)}</strong></div>`;
+  const ligne = (a, j) => `<div style="display:flex;justify-content:space-between;gap:8px"><span>${echapper(a.prenom)} (<span dir="ltr">${fractionParts(partsDe(a), totalParts)}</span>)${av[j] ? ` <span style="font-size:11px;color:var(--red)">− ${t('vs.avance')} ${fmtDH2(av[j])}</span>` : ''}</span><strong style="${cl(parts[j])}">${fmtDH2(parts[j] || 0)}</strong></div>`;
   const tuile = document.getElementById('as-k-repart');
   if (tuile) tuile.innerHTML = `<div class="sc-label">${t('as.repartition_caisse')}</div><div style="font-size:13px;line-height:1.7;margin-top:4px">${actifs.length ? actifs.map(ligne).join('') : '—'}</div>`;
   const kp = document.getElementById('as-vs-kpis');
-  if (kp && actifs.length) kp.insertAdjacentHTML('beforeend', `<div style="grid-column:1/-1;font-size:12px;color:var(--text2);padding:0 2px">${t('as.repartition_caisse')} : ${actifs.map((a, j) => `${echapper(a.prenom)} <strong style="${cl(parts[j])}">${fmtDH2(parts[j] || 0)}</strong>`).join(' · ')}</div>`);
+  if (kp && actifs.length) kp.insertAdjacentHTML('beforeend', `<div style="grid-column:1/-1;font-size:12px;color:var(--text2);padding:0 2px">${t('as.repartition_caisse')} : ${actifs.map((a, j) => `${echapper(a.prenom)} <strong style="${cl(parts[j])}">${fmtDH2(parts[j] || 0)}</strong>${av[j] ? ` <span style="color:var(--red)">(${t('vs.avance')} ${fmtDH2(av[j])} ${t('vs.deduite')})</span>` : ''}`).join(' · ')}</div>`);
+  // Avances en cours + partage de la caisse
+  const canW = PERMS.associes?.ecrire && versementsActifs('club');
+  if (kp && actifs.length && versementsActifs('club')) {
+    const avs = actifs.map((a, j) => ({ a, v: av[j] })).filter(x => x.v > 0);
+    kp.insertAdjacentHTML('beforeend', `<div id="as-avances" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:${avs.length ? 6 : 0}px">
+        <strong style="font-size:13px">${t('vs.avances_cours')}${avs.length ? '' : ` <span style="font-weight:400;color:var(--text3)">: ${t('vs.aucune_avance')}</span>`}</strong>
+        ${canW ? `<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-sm" onclick="ouvrirVersement('club',{nature:'Avance'})">${t('vs.nouvelle_avance')}</button>${caisse > 0 ? `<button class="btn btn-sm btn-p" onclick="partagerCaisse()">${t('vs.partager')}</button>` : ''}</span>` : ''}
+      </div>
+      ${avs.map(({ a, v }) => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-top:0.5px solid var(--border);font-size:13px">
+        <span>${echapper(nomAssocie(a))} : <strong style="color:var(--red)">${fmtDH2(v)}</strong></span>
+        ${canW ? `<button class="btn btn-sm" onclick="ouvrirVersement('club',{associe:'${a.id}',nature:'Retour avance',montant:${v}})">${t('vs.rembourser')}</button>` : ''}</div>`).join('')}
+      ${avs.length ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">${t('vs.avance_aide')}</div>` : ''}
+    </div>`);
+  }
+}
+
+// Partage de la caisse entre associés (espèces, date du jour) : chacun reçoit sa part moins son avance en cours,
+// et l'avance est soldée (remboursement + bénéfice du même montant : aucun effet sur la caisse)
+async function partagerCaisse() {
+  const actifs = _vs.associes.club || [], caisse = Math.round((_vs.caisse.club || 0) * 100) / 100;
+  if (caisse <= 0) { showToast(t('vs.caisse_vide'), 'e'); return; }
+  const saisie = prompt(t('vs.partager_montant').replace('%s', fmtDH2(caisse)), String(caisse));
+  if (saisie == null) return;
+  const montant = Math.round(parseFloat(String(saisie).replace(',', '.').replace(/\s/g, '')) * 100) / 100;
+  if (!(montant > 0)) { showToast(t('as.montant_invalide'), 'e'); return; }
+  if (montant > caisse) { showToast(t('vs.depasse_caisse_err').replace('%s', fmtDH2(caisse)), 'e'); return; }
+  const { av, brut, net } = partsNettes(montant, actifs);
+  const j0 = net.findIndex(n => n < 0);
+  if (j0 >= 0) { showToast(t('vs.avance_trop').replace('%n', actifs[j0].prenom).replace('%s', fmtDH2(-net[j0])), 'e'); return; }
+  const lignes = actifs.map((a, j) => `• ${nomAssocie(a)} : ${fmtDH2(net[j])}${av[j] ? `  (${fmtDH2(brut[j])} − ${t('vs.avance')} ${fmtDH2(av[j])})` : ''}`).join('\n');
+  if (!confirm(`${t('vs.partager_confirm').replace('%s', fmtDH2(montant))}\n\n${lignes}`)) return;
+  const rows = [], date = today();
+  actifs.forEach((a, j) => {
+    const base = { associe_id: a.id, activite: 'club', date_versement: date, mode: 'Espèces' };
+    if (av[j]) rows.push({ ...base, nature: 'Retour avance', montant: av[j], note: t('vs.note_deduite') }, { ...base, nature: 'Bénéfice', montant: av[j], note: t('vs.note_deduite') });
+    if (net[j] > 0) rows.push({ ...base, nature: 'Bénéfice', montant: net[j], note: t('vs.note_partage') });
+  });
+  if (!rows.length) return;
+  const { error } = await sb.from('versements_associes').insert(rows);
+  if (error) { showToast(/check constraint|nature/i.test(error.message) ? t('vs.sql_53') : error.message, 'e'); return; }
+  await logAudit('CREATE', 'associes', `Partage de la caisse ${fmtDH2(montant)} : ${actifs.map((a, j) => `${a.prenom} ${fmtDH2(net[j])}${av[j] ? ` (avance ${fmtDH2(av[j])} déduite)` : ''}`).join(', ')}`);
+  showToast(t('vs.partage_ok'), 's');
+  loadAssocies();
 }
 
 function renderVersementsCaisse(activite, associes, soldes, capital, an, libSolde, opts = {}) {
@@ -14036,13 +14134,13 @@ function renderVersementsCaisse(activite, associes, soldes, capital, an, libSold
   const { serie, caisse } = serieCaisse(activite, soldes, capital, opts.filtre, opts.toutesDates);
   _vs.caisse[activite] = caisse; _vs.associes[activite] = associes;
   const moisCourant = thisMonth(), vers = _vs[activite] || [];
-  const verseMois = vers.filter(v => String(v.date_versement).startsWith(moisCourant)).reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);   // tous modes
-  const verseTotal = vers.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
+  const verseMois = vers.filter(v => String(v.date_versement).startsWith(moisCourant)).reduce((s, v) => s + mV(v), 0);   // tous modes
+  const verseTotal = vers.reduce((s, v) => s + mV(v), 0);
   document.getElementById(pre + '-kpis').innerHTML = `
     <div class="sc"><div class="sc-label">${opts.libCaisse || t('vs.caisse_actuelle')}</div><div class="sc-val" style="${cl(caisse)}">${fmtDH2(caisse)}</div></div>
     <div class="sc"><div class="sc-label">${t('vs.verse_mois')}</div><div class="sc-val">${fmtDH2(verseMois)}</div></div>
     <div class="sc"><div class="sc-label">${t('vs.verse_total')}</div><div class="sc-val">${fmtDH2(verseTotal)}</div></div>`
-    + (opts.detail ? (() => { const d = opts.detail, vEsp = (vers || []).filter(opts.filtre || (() => true)).reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
+    + (opts.detail ? (() => { const d = opts.detail, vEsp = (vers || []).filter(opts.filtre || (() => true)).reduce((s, v) => s + mV(v), 0);
         return `<div style="grid-column:1/-1;font-size:12px;color:var(--text2);padding:2px 2px 0">${t('vs.det_especes')} <strong style="color:var(--green-text)">${fmtDH2(d.entrees)}</strong>
           − ${t('vs.det_charges')} <strong>${fmtDH2(d.charges)}</strong> − ${t('vs.det_salaires')} <strong>${fmtDH2(d.salaires)}</strong>
           − ${t('vs.det_verses')} <strong>${fmtDH2(vEsp)}</strong>${capital ? ` + ${t('vs.det_capital')} <strong>${fmtDH2(capital)}</strong>` : ''}
@@ -14067,21 +14165,24 @@ function renderVersementsCaisse(activite, associes, soldes, capital, an, libSold
   const hist = vers.filter(v => String(v.date_versement).startsWith(an + '-'));
   document.getElementById(pre + '-hist').innerHTML = `<thead><tr><th>${t('bq.date')}</th><th>${t('as.associe')}</th><th>${t('vs.nature')}</th><th>${t('vs.montant')}</th><th>${t('vs.mode')}</th><th>${t('bq.note')}</th><th>${t('common.actions')}</th></tr></thead><tbody>`
     + (hist.length ? hist.map(v => `<tr><td>${dateCourte(v.date_versement)}</td><td><strong>${nomDe(v.associe_id)}</strong></td>
-        <td><span class="badge ${v.nature === 'Capital' ? 'b-w' : 'b-g'}">${t(v.nature === 'Capital' ? 'vs.nat_capital' : 'vs.nat_benefice')}</span></td>
-        <td style="font-weight:700">${fmtDH2(v.montant)}</td><td>${echapper(v.mode || '')}</td><td style="font-size:12px;color:var(--text2)">${echapper(v.note || '')}</td>
+        <td><span class="badge ${(VS_NAT[v.nature] || VS_NAT['Bénéfice'])[0]}">${t((VS_NAT[v.nature] || VS_NAT['Bénéfice'])[1])}</span></td>
+        <td style="font-weight:700${v.nature === 'Retour avance' ? ';color:var(--green)' : ''}">${v.nature === 'Retour avance' ? '+ ' : ''}${fmtDH2(v.montant)}</td><td>${echapper(v.mode || '')}</td><td style="font-size:12px;color:var(--text2)">${echapper(v.note || '')}</td>
         <td>${canD ? `<button class="btn btn-sm btn-d" onclick="delVersement('${v.id}','${activite}')">${t('msg.suppr')}</button>` : ''}</td></tr>`).join('')
       : `<tr class="empty-row"><td colspan="7">${t('vs.aucun')} ${an}</td></tr>`) + '</tbody>';
 }
 
-function ouvrirVersement(activite) {
+function ouvrirVersement(activite, pre = {}) {
   const associes = _vs.associes[activite] || [];
   if (!associes.length) { showToast(t('bb.aucun_associe'), 'e'); return; }
   document.getElementById('vs-activite').value = activite;
   document.getElementById('vs-titre').textContent = t(activite === 'club' ? 'vs.titre_club' : 'vs.titre_boutique');
   document.getElementById('vs-associe').innerHTML = associes.map(a => `<option value="${a.id}">${nomAssocie(a)}</option>`).join('');
   document.getElementById('vs-date').value = today();
-  document.getElementById('vs-nature').value = 'Bénéfice';
-  document.getElementById('vs-montant').value = ''; document.getElementById('vs-montant').dataset.auto = '';
+  // Avances : caisse du club seulement
+  document.querySelectorAll('#vs-nature .vs-av').forEach(o => { o.hidden = o.disabled = activite !== 'club'; });
+  if (pre.associe) document.getElementById('vs-associe').value = pre.associe;
+  document.getElementById('vs-nature').value = pre.nature || 'Bénéfice';
+  document.getElementById('vs-montant').value = pre.montant ?? ''; document.getElementById('vs-montant').dataset.auto = '';
   document.getElementById('vs-mode').value = 'Espèces';
   document.getElementById('vs-note').value = '';
   majInfoVersement();
@@ -14090,23 +14191,33 @@ function ouvrirVersement(activite) {
 
 function majInfoVersement() {
   const activite = document.getElementById('vs-activite').value, id = document.getElementById('vs-associe').value;
-  const reste = _vs.reste[activite]?.[id] ?? 0, caisse = _vs.caisse[activite] ?? 0;
-  document.getElementById('vs-info').innerHTML = `${t('vs.caisse_dispo')} : <strong>${fmtDH2(caisse)}</strong> · ${t(activite === 'club' ? 'vs.part_caisse' : 'as.reste')} : <strong>${fmtDH2(reste)}</strong>`;
+  const reste = _vs.reste[activite]?.[id] ?? 0, caisse = _vs.caisse[activite] ?? 0, nature = document.getElementById('vs-nature').value;
+  const avance = activite === 'club' ? avanceEnCours('club', id) : 0;
+  document.getElementById('vs-info').innerHTML = `${t('vs.caisse_dispo')} : <strong>${fmtDH2(caisse)}</strong> · ${t(activite === 'club' ? 'vs.part_caisse' : 'as.reste')} : <strong>${fmtDH2(reste)}</strong>`
+    + (avance > 0 ? ` · ${t('vs.avance_info')} : <strong style="color:var(--red)">${fmtDH2(avance)}</strong>` : '');
   const champ = document.getElementById('vs-montant');
-  if (activite === 'club' && (!champ.value || champ.dataset.auto === '1')) { champ.value = reste > 0 ? reste : ''; champ.dataset.auto = '1'; }
+  if (activite === 'club' && (!champ.value || champ.dataset.auto === '1')) {
+    const prop = nature === 'Bénéfice' ? reste : nature === 'Retour avance' ? avance : 0;
+    champ.value = prop > 0 ? prop : ''; champ.dataset.auto = '1';
+  }
 }
 
 async function saveVersement() {
   const activite = document.getElementById('vs-activite').value, associe_id = document.getElementById('vs-associe').value;
   const montant = parseFloat(document.getElementById('vs-montant').value);
   if (!montant || montant <= 0) { showToast(t('as.montant_invalide'), 'e'); return; }
-  const caisse = _vs.caisse[activite] ?? 0, reste = _vs.reste[activite]?.[associe_id] ?? 0;
-  if (montant > caisse && !confirm(t('vs.depasse_caisse').replace('%s', fmtDH2(caisse)))) return;
-  if (montant > reste && !confirm(t('vs.depasse_reste').replace('%s', fmtDH2(reste)))) return;
+  const caisse = _vs.caisse[activite] ?? 0, reste = _vs.reste[activite]?.[associe_id] ?? 0, nature = document.getElementById('vs-nature').value;
+  if (nature === 'Retour avance') {
+    const avance = avanceEnCours(activite, associe_id);
+    if (montant > avance + 0.001) { showToast(t('vs.depasse_avance').replace('%s', fmtDH2(Math.max(avance, 0))), 'e'); return; }
+  } else {
+    if (montant > caisse && !confirm(t('vs.depasse_caisse').replace('%s', fmtDH2(caisse)))) return;
+    if (nature !== 'Avance' && montant > reste && !confirm(t('vs.depasse_reste').replace('%s', fmtDH2(reste)))) return;
+  }
   const obj = { associe_id, activite, montant, date_versement: document.getElementById('vs-date').value || today(),
     nature: document.getElementById('vs-nature').value, mode: document.getElementById('vs-mode').value, note: document.getElementById('vs-note').value.trim() || null };
   const { error } = await sb.from('versements_associes').insert(obj);
-  if (error) { showToast(/relation|schema cache/i.test(error.message) ? t('vs.sql_30') : error.message, 'e'); return; }
+  if (error) { showToast(/relation|schema cache/i.test(error.message) ? t('vs.sql_30') : /check constraint|nature_check/i.test(error.message) ? t('vs.sql_53') : error.message, 'e'); return; }
   const a = (_vs.associes[activite] || []).find(x => x.id === associe_id);
   await logAudit('CREATE', 'associes', `Versement ${activite} ${a ? nomAssocie(a) : ''} : ${fmtDH2(montant)} (${obj.nature})`);
   showToast(t('vs.enregistre'), 's');
@@ -14454,7 +14565,7 @@ async function loadFinances() {
     fetchAllRows(() => sb.from('paiements').select('id,montant,date_paiement,type,mode,reste_de').order('id')),
     fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie,mode').order('id')),
     fetchAllRows(() => sb.from('salaires_paie').select('montant,mois,mode').order('id')),
-    fetchAllRows(() => sb.from('versements_associes').select('montant,date_versement,mode').eq('activite', 'club').order('id')),
+    fetchAllRows(() => sb.from('versements_associes').select('montant,date_versement,mode,nature').eq('activite', 'club').order('id')),
     sb.from('associes').select('capital,actif')
   ]);
   // Script 36 non exécuté (pas de mode sur les charges) : toutes les charges comptées en espèces
@@ -14488,7 +14599,7 @@ async function loadFinances() {
     if (esp(x.mode)) o.espOut += v;
   });
   (rv.error ? [] : rv.data || []).filter(x => esp(x.mode)).forEach(x => {
-    const m = String(x.date_versement || '').slice(0, 7); if (m) mois(m).verse += parseFloat(x.montant) || 0;
+    const m = String(x.date_versement || '').slice(0, 7); if (m) mois(m).verse += mV(x);
   });
   const capital = (ra.data || []).filter(a => a.actif !== false).reduce((s, a) => s + (parseFloat(a.capital) || 0), 0);
   // Caisse espèces à la fin de chaque mois (du plus ancien au plus récent, mois à venir compris)
