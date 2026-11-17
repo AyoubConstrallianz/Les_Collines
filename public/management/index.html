@@ -3393,6 +3393,8 @@ const I18N = {
     'ec.repos_sous':     'Présentez votre visage à la borne d’entrée',
     'ec.non_connecte':   '⚠ Session fermée : reconnectez-vous dans la fenêtre principale du site.',
     'ec.sans_acces':     '⚠ Pointages non affichés : ce compte n’a pas le droit « Accès & Portes ».',
+    'ec.erreur_lecture': '⚠ Pointages non lus pour le moment : vérifiez Internet, puis Ctrl+F5.',
+    'ec.droits_manquants': '⚠ Ce compte n’a pas le droit « Lire » sur : %s. Avec un compte Super Admin : Utilisateurs → Modifier ce compte → cochez « Lire », Enregistrer, puis Ctrl+F5 ici.',
     'ac.cli_visage':     'Visage',
     'ac.cli_badge':      'Badge',
     'ac.cli_visage_t':   "Visage enregistré sur l'appareil",
@@ -10940,13 +10942,33 @@ async function demarrerEcran() {
   document.addEventListener('fullscreenchange', pe); pe();
   ecranRepos();
   if (_canalEcran) _canalEcran.onmessage = ev => ecranRecevoir(ev.data);
-  sb.auth.onAuthStateChange((_e, session) => { _ec.session = !!session; ecranEtat(); });
+  sb.auth.onAuthStateChange((_e, session) => { _ec.session = !!session; ecranEtat(); if (session) ecranDroits(); });
   try { const { data } = await sb.auth.getSession(); _ec.session = !!data?.session; } catch (_) { _ec.session = false; }
   ecranEtat();
+  if (_ec.session) ecranDroits();
   ecranPointages(); setInterval(ecranPointages, 2000);
 }
 function ecranEtat() {
-  document.getElementById('ec-etat').textContent = !_ec.session ? t('ec.non_connecte') : _ec.acces === false ? t('ec.sans_acces') : '';
+  document.getElementById('ec-etat').textContent = !_ec.session ? t('ec.non_connecte')
+    : _ec.manque?.length ? t('ec.droits_manquants').replace('%s', _ec.manque.join(', '))
+    : _ec.acces === false ? (Array.isArray(_ec.manque) ? t('ec.erreur_lecture') : t('ec.sans_acces')) + (_ec.erreur ? ' (' + _ec.erreur + ')' : '') : '';
+}
+// Droits « Lire » nécessaires au compte qui fait tourner l'écran (Utilisateurs → Modifier)
+const EC_MODULES = { acces: 'Accès & Portes', clients: 'Clients', paiements: 'Paiements', planning: 'Planning' };
+async function ecranDroits() {
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+    const { data: p } = await sb.from('profils').select('role,actif').eq('id', user.id).maybeSingle();
+    let manque = [];
+    if (p && p.role !== 'super_admin') {
+      const { data: habs } = await sb.from('habilitations').select('module,peut_lire').eq('user_id', user.id);
+      const ok = new Set((habs || []).filter(h => h.peut_lire).map(h => h.module));
+      manque = Object.keys(EC_MODULES).filter(m => !ok.has(m)).map(m => EC_MODULES[m]);
+    }
+    _ec.manque = manque;
+  } catch (_) { _ec.manque = []; }
+  ecranEtat();
 }
 function ecranRepos() {
   document.getElementById('ec-contenu').innerHTML = `<div class="ec-repos"><img src="/images/logo-rond-128.png" alt="">
@@ -10988,7 +11010,7 @@ async function ecranPointages() {
   try {
     if (_ec.dernierId == null) {
       const { data, error } = await sb.from('acces_entrees').select('id').order('id', { ascending: false }).limit(1);
-      _ec.acces = !error; ecranEtat();
+      _ec.acces = !error; _ec.erreur = error?.message || ''; ecranEtat();
       if (!error) _ec.dernierId = data?.[0]?.id || 0;
       return;
     }
