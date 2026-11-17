@@ -10943,7 +10943,7 @@ async function demarrerEcran() {
   sb.auth.onAuthStateChange((_e, session) => { _ec.session = !!session; ecranEtat(); });
   try { const { data } = await sb.auth.getSession(); _ec.session = !!data?.session; } catch (_) { _ec.session = false; }
   ecranEtat();
-  ecranPointages(); setInterval(ecranPointages, 4000);
+  ecranPointages(); setInterval(ecranPointages, 2000);
 }
 function ecranEtat() {
   document.getElementById('ec-etat').textContent = !_ec.session ? t('ec.non_connecte') : _ec.acces === false ? t('ec.sans_acces') : '';
@@ -10957,16 +10957,29 @@ function ecranRecevoir(m) {
   if (!m || !['client', 'paiement'].includes(m.type)) return;
   _ec.file.unshift(m); ecranSuivant();
 }
-function ecranAjouter(m) { _ec.file.push(m); if (!_ec.minuteur) ecranSuivant(); }
+// Durée minimale d'affichage quand quelqu'un d'autre attend (ms)
+const EC_MIN = { pointage: 2500, client: 6000, paiement: 8000 };
+function ecranAjouter(m) {
+  _ec.file.push(m);
+  if (!_ec.minuteur) ecranSuivant();
+  else if (_ec.minuteur !== -1) ecranPlanifier();   // raccourcit l'affichage en cours
+}
+function ecranPlanifier() {
+  clearTimeout(_ec.minuteur);
+  const vu = Date.now() - _ec.debut;
+  const att = _ec.file.length ? Math.min(_ec.duree, _ec.min) - vu : _ec.duree - vu;
+  _ec.minuteur = setTimeout(ecranSuivant, Math.max(0, att));
+}
 async function ecranSuivant() {
   clearTimeout(_ec.minuteur); _ec.minuteur = null;
   const jeton = ++_ec.jeton, m = _ec.file.shift();
   if (!m) { ecranRepos(); return; }
   _ec.minuteur = -1;   // occupé
+  _ec.debut = Date.now(); _ec.min = EC_MIN[m.type] || 2500;
   let duree = 0;
-  try { duree = await ecranAfficher(m); } catch (_) { duree = 0; }
+  try { duree = await ecranAfficher(m, jeton); } catch (_) { duree = 0; }
   if (jeton !== _ec.jeton) return;   // remplacé entre-temps
-  _ec.minuteur = setTimeout(ecranSuivant, _ec.file.length ? Math.min(duree, 4000) : duree);
+  _ec.duree = duree; ecranPlanifier();
 }
 // Passages à la pointeuse (les 2 portes)
 async function ecranPointages() {
@@ -11071,23 +11084,27 @@ async function ecranHoraires(c) {
 }
 
 // Affiche un événement ; renvoie la durée d'affichage (ms)
-async function ecranAfficher(m) {
+async function ecranAfficher(m, jeton) {
   const zone = document.getElementById('ec-contenu');
+  const vivant = () => jeton == null || jeton === _ec.jeton;
+  // Complète la carte déjà affichée (si elle n'a pas été remplacée entre-temps)
+  const completer = html => { const z = vivant() && zone.querySelector('.ec-suite'); if (z) z.innerHTML = html; };
   if (m.type === 'pointage') {
     const e = m.e, c = e.clients, refus = e.statut >= 20 && e.statut < 200;
     if (refus) {
-      let corps = `<div class="ec-ligne">${t('ec.accueil')}</div>`;
-      if (c) { const { s, assur } = await ecranSituation(c.id);
-        if (!s?.aJour) corps = `<div class="ec-ligne ec-rouge">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>` + corps;
-        else corps = (await ecranHoraires(c)) + corps;
-        corps = assur + corps; }
       zone.innerHTML = ecranCarte('ko', c ? ecranPhoto(c) : '<div class="ec-photo" style="background:#7f1d1d">?</div>', t('ec.refuse'),
-        c ? ecranNom(c) : e.employes ? ecranNom(e.employes) : t('ec.inconnu'), ecranPuces([], e.porte) + corps);
+        c ? ecranNom(c) : e.employes ? ecranNom(e.employes) : t('ec.inconnu'),
+        ecranPuces([], e.porte) + `<div class="ec-suite"></div><div class="ec-ligne">${t('ec.accueil')}</div>`);
+      if (c) { const { s, assur } = await ecranSituation(c.id);
+        const raison = !s?.aJour ? `<div class="ec-ligne ec-rouge">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>`
+          : await ecranHoraires(c);
+        completer(assur + raison); }
       return 8000;
     }
     if (c) {
+      zone.innerHTML = ecranCarte('ok', ecranPhoto(c), `${t('ec.bienvenue')} 👋`, ecranNom(c), ecranPuces(ecranSports(c), e.porte) + '<div class="ec-suite"></div>');
       const { ligne } = await ecranSituation(c.id);
-      zone.innerHTML = ecranCarte('ok', ecranPhoto(c), `${t('ec.bienvenue')} 👋`, ecranNom(c), ecranPuces(ecranSports(c), e.porte) + ligne);
+      completer(ligne);
       return 7000;
     }
     zone.innerHTML = ecranCarte('ok', ecranPhoto(e.employes), `${e.employes ? t('ec.bonjour') : t('ec.bienvenue')} 👋`,
@@ -11098,6 +11115,7 @@ async function ecranAfficher(m) {
     const { data: c } = await sb.from('clients').select('*').eq('id', m.id).maybeSingle();
     if (!c) return 0;
     const { ligne, paies } = await ecranSituation(c.id);
+    if (!vivant()) return 0;
     const reste = Object.values(calculerRestes(paies)).reduce((a, r) => a + r.reste, 0);
     zone.innerHTML = ecranCarte('info', ecranPhoto(c), m.inscription ? t('ec.bienvenue_club') : t('ec.vos_infos'), ecranNom(c),
       (c.numero_adherent ? `<div class="ec-ligne" style="margin:0 0 12px;color:#cbd5e1">${t('ec.num').replace('%s', String(c.numero_adherent).padStart(4, '0'))}</div>` : '')
@@ -11119,6 +11137,7 @@ async function ecranAfficher(m) {
     const { ligne, paies } = await ecranSituation(c.id);
     const sports = ecranSports(c), total = mes.reduce((a, p) => a + (parseFloat(p.montant) || 0), 0);
     const reste = Object.values(calculerRestes(paies)).reduce((a, r) => a + r.reste, 0);
+    if (!vivant()) return 0;
     zone.innerHTML = ecranCarte('ok', ecranPhoto(c), m.inscription ? `${t('ec.bienvenue_club')} · ${t('ec.inscrit')}` : `✓ ${t('ec.merci')}`, ecranNom(c),
       `<div class="ec-lignes">${mes.map(p => `<div><span>${echapper(libelleEncaissement(p, sports))}</span><b>${fmt(p.montant)}</b></div>`).join('')}
         <div class="ec-total"><span>${t('ec.total')}</span><span>${fmt(total)}</span></div></div>`
