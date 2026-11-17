@@ -145,9 +145,11 @@ function analyser(table, corps) {
       // time=… \t pin=… \t cardno=… \t eventaddr=… \t event=… \t inoutstatus=… \t verifytype=… …
       const f = champs(l.replace(/^rtlog\s+/i, ''));
       // pin 0 : états de porte (ignorés), sauf refus d'une personne non reconnue (événements 20 à 199)
+      // ou badge inconnu (son numéro sert à l'attribuer depuis le site)
       const ev = parseInt(f.event, 10), connu = f.pin && f.pin !== '0';
-      if ((connu || (ev >= 20 && ev < 200)) && okDate(f.time))
-        out.push({ type: 'ATTLOG', pin: connu ? f.pin : '0', date_heure: f.time, statut: f.event || '', verification: f.verifytype || '' });
+      const carte = String(f.cardno || '').replace(/[\[\]\s]/g, ''), aCarte = !connu && /^[0-9A-Fa-f]{1,20}$/.test(carte) && !/^0+$/.test(carte);
+      if ((connu || aCarte || (ev >= 20 && ev < 200)) && okDate(f.time))
+        out.push({ type: 'ATTLOG', pin: connu ? f.pin : '0', date_heure: f.time, statut: f.event || '', verification: f.verifytype || '', carte: aCarte ? carte : '' });
       continue;
     }
     const esp = l.indexOf(' ');

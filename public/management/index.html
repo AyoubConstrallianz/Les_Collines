@@ -1545,6 +1545,15 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
 
       <!-- SPORTS -->
       <div id="page-acces" class="page">
+        <div class="mo" id="ac-enr-modal">
+          <div class="mo-box" style="max-width:520px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+              <div class="mo-title" style="margin-bottom:0" id="ac-enr-titre"></div>
+              <button class="btn btn-sm" onclick="fermerEnrAcces()" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+            </div>
+            <div id="ac-enr-corps" style="font-size:13px;line-height:1.55"></div>
+          </div>
+        </div>
         <p class="ptitle" data-i18n="ac.title">Accès & Portes</p>
         <p class="psubtitle" data-i18n="ac.subtitle">Appareils de reconnaissance faciale : qui peut entrer par quelle porte, et les entrées du jour</p>
         <div id="ac-alerte"></div>
@@ -1582,7 +1591,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
           <div class="card">
             <div class="ct" data-i18n="ac.personnel">Personnel</div>
             <div style="overflow-x:auto"><table>
-              <thead><tr><th data-i18n="coaches.salarie">Salarié</th><th data-i18n="ac.num_acces">N° d'accès</th><th data-i18n="ac.portes">Portes</th><th data-i18n="ac.visage">Visage</th></tr></thead>
+              <thead><tr><th data-i18n="coaches.salarie">Salarié</th><th data-i18n="ac.num_acces">N° d'accès</th><th data-i18n="ac.portes">Portes</th><th data-i18n="ac.visage">Visage</th><th data-i18n="ac.badge">Badge</th><th class="ac-ecrire"></th></tr></thead>
               <tbody id="ac-emp-tb"></tbody>
             </table></div>
             <p style="font-size:11px;color:var(--text3);margin-top:8px" data-i18n="ac.personnel_aide">Un coach passe par les portes de ses disciplines ; les autres salariés actifs par les deux portes. Un salarié inactif est retiré des appareils.</p>
@@ -3293,6 +3302,32 @@ const I18N = {
     'ac.visages':        'visage(s)',
     'ac.passages':       'passage(s)',
     'ac.a_enregistrer':  'À enregistrer',
+    'ac.badge':          'Badge',
+    'ac.btn_visage':     'Visage',
+    'ac.btn_badge':      'Badge',
+    'ac.btn_retirer_badge': 'Retirer le badge',
+    'ac.badge_titre':    'Badge de {n}',
+    'ac.badge_passez':   "Passez maintenant <b>le nouveau badge</b> devant l'un des deux appareils (Porte 1 ou Porte 2). L'appareil le refusera (c'est normal : il ne le connaît pas encore) et le site récupère son numéro.",
+    'ac.badge_attente':  'En attente du badge…',
+    'ac.badge_lu':       'Badge détecté :',
+    'ac.badge_attribuer': 'Attribuer à {n}',
+    'ac.badge_autre':    'Passer un autre badge',
+    'ac.badge_delai':    "Aucun badge reçu depuis 3 minutes. Vérifiez que l'appareil est « 🟢 En ligne » dans la carte Appareils, puis réessayez.",
+    'ac.badge_reessayer': 'Réessayer',
+    'ac.badge_ok':       "Badge attribué : il sera envoyé aux appareils dans moins d'une minute.",
+    'ac.badge_confirm_retirer': 'Retirer le badge de {n} ? Il ne pourra plus ouvrir les portes avec.',
+    'ac.badge_retire':   'Badge retiré.',
+    'ac.visage_titre':   'Visage de {n}',
+    'ac.visage_choix':   "Choisissez l'appareil devant lequel {n} va se placer :",
+    'ac.visage_lancer':  "Ouvrir l'enregistrement sur l'appareil",
+    'ac.visage_envoi':   "⏳ En attente de l'appareil (il interroge le site toutes les 15 secondes)…",
+    'ac.visage_recu':    "📷 L'appareil a reçu la demande : {n} se place face à la caméra et suit les indications de l'écran.",
+    'ac.visage_ok':      "✅ Visage enregistré. Il sera copié sur l'autre porte (si {n} y a droit) dans quelques minutes.",
+    'ac.visage_refus':   "L'appareil n'accepte pas l'enregistrement à distance (code {c}). Faites-le directement sur l'appareil :",
+    'ac.visage_delai':   "L'appareil n'a pas répondu. Vérifiez qu'il est « 🟢 En ligne », ou faites l'enregistrement directement sur l'appareil :",
+    'ac.visage_manuel':  "Sur l'appareil : Menu → Utilisateurs → Tous les utilisateurs → choisir l'ID <b>{p}</b> (s'il n'existe pas : Nouvel utilisateur avec l'ID <b>{p}</b>) → Visage → suivre l'écran. Le site récupère le visage tout seul.",
+    'ac.hors_ligne_court': 'hors ligne',
+    'ac.sql_45':         "Fonction non installée : exécutez le script supabase/45_acces_badges_visages.sql dans Supabase (SQL Editor → New query → Run), puis Ctrl+F5.",
     'ac.client':         'Client',
     'ac.salarie':        'Salarié',
     'ac.inconnu':        'Inconnu',
@@ -11038,6 +11073,7 @@ async function loadAcces() {
   _ac.employes = (emp.data || []).filter(e => e.actif !== false);
   _ac.users = us.data || [];
   _ac.visages = new Set((vis.data || []).filter(v => v.cle !== 'CARTE').map(v => v.pin));
+  _ac.cartes = new Set((vis.data || []).filter(v => v.cle === 'CARTE').map(v => v.pin));
   _ac.attente = {}; (cmd.data || []).forEach(c => { _ac.attente[c.sn] = (_ac.attente[c.sn] || 0) + 1; });
   // Alertes : appareil sans porte, discipline sans porte
   const alertes = [];
@@ -11088,6 +11124,7 @@ function renderSportsAcces() {
 }
 
 function renderEmployesAcces() {
+  const ecrire = !!PERMS.acces?.ecrire;
   document.getElementById('ac-emp-tb').innerHTML = _ac.employes.map(e => {
     const p = portesEmploye(e), pin = e.numero_acces != null ? String(e.numero_acces) : '';
     return `<tr>
@@ -11095,8 +11132,126 @@ function renderEmployesAcces() {
       <td style="font-family:monospace;font-weight:700">${pin || '—'}</td>
       <td style="${p.ok ? '' : 'color:var(--red)'}">${p.txt}</td>
       <td>${pin && _ac.visages.has(pin) ? '✅' : `<span style="color:var(--text3)">${t('ac.a_enregistrer')}</span>`}</td>
+      <td>${pin && _ac.cartes?.has(pin) ? '💳 ✅' : `<span style="color:var(--text3)">—</span>`}</td>
+      <td class="ac-ecrire" style="${ecrire ? '' : 'display:none'}">${pin ? `<div style="display:flex;gap:4px;flex-wrap:nowrap">
+        <button class="btn btn-sm" onclick="visageEmployeAcces('${pin}')">📷 ${t('ac.btn_visage')}</button>
+        <button class="btn btn-sm" onclick="badgeEmployeAcces('${pin}')">💳 ${t('ac.btn_badge')}</button>
+        ${_ac.cartes?.has(pin) ? `<button class="btn btn-sm" title="${t('ac.btn_retirer_badge')}" onclick="retirerBadgeAcces('${pin}')">✕</button>` : ''}
+      </div>` : ''}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="4" style="color:var(--text3)">—</td></tr>`;
+  }).join('') || `<tr><td colspan="6" style="color:var(--text3)">—</td></tr>`;
+}
+
+// ── Badge et visage d'un salarié, depuis le site ─────────────────
+let _acEnr = { minuteur: null, jeton: 0 };
+function fermerEnrAcces() {
+  _acEnr.jeton++; clearTimeout(_acEnr.minuteur);
+  document.getElementById('ac-enr-modal').classList.remove('open');
+}
+function corpsEnrAcces(html) { document.getElementById('ac-enr-corps').innerHTML = html; }
+function ouvrirEnrAcces(titre, html) {
+  _acEnr.jeton++; clearTimeout(_acEnr.minuteur);
+  document.getElementById('ac-enr-titre').textContent = titre;
+  corpsEnrAcces(html);
+  document.getElementById('ac-enr-modal').classList.add('open');
+  return _acEnr.jeton;
+}
+function nomPinAcces(pin) {
+  const e = _ac.employes.find(x => String(x.numero_acces) === String(pin));
+  return e ? nomPersonne(e.prenom, e.nom) : String(pin);
+}
+const manuelVisageAcces = pin => `<div class="al al-i" style="margin-top:10px">${t('ac.visage_manuel').split('{p}').join(pin)}</div>`;
+
+// Badge : on attend un passage refusé portant un N° de badge, puis on l'attribue
+async function badgeEmployeAcces(pin) {
+  const nom = nomPinAcces(pin);
+  const jeton = ouvrirEnrAcces(t('ac.badge_titre').replace('{n}', nom),
+    `<p>${t('ac.badge_passez')}</p><div class="al al-w" style="margin-top:10px">⏳ ${t('ac.badge_attente')}</div>`);
+  const dep = await sb.from('acces_entrees').select('id').order('id', { ascending: false }).limit(1);
+  if (jeton !== _acEnr.jeton) return;
+  if (dep.error) { corpsEnrAcces(`<div class="al al-e">${echapper(dep.error.message)}</div>`); return; }
+  const depId = dep.data?.[0]?.id || 0, debut = Date.now();
+  const tour = async () => {
+    if (jeton !== _acEnr.jeton) return;
+    const { data, error } = await sb.from('acces_entrees').select('id,porte,carte')
+      .gt('id', depId).not('carte', 'is', null).order('id', { ascending: false }).limit(1);
+    if (jeton !== _acEnr.jeton) return;
+    if (error) { corpsEnrAcces(`<div class="al al-e">${/carte/.test(error.message) ? t('ac.sql_45') : echapper(error.message)}</div>`); return; }
+    const lu = data?.[0];
+    if (lu && /^[0-9A-Fa-f]{1,20}$/.test(lu.carte)) {
+      corpsEnrAcces(`<div class="al al-s">💳 ${t('ac.badge_lu')} <b style="font-family:monospace">${lu.carte}</b> · ${libellePorte(lu.porte)}</div>
+        <div class="btns" style="margin-top:12px">
+          <button class="btn btn-p" onclick="attribuerBadgeAcces('${pin}', '${lu.carte}')">${echapper(t('ac.badge_attribuer').replace('{n}', nom))}</button>
+          <button class="btn" onclick="badgeEmployeAcces('${pin}')">${t('ac.badge_autre')}</button>
+        </div>`);
+      return;
+    }
+    if (Date.now() - debut > 180000) {
+      corpsEnrAcces(`<div class="al al-w">${t('ac.badge_delai')}</div>
+        <div class="btns" style="margin-top:12px"><button class="btn btn-p" onclick="badgeEmployeAcces('${pin}')">${t('ac.badge_reessayer')}</button></div>`);
+      return;
+    }
+    _acEnr.minuteur = setTimeout(tour, 2500);
+  };
+  tour();
+}
+
+async function attribuerBadgeAcces(pin, carte) {
+  const { error } = await sb.rpc('acces_attribuer_badge', { p_pin: String(pin), p_carte: carte });
+  if (error) { showToast(/acces_attribuer_badge/.test(error.message) ? t('ac.sql_45') : error.message, 'e'); return; }
+  await logAudit('UPDATE', 'acces_visages', `Badge attribué → N° ${pin} (${nomPinAcces(pin)})`);
+  fermerEnrAcces(); showToast(t('ac.badge_ok'), 's'); loadAcces();
+}
+
+async function retirerBadgeAcces(pin) {
+  const nom = nomPinAcces(pin);
+  if (!confirm(t('ac.badge_confirm_retirer').replace('{n}', nom))) return;
+  const { error } = await sb.rpc('acces_attribuer_badge', { p_pin: String(pin), p_carte: '' });
+  if (error) { showToast(/acces_attribuer_badge/.test(error.message) ? t('ac.sql_45') : error.message, 'e'); return; }
+  await logAudit('UPDATE', 'acces_visages', `Badge retiré → N° ${pin} (${nom})`);
+  showToast(t('ac.badge_retire'), 's'); loadAcces();
+}
+
+// Visage : demande à l'appareil choisi d'ouvrir son écran d'enregistrement
+function visageEmployeAcces(pin) {
+  const nom = nomPinAcces(pin);
+  const apps = _ac.appareils.filter(a => a.actif !== false && a.porte != null).sort((a, b) => a.porte - b.porte);
+  const enLigne = a => a.derniere_connexion && Date.now() - new Date(a.derniere_connexion) <= 120000;
+  const premier = apps.find(enLigne)?.sn;
+  ouvrirEnrAcces(t('ac.visage_titre').replace('{n}', nom), `
+    <p>${echapper(t('ac.visage_choix').replace('{n}', nom))}</p>
+    <select id="ac-enr-app" style="margin:8px 0">${apps.map(a => `<option value="${a.sn}" ${a.sn === premier ? 'selected' : ''} ${enLigne(a) ? '' : 'style="color:var(--text3)"'}>${libellePorte(a.porte)} — ${echapper(a.nom || a.sn)}${enLigne(a) ? ' 🟢' : ' (' + t('ac.hors_ligne_court') + ')'}</option>`).join('')}</select>
+    <div class="btns"><button class="btn btn-p" onclick="lancerVisageAcces('${pin}')" ${apps.length ? '' : 'disabled'}>📷 ${t('ac.visage_lancer')}</button></div>
+    ${manuelVisageAcces(pin)}`);
+}
+
+async function lancerVisageAcces(pin) {
+  const nom = nomPinAcces(pin), sn = document.getElementById('ac-enr-app')?.value;
+  if (!sn) return;
+  const app = _ac.appareils.find(a => a.sn === sn);
+  const { data: id, error } = await sb.rpc('acces_enroler_visage', { p_sn: sn, p_pin: String(pin) });
+  if (error) { showToast(/acces_enroler_visage/.test(error.message) ? t('ac.sql_45') : error.message, 'e'); return; }
+  await logAudit('INSERT', 'acces_commandes', `Enregistrement du visage demandé → N° ${pin} (${nom}), ${libellePorte(app?.porte)}`);
+  const jeton = ++_acEnr.jeton, debut = Date.now();
+  const etat = html => corpsEnrAcces(`<p style="margin-bottom:8px"><b>${libellePorte(app?.porte)}</b> — ${echapper(app?.nom || sn)}</p>${html}`);
+  etat(`<div class="al al-w">${t('ac.visage_envoi')}</div>`);
+  const tour = async () => {
+    if (jeton !== _acEnr.jeton) return;
+    const { data: c, error: e2 } = await sb.from('acces_commandes').select('id,envoyee_le,retour,termine_le').eq('id', id).maybeSingle();
+    if (jeton !== _acEnr.jeton) return;
+    if (e2) { etat(`<div class="al al-e">${echapper(e2.message)}</div>`); return; }
+    if (c?.termine_le) {
+      if (c.retour === 0) etat(`<div class="al al-s">${echapper(t('ac.visage_ok').replace('{n}', nom))}</div>
+        <div class="btns" style="margin-top:12px"><button class="btn btn-p" onclick="fermerEnrAcces();loadAcces()">OK</button></div>`);
+      else if (c.retour === -998 || c.retour === -999) etat(`<div class="al al-w">${t('ac.visage_delai')}</div>${manuelVisageAcces(pin)}`);
+      else etat(`<div class="al al-e">${t('ac.visage_refus').replace('{c}', c.retour ?? '?')}</div>${manuelVisageAcces(pin)}`);
+      return;
+    }
+    if (Date.now() - debut > 6 * 60000) { etat(`<div class="al al-w">${t('ac.visage_delai')}</div>${manuelVisageAcces(pin)}`); return; }
+    etat(c?.envoyee_le ? `<div class="al al-i">${echapper(t('ac.visage_recu').replace('{n}', nom))}</div>` : `<div class="al al-w">${t('ac.visage_envoi')}</div>`);
+    _acEnr.minuteur = setTimeout(tour, 2500);
+  };
+  _acEnr.minuteur = setTimeout(tour, 2500);
 }
 
 async function changerPorteAppareil(sn, val) {
