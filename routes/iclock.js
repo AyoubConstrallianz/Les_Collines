@@ -64,7 +64,7 @@ async function signeDeVie(req, sn) {
     } catch (e) { console.error('[iclock] signe de vie', e.message); }
   }
   const q = req.query || {};
-  const sorte = `${req.method} ${req.path} ${q.table || ''} ${q.tablename || ''} ${q.type || ''}`.replace(/s+/g, ' ').trim();
+  const sorte = `${req.method} ${req.path} ${q.table || ''} ${q.tablename || ''} ${q.type || ''}`.replace(/\s+/g, ' ').trim();
   const cle = sn + '|' + sorte;
   if (now - (_vuJournal.get(cle) || 0) >= 300000) {
     _vuJournal.set(cle, now);
