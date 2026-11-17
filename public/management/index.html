@@ -10954,7 +10954,8 @@ function ecranEtat() {
     : _ec.acces === false ? (Array.isArray(_ec.manque) ? t('ec.erreur_lecture') : t('ec.sans_acces')) + (_ec.erreur ? ' (' + _ec.erreur + ')' : '') : '';
 }
 // Droits « Lire » nécessaires au compte qui fait tourner l'écran (Utilisateurs → Modifier)
-const EC_MODULES = { acces: 'Accès & Portes', clients: 'Clients', paiements: 'Paiements', planning: 'Planning' };
+const EC_MODULES = { acces: 'Accès & Portes', clients: 'Clients', paiements: 'Paiements', planning: 'Planning', coaches: 'Coaches & Salariés' };
+const ecModulesUtiles = () => _ec.rpc ? ['acces', 'planning'] : Object.keys(EC_MODULES);
 async function ecranDroits() {
   try {
     const { data: { user } } = await sb.auth.getUser();
@@ -10964,7 +10965,7 @@ async function ecranDroits() {
     if (p && p.role !== 'super_admin') {
       const { data: habs } = await sb.from('habilitations').select('module,peut_lire').eq('user_id', user.id);
       const ok = new Set((habs || []).filter(h => h.peut_lire).map(h => h.module));
-      manque = Object.keys(EC_MODULES).filter(m => !ok.has(m)).map(m => EC_MODULES[m]);
+      manque = ecModulesUtiles().filter(m => !ok.has(m)).map(m => EC_MODULES[m]);
     }
     _ec.manque = manque;
   } catch (_) { _ec.manque = []; }
@@ -11008,16 +11009,33 @@ async function ecranPointages() {
   if (!_ec.session || _ec.occupe) return;
   _ec.occupe = true;
   try {
-    if (_ec.dernierId == null) {
-      const { data, error } = await sb.from('acces_entrees').select('id').order('id', { ascending: false }).limit(1);
-      _ec.acces = !error; _ec.erreur = error?.message || ''; ecranEtat();
-      if (!error) _ec.dernierId = data?.[0]?.id || 0;
-      return;
+    let data = null, error = null;
+    if (_ec.rpc !== false) {
+      ({ data, error } = await sb.rpc('ecran_passages', { p_apres: _ec.dernierId }));
+      if (error && /ecran_passages|PGRST202/i.test(`${error.message} ${error.code || ''}`)) { _ec.rpc = false; ecranDroits(); }
+      else {
+        if (_ec.rpc == null && !error) { _ec.rpc = true; ecranDroits(); }
+        if (_ec.dernierId == null) {
+          _ec.acces = !error; _ec.erreur = error?.message || ''; ecranEtat();
+          if (!error) _ec.dernierId = data?.dernier || 0;
+          return;
+        }
+        if (error) return;
+        data = data?.passages || [];
+      }
     }
-    const { data, error } = await sb.from('acces_entrees')
-      .select('id,porte,pin,date_heure,statut,client_id,employe_id,clients(id,prenom,nom,photo_url,numero_adherent,sports,sport),employes(prenom,nom)')
-      .gt('id', _ec.dernierId).order('id').limit(30);
-    if (error) return;
+    if (_ec.rpc === false) {
+      if (_ec.dernierId == null) {
+        const r = await sb.from('acces_entrees').select('id').order('id', { ascending: false }).limit(1);
+        _ec.acces = !r.error; _ec.erreur = r.error?.message || ''; ecranEtat();
+        if (!r.error) _ec.dernierId = r.data?.[0]?.id || 0;
+        return;
+      }
+      ({ data, error } = await sb.from('acces_entrees')
+        .select('id,porte,pin,date_heure,statut,client_id,employe_id,clients(id,prenom,nom,photo_url,numero_adherent,sports,sport),employes(prenom,nom)')
+        .gt('id', _ec.dernierId).order('id').limit(30));
+      if (error) return;
+    }
     for (const e of data || []) {
       _ec.dernierId = Math.max(_ec.dernierId, e.id);
       // Historique renvoyé par l'appareil après une coupure : pas affiché
@@ -11117,7 +11135,7 @@ async function ecranAfficher(m, jeton) {
       zone.innerHTML = ecranCarte('ko', c ? ecranPhoto(c) : '<div class="ec-photo" style="background:#7f1d1d">?</div>', t('ec.refuse'),
         c ? ecranNom(c) : e.employes ? ecranNom(e.employes) : t('ec.inconnu'),
         ecranPuces([], e.porte) + `<div class="ec-suite"></div><div class="ec-ligne">${t('ec.accueil')}</div>`);
-      if (c) { const { s, assur } = await ecranSituation(c.id);
+      if (c) { const { s, assur } = await ecranSituation(c.id, e.paiements);
         const raison = !s?.aJour ? `<div class="ec-ligne ec-rouge">${s?.finPassee ? t('ec.fini').replace('%s', dateFr(s.finPassee)) : t('ec.aucun')}</div>`
           : await ecranHoraires(c);
         completer(assur + raison); }
@@ -11125,7 +11143,7 @@ async function ecranAfficher(m, jeton) {
     }
     if (c) {
       zone.innerHTML = ecranCarte('ok', ecranPhoto(c), `${t('ec.bienvenue')} 👋`, ecranNom(c), ecranPuces(ecranSports(c), e.porte) + '<div class="ec-suite"></div>');
-      const { ligne } = await ecranSituation(c.id);
+      const { ligne } = await ecranSituation(c.id, e.paiements);
       completer(ligne);
       return 7000;
     }
