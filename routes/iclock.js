@@ -48,6 +48,24 @@ const journal = (sn, req, corps, reponse) =>
   rpc('acces_journaliser', { p_sn: sn || null, p_requete: requeteDe(req), p_corps: corps ? sansModeles(corps).slice(0, 2000) : null, p_reponse: reponse ? sansModeles(reponse) : null })
     .catch(e => console.error('[iclock] journal', e.message));
 
+// Signe de vie : toute requête d'un appareil compte comme « en ligne » (ping, heure, résultats…).
+// Au plus une mise à jour toutes les 30 s par appareil ; une ligne de journal toutes les 5 min.
+const _vu = new Map(), _vuJournal = new Map();
+async function signeDeVie(req, sn) {
+  if (!sn) return;
+  const now = Date.now();
+  if (now - (_vu.get(sn) || 0) < 30000) return;
+  _vu.set(sn, now);
+  try {
+    // acces_recevoir sans données : met seulement à jour la dernière connexion
+    await rpc('acces_recevoir', { p_sn: sn, p_table: 'PING', p_stamp: '', p_donnees: [] });
+  } catch (e) { console.error('[iclock] signe de vie', e.message); }
+  if (now - (_vuJournal.get(sn) || 0) >= 300000) {
+    _vuJournal.set(sn, now);
+    await journal(sn, req, null, 'OK (signe de vie)');
+  }
+}
+
 // Protocole « contrôle d'accès » (Push 3.x) ?
 const estAcc = req => /acc/i.test(String(req.query.DeviceType || req.query.devicetype || '')) || /^3/.test(String(req.query.pushver || ''));
 const hash = (s, n) => crypto.createHash('md5').update('lescollines:' + s).digest('hex').slice(0, n).toUpperCase();
@@ -236,6 +254,7 @@ router.post('/querydata', (req, res) => {
 
 // Heure du serveur (acc)
 router.get('/rtdata', async (req, res) => {
+  await signeDeVie(req, snDe(req));
   if (String(req.query.type || '') === 'time') return texte(res, `DateTime=${heureZk()},ServerTZ=+0100`);
   texte(res, 'OK');
 });
@@ -265,6 +284,7 @@ router.post('/devicecmd', async (req, res) => {
       const p = new URLSearchParams(l.trim());
       return { id: p.get('ID'), retour: p.get('Return') };
     }).filter(x => /^\d+$/.test(x.id || ''));
+    await signeDeVie(req, sn);
     if (sn && res_.length) await rpc('acces_resultats', { p_sn: sn, p_res: res_ });
     await journal(sn, req, corps, 'OK');
   } catch (e) {
@@ -274,10 +294,14 @@ router.post('/devicecmd', async (req, res) => {
   texte(res, 'OK');
 });
 
-router.get('/ping', (req, res) => texte(res, 'OK'));
+router.get('/ping', async (req, res) => {
+  await signeDeVie(req, snDe(req));
+  texte(res, 'OK');
+});
 
 // Autres adresses : notées dans le journal pour diagnostic
 router.all('*', async (req, res) => {
+  await signeDeVie(req, snDe(req));
   await journal(snDe(req), req, corpsDe(req), 'OK (adresse non gérée)');
   texte(res, 'OK');
 });
