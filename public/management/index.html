@@ -9691,122 +9691,47 @@ async function marquerToutDeclare() {
 // Liste à envoyer à l'assurance : PDF A4 (ID, NOM, PRÉNOM, DATE DE NAISSANCE) avec cachet en bas.
 // Un vrai PDF A4 garde son format même si la dernière imprimante utilisée est la thermique.
 // ════════════════════════════════════════════════════════════
-// FICHE D'INSCRIPTION VIERGE (PDF A4) : à faire remplir par les candidats
+// FICHE D'INSCRIPTION (PDF A4 paysage) : tableau simple à remplir par les candidats
 // ════════════════════════════════════════════════════════════
 async function imprimerFicheInscription() {
   if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
   const onglet = window.open('', '_blank');
-  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const W = 210, H = 297, M = 12, L = W - 2 * M;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+  const W = 297, H = 210, M = 10;
+  const cols = [['N°', 9], ['NOM', 38], ['PRÉNOM', 36], ['DATE DE|NAISSANCE', 29], ['TÉLÉPHONE', 30], ['E-MAIL', 50], ['DISCIPLINE', 34], ['PAYÉ', 18], ['COMMENTAIRE', 33]];
   let y = 8;
-
-  // En-tête : logo, titre, cadre photo
   let hLogo = 0;
   try {
     const img = await loadImageAsync('/images/logo-ticket.png');
-    const lw = 40; hLogo = lw * img.naturalHeight / img.naturalWidth;
+    const lw = 36; hLogo = lw * img.naturalHeight / img.naturalWidth;
     doc.addImage(img, 'PNG', M, y, lw, hLogo);
   } catch (_) {}
-  doc.setDrawColor(0); doc.setLineWidth(0.3);
-  doc.rect(W - M - 27, y, 27, 33);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120);
-  doc.text('PHOTO', W - M - 13.5, y + 16, { align: 'center' }); doc.text("d'identité", W - M - 13.5, y + 20, { align: 'center' });
-  doc.setTextColor(0); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-  doc.text("FICHE D'INSCRIPTION", W / 2 + 4, y + 11, { align: 'center' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+  doc.text("FICHE D'INSCRIPTION", W / 2, y + 8, { align: 'center' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  doc.text(`${RECU_ASSO.nom} — ${RECU_ASSO.slogan}`, W / 2 + 4, y + 17, { align: 'center' });
-  doc.setFontSize(9.5);
-  doc.text('Saison : 20____ / 20____', W / 2 + 4, y + 24, { align: 'center' });
-  doc.text("N° adhérent (réservé à l'administration) : ________", W / 2 + 4, y + 30, { align: 'center' });
-  y = Math.max(y + 37, y + hLogo + 4);
+  doc.text(`${RECU_ASSO.nom} — ${RECU_ASSO.slogan}`, W / 2, y + 14, { align: 'center' });
+  doc.text('Date : ____ / ____ / 20____', W - M, y + 8, { align: 'right' });
+  y = Math.max(y + 20, y + hLogo + 3);
 
-  const section = titre => {
-    y += 2.5;
-    doc.setFillColor(35, 35, 35); doc.rect(M, y, L, 6.5, 'F');
-    doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-    doc.text(titre, M + 2, y + 4.6); doc.setTextColor(0);
-    y += 6.5;
-  };
-  const cases = (opts, x, yb, taille = 9) => {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(taille);
-    opts.forEach(o => { doc.rect(x, yb - 3, 3.2, 3.2); doc.text(o, x + 4.6, yb - 0.4); x += 4.6 + doc.getTextWidth(o) + 6; });
-  };
-  // Une ligne du tableau : [libellé, fraction de la largeur, cases à cocher éventuelles]
-  const ligne = (cellules, h = 11.5) => {
-    let x = M;
-    cellules.forEach(([lib, frac, opts]) => {
-      const w = L * frac;
-      doc.setLineWidth(0.25); doc.rect(x, y, w, h);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(85);
-      doc.text(lib, x + 1.6, y + 3.4); doc.setTextColor(0);
-      if (opts) cases(opts, x + 1.8, y + h - 1.8);
-      x += w;
-    });
-    y += h;
-  };
-
-  section('1. INFORMATIONS PERSONNELLES');
-  ligne([['NOM', 0.5], ['PRÉNOM', 0.5]]);
-  ligne([['DATE DE NAISSANCE', 0.28], ['SEXE', 0.3, ['Homme', 'Femme']], ['N° CIN (ou acte de naissance pour un mineur)', 0.42]]);
-  ligne([['TÉLÉPHONE', 0.3], ['TÉLÉPHONE 2 (facultatif)', 0.3], ['E-MAIL', 0.4]]);
-  ligne([['ADRESSE', 1]]);
-  ligne([['PROFESSION', 0.4], ['POUR UN MINEUR : NOM ET TÉLÉPHONE DU TUTEUR LÉGAL', 0.6]]);
-
-  section("2. CONTACT EN CAS D'URGENCE");
-  ligne([['NOM ET LIEN DE PARENTÉ', 0.6], ['TÉLÉPHONE', 0.4]]);
-
-  section('3. ACTIVITÉS CHOISIES (cochez une ou plusieurs)');
-  const sports = (SPORTS_CACHE || []).map(x => x.nom).filter(Boolean);
-  const parLigne = 3, hS = 7.5;
-  if (sports.length) {
-    for (let i = 0; i < sports.length; i += parLigne) {
-      for (let j = 0; j < parLigne; j++) {
-        const x = M + j * L / parLigne;
-        doc.setLineWidth(0.25); doc.rect(x, y, L / parLigne, hS);
-        if (sports[i + j]) cases([doc.splitTextToSize(sports[i + j], L / parLigne - 10)[0]], x + 2, y + 5.3, 9.5);
-      }
-      y += hS;
-    }
-  } else ligne([['ACTIVITÉ(S)', 1]]);
-  ligne([['FORMULE', 0.7, ['Mensuel', 'Trimestriel', 'Semestriel', 'Annuel']], ["DATE D'INSCRIPTION", 0.3]]);
-
-  section('4. SANTÉ');
-  ligne([['CERTIFICAT MÉDICAL FOURNI', 0.32, ['Oui', 'Non']], ['PROBLÈMES DE SANTÉ, ALLERGIES OU TRAITEMENTS À SIGNALER', 0.68]], 14);
-
-  section('5. DOCUMENTS À FOURNIR');
-  doc.setLineWidth(0.25); doc.rect(M, y, L, 8);
-  cases(['Copie de la CIN', "1 photo d'identité", "Certificat médical d'aptitude au sport"], M + 2, y + 5.6);
-  y += 8;
-
-  section("6. RÉSERVÉ À L'ADMINISTRATION");
-  ligne([["FRAIS D'INSCRIPTION (DH)", 0.2], ['ABONNEMENT (DH)', 0.18], ['ASSURANCE 1 AN (DH)', 0.2], ['MODE DE PAIEMENT', 0.27, ['Esp.', 'Vir.', 'Chq.']], ['N° REÇU', 0.15]], 11);
-
-  // Engagement, données personnelles (loi 09-08), droit à l'image
-  y += 4;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.3);
-  const txt = "Je soussigné(e) atteste l'exactitude des informations ci-dessus et m'engage à respecter le règlement intérieur de l'association. "
-    + "Les informations recueillies servent uniquement à la gestion des adhésions de l'Association Les Collines. Conformément à la loi n° 09-08, "
-    + "vous disposez d'un droit d'accès, de rectification et d'opposition auprès de l'association.";
-  const lignesTxt = doc.splitTextToSize(txt, L);
-  doc.text(lignesTxt, M, y); y += lignesTxt.length * 3.6 + 2;
-  cases(["J'accepte que des photos ou vidéos où j'apparais soient utilisées pour la communication de l'association."], M, y + 3, 8.3);
-  y += 7;
-
-  // Signature
-  const hSig = 26;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  doc.text('Fait à Casablanca, le ____ / ____ / 20____', M, y + 7);
-  doc.setLineWidth(0.3); doc.rect(W - M - 92, y, 92, hSig);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
-  doc.text("Signature de l'adhérent (ou du tuteur pour un mineur)", W - M - 46, y + 4.5, { align: 'center' });
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(110);
-  doc.text('précédée de la mention « Lu et approuvé »', W - M - 46, y + 8.2, { align: 'center' });
-
-  // Pied de page
-  doc.setFontSize(7.8); doc.setTextColor(110);
-  doc.text(`${RECU_ASSO.adresse} — Tél : ${RECU_ASSO.tel} — ${RECU_ASSO.email}`, W / 2, H - 7, { align: 'center' });
+  // En-tête du tableau puis lignes vides jusqu'en bas de la page
+  const hEnt = 11, hL = 10.5, bas = H - 12;
+  let x = M;
+  doc.setLineWidth(0.3); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+  cols.forEach(([lib, w]) => {
+    const l = lib.split('|');
+    doc.setFillColor(230, 230, 230); doc.rect(x, y, w, hEnt, 'FD'); doc.setTextColor(0);
+    doc.text(l, x + w / 2, y + (l.length > 1 ? 4.6 : 6.8), { align: 'center' }); x += w;
+  });
+  y += hEnt;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(130);
+  for (let n = 1; y + hL <= bas; n++) {
+    x = M;
+    cols.forEach(([, w], i) => { doc.rect(x, y, w, hL); if (i === 0) doc.text(String(n), x + w / 2, y + 6.4, { align: 'center' }); x += w; });
+    y += hL;
+  }
+  doc.setTextColor(110); doc.setFontSize(7.8);
+  doc.text(`${RECU_ASSO.adresse} — Tél : ${RECU_ASSO.tel} — ${RECU_ASSO.email}`, W / 2, H - 6, { align: 'center' });
   doc.setTextColor(0);
 
   doc.setProperties({ title: "Fiche d'inscription — Les Collines" });
