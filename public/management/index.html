@@ -3533,6 +3533,8 @@ const I18N = {
     'inscr.aide':        "Décochez ce qui n'est pas dû. Si le client paie moins (ou 0), la différence va dans « Restes à payer ». La date d'inscription est la date du paiement. Un seul reçu pour le tout.",
     'inscr.enreg_encaisser': 'Enregistrer et encaisser',
     'reste.non_encaisse': 'Non encaissé maintenant',
+    'reste.assur_lib':   'Assurance (1 an)',
+    'reste.assur_non_payee': "Pas d'assurance valable",
     'paie.montant_paye': 'Montant payé (DH)',
     'paie.reste':        'Reste à payer',
     'paie.t_complement': 'Reste payé',
@@ -5046,6 +5048,8 @@ const I18N = {
     'inscr.zero_refuse': 'تعذّر تسجيل السطور غير المدفوعة (0 درهم) : تم تسجيل المدفوع فقط.',
     'inscr.enreg_encaisser': 'تسجيل وتحصيل',
     'reste.non_encaisse': 'غير محصل الآن',
+    'reste.assur_lib':   'التأمين (سنة)',
+    'reste.assur_non_payee': 'لا يوجد تأمين ساري',
     'paie.montant_paye': 'المبلغ المدفوع (درهم)',
     'paie.reste':        'الباقي للأداء',
     'paie.t_complement': 'أداء الباقي',
@@ -7641,13 +7645,24 @@ async function enregistrerReste() {
 async function loadRestes() {
   const card = document.getElementById('restes-card');
   if (!card) return;
-  const [ra, rb] = await Promise.all([
+  const [ra, rb, rc, rassur] = await Promise.all([
     fetchAllRows(() => sb.from('paiements').select('id,client_id,montant,montant_du,type,date_paiement,mode,created_at,clients(id,prenom,nom,telephone,sports,sport)').not('montant_du', 'is', null).order('id')),
-    fetchAllRows(() => sb.from('paiements').select('id,montant,reste_de').not('reste_de', 'is', null).order('id'))
+    fetchAllRows(() => sb.from('paiements').select('id,montant,reste_de').not('reste_de', 'is', null).order('id')),
+    fetchAllRows(() => sb.from('clients').select('id,prenom,nom,telephone,statut').eq('statut', 'Actif').order('id')),
+    fetchAllRows(() => sb.from('paiements').select('client_id,date_paiement').eq('type', 'Assurance').order('id')),
+    loadParametres()
   ]);
-  if (ra.error) { card.style.display = 'none'; return; }   // script 39 pas encore exécuté
-  const liste = Object.values(calculerRestes([...(ra.data || []), ...(rb.data || [])])).filter(r => r.reste > 0)
+  // Script 39 pas encore exécuté : seulement les assurances non payées
+  const liste = ra.error ? [] : Object.values(calculerRestes([...(ra.data || []), ...(rb.data || [])])).filter(r => r.reste > 0)
     .sort((a, b) => (a.orig.date_paiement || '').localeCompare(b.orig.date_paiement || ''));
+  // Clients actifs sans assurance valable (aucun paiement d'assurance de moins d'un an) : l'assurance est due
+  const montantA = montantAssurance(), auj = today();
+  if (montantA > 0 && !rc.error && !rassur.error) {
+    const assures = new Set((rassur.data || []).filter(p => p.client_id && p.date_paiement && finAssurance(p.date_paiement) >= auj).map(p => p.client_id));
+    (rc.data || []).filter(c => !assures.has(c.id))
+      .sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr'))
+      .forEach(c => liste.push({ assurNonPayee: true, orig: { client_id: c.id, clients: c }, du: montantA, paye: 0, reste: montantA }));
+  }
   const total = liste.reduce((a, r) => a + r.reste, 0);
   document.getElementById('restes-count').textContent = liste.length;
   document.getElementById('restes-total').textContent = liste.length ? `${t('restes.total')} : ${fmt(total)}` : '';
@@ -7658,11 +7673,12 @@ async function loadRestes() {
     return `<tr style="cursor:pointer" title="${t('fiche.voir')}" onclick="ouvrirFicheClient('${r.orig.client_id}', event)">
       <td><strong>${echapper(`${c.prenom || ''} ${c.nom || ''}`.trim())}</strong></td>
       <td>${echapper(c.telephone || '—')}</td>
-      <td style="font-size:12px">${echapper(libelleEncaissement(r.orig, sports))}<div style="font-size:11px;color:var(--text3)">${t('reste.paye_le')} ${dateFr(r.orig.date_paiement)}</div></td>
+      <td style="font-size:12px">${r.assurNonPayee ? `${t('reste.assur_lib')}<div style="font-size:11px;color:var(--text3)">${t('reste.assur_non_payee')}</div>`
+        : `${echapper(libelleEncaissement(r.orig, sports))}<div style="font-size:11px;color:var(--text3)">${t('reste.paye_le')} ${dateFr(r.orig.date_paiement)}</div>`}</td>
       <td style="text-align:end;white-space:nowrap">${fmt(r.du)}</td>
       <td style="text-align:end;white-space:nowrap;color:var(--green)">${fmt(r.paye)}</td>
       <td style="text-align:end;white-space:nowrap;font-weight:700;color:var(--red)">${fmt(r.reste)}</td>
-      <td>${canW ? `<button class="btn btn-sm btn-p" onclick="ouvrirReste('${r.orig.id}')">${t('reste.encaisser')}</button>` : ''}</td></tr>`;
+      <td>${canW ? `<button class="btn btn-sm btn-p" onclick="${r.assurNonPayee ? `encaisserClient('${r.orig.client_id}','','Assurance')` : `ouvrirReste('${r.orig.id}')`}">${t('reste.encaisser')}</button>` : ''}</td></tr>`;
   }).join('');
 }
 
@@ -9990,13 +10006,13 @@ async function encaisserAssurance(clientId) {
   await onPaiementTypeChange();
 }
 
-async function encaisserClient(clientId, nom) {
+async function encaisserClient(clientId, nom, type = 'Mensualité') {
   nav('paiements', document.querySelector('.nav[data-page="paiements"]'));
   await loadClientsForSelect('p-client');
   const c = _clientsForSelect.find(x => x.id === clientId);
   if (c) selectClient(c);
   document.getElementById('p-date').value = today();
-  document.getElementById('p-type').value = 'Mensualité';
+  document.getElementById('p-type').value = type;
   onPaiementTypeChange();
   document.getElementById('paiement-form-modal').classList.add('open');
 }
