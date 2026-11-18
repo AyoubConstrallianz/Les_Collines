@@ -1300,7 +1300,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
           <!-- Encaissement à l'inscription (nouveau client) : tout se fait ici, un seul reçu -->
           <div id="c-tarif-preview" style="display:none;margin-bottom:10px;padding:12px 14px;background:var(--blue-bg);border-radius:var(--r);font-size:13px;border:1px solid rgba(59,130,246,.2)">
             <div style="font-weight:700;color:var(--blue-text);margin-bottom:2px" data-i18n="inscr.encaissement">Encaissement à l'inscription</div>
-            <div style="font-size:11px;color:var(--text2);margin-bottom:10px" data-i18n="inscr.aide">Décochez ce qui n'est pas payé maintenant. La date d'inscription est la date du paiement. Un seul reçu pour le tout.</div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:10px" data-i18n="inscr.aide">Décochez ce qui n'est pas dû. Si le client paie moins (ou 0), la différence va dans « Restes à payer ». La date d'inscription est la date du paiement. Un seul reçu pour le tout.</div>
             <div class="inscr-entete"><span></span><span></span><span data-i18n="reste.a_payer">À payer</span><span data-i18n="reste.paye">Payé</span></div>
             <div class="inscr-ligne" id="il-abo">
               <input type="checkbox" id="inscr-abo-check" checked onchange="majTotalInscription()">
@@ -3529,7 +3529,8 @@ const I18N = {
     'dv.nom_requis':     'Indiquez le nom du client',
     'dv.vide':           'Le devis ne contient aucune ligne avec un montant',
     'inscr.encaissement': "Encaissement à l'inscription",
-    'inscr.aide':        "Décochez ce qui n'est pas payé maintenant. La date d'inscription est la date du paiement. Un seul reçu pour le tout.",
+    'inscr.zero_refuse': "Les lignes non payées (0 DH) n'ont pas pu être enregistrées : seul ce qui est payé a été encaissé.",
+    'inscr.aide':        "Décochez ce qui n'est pas dû. Si le client paie moins (ou 0), la différence va dans « Restes à payer ». La date d'inscription est la date du paiement. Un seul reçu pour le tout.",
     'inscr.enreg_encaisser': 'Enregistrer et encaisser',
     'reste.non_encaisse': 'Non encaissé maintenant',
     'paie.montant_paye': 'Montant payé (DH)',
@@ -5041,7 +5042,8 @@ const I18N = {
     'dv.nom_requis':     'أدخل اسم الزبون',
     'dv.vide':           'العرض لا يحتوي على أي بند بمبلغ',
     'inscr.encaissement': 'التحصيل عند التسجيل',
-    'inscr.aide':        'أزل العلامة عمّا لم يُدفع الآن. تاريخ التسجيل هو تاريخ الأداء. وصل واحد للكل.',
+    'inscr.aide':        'أزل العلامة عمّا ليس مستحقاً. إذا دفع الزبون أقل (أو 0)، يُسجَّل الفرق في « الباقي للأداء ». تاريخ التسجيل هو تاريخ الأداء. وصل واحد للكل.',
+    'inscr.zero_refuse': 'تعذّر تسجيل السطور غير المدفوعة (0 درهم) : تم تسجيل المدفوع فقط.',
     'inscr.enreg_encaisser': 'تسجيل وتحصيل',
     'reste.non_encaisse': 'غير محصل الآن',
     'paie.montant_paye': 'المبلغ المدفوع (درهم)',
@@ -8302,7 +8304,8 @@ async function saveClient() {
 }
 
 // Lignes à encaisser (abonnement, inscription, assurance) : montant payé ; s'il est inférieur
-// au montant à payer, le reste est suivi (montant_du, script 39). Payé 0 = pas encaissé maintenant.
+// au montant à payer, le reste est suivi (montant_du, script 39). Payé 0 : tout le montant reste à payer.
+// Décoché = pas dû du tout.
 function lignesEncaissementInscription() {
   const val = id => parseFloat(document.getElementById(id).value) || 0;
   const on  = k => document.getElementById(`inscr-${k}-check`).checked;
@@ -8310,7 +8313,7 @@ function lignesEncaissementInscription() {
   const lignes = [];
   const ligne = (k, idDu, champs) => {
     const du = val(idDu), paye = val(`inscr-${k}-paye`);
-    if (!on(k) || !(paye > 0)) return;
+    if (!on(k) || !(paye > 0 || du > 0)) return;
     lignes.push({ ...champs, montant: paye, ...(du > paye ? { montant_du: du } : {}) });
   };
   ligne('abo', 'inscr-abo-montant', { type: document.getElementById('inscr-formule').value, note });
@@ -8330,10 +8333,10 @@ function majTotalInscription() {
     if (!paye.dataset.touche) paye.value = du.value;
     document.getElementById(`il-${k}`).classList.toggle('off', !on);
     const vDu = parseFloat(du.value) || 0, vP = parseFloat(paye.value) || 0, r = Math.max(0, vDu - vP);
-    // Payé 0 : la ligne n'est pas encaissée (elle reste dans les impayés / assurance à payer)
-    el.textContent = !on ? '' : vP <= 0 && vDu > 0 ? t('reste.non_encaisse') : r > 0 ? `${t('paie.reste')} : ${fmt(r)}` : '';
-    el.style.color = vP <= 0 ? 'var(--text3)' : 'var(--red)';
-    if (on && vP > 0) { total += vP; totalDu += Math.max(vDu, vP); }
+    // Payé 0 : tout le montant reste à payer (suivi dans « Restes à payer »)
+    el.textContent = on && r > 0 ? `${t('paie.reste')} : ${fmt(r)}` : '';
+    el.style.color = 'var(--red)';
+    if (on) { total += vP; totalDu += Math.max(vDu, vP); }
   });
   // Périodes : à partir de la date d'inscription / du paiement
   const d = document.getElementById('c-date').value || today();
@@ -8350,7 +8353,14 @@ function majTotalInscription() {
 // Enregistre l'encaissement de l'inscription (une transaction, un reçu) ; client Actif
 async function encaisserInscription(client, { lignes, mode }) {
   const base = { client_id: client.id, date_paiement: client.date_inscription || today(), mode, created_by: ME.id };
-  const res = await insererTransaction(lignes.map(l => ({ ...base, ...l })));
+  let res = await insererTransaction(lignes.map(l => ({ ...base, ...l })));
+  // Base qui refuse un montant de 0 : on enregistre seulement ce qui est payé
+  if (res.error && /check|montant/i.test(res.error.message) && lignes.some(l => !(l.montant > 0))) {
+    lignes = lignes.filter(l => l.montant > 0);
+    showToast(t('inscr.zero_refuse'), 'e');
+    if (!lignes.length) return;
+    res = await insererTransaction(lignes.map(l => ({ ...base, ...l })));
+  }
   if (res.error) { showToast(/montant_du/.test(res.error.message) ? t('paie.sql_partiel') : res.error.message, 'e'); return; }
   const total = lignes.reduce((a, l) => a + l.montant, 0);
   await sb.from('clients').update({ statut: 'Actif', updated_at: new Date().toISOString() }).eq('id', client.id);
