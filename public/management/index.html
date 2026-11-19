@@ -2799,7 +2799,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
 
 <!-- ══ MODAL INSCRIPTION FAMILLE ════════════════════════════ -->
 <div class="mo" id="fi-modal">
-  <div class="mo-box" style="max-width:900px">
+  <div class="mo-box" style="max-width:1040px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
       <div class="mo-title" style="margin-bottom:0" data-i18n="fm.inscription_titre">Inscription famille (pack famille)</div>
       <button class="btn btn-sm" onclick="document.getElementById('fi-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
@@ -3805,6 +3805,7 @@ const I18N = {
     "fm.tarif_famille_court": "Tarif famille",
     "fm.tarif_normal_court": "Tarif normal (1 membre actif)",
     "fm.total_famille": "Total famille",
+    "fm.paye": "Payé",
     "fm.nom_requis": "Indiquez le nom de la famille",
     "fm.deux_membres": "Une famille compte au moins 2 membres",
     "fm.membre_incomplet": "prénom, nom et au moins une discipline obligatoires",
@@ -5317,6 +5318,7 @@ const I18N = {
     "fm.tarif_famille_court": "تعريفة عائلية",
     "fm.tarif_normal_court": "تعريفة عادية (فرد نشط واحد)",
     "fm.total_famille": "مجموع العائلة",
+    "fm.paye": "المدفوع",
     "fm.nom_requis": "أدخل اسم العائلة",
     "fm.deux_membres": "العائلة تضم فردين على الأقل",
     "fm.membre_incomplet": "الاسم الشخصي والعائلي وتخصص واحد على الأقل إلزامية",
@@ -13627,35 +13629,64 @@ function fiMembres() {
   }));
 }
 
+// Montants de l'inscription famille : pour chaque poste, « À payer » (calculé) et « Payé » (suit « À payer »
+// tant qu'il n'est pas saisi à la main). Payé inférieur : le reste est suivi dans « Restes à payer » (montant_du).
+const FI_POSTES = ['abo', 'ins', 'ass'];
 function fiRecalculer() {
   const zone = document.getElementById('fi-recap'); if (!zone) return;
   const membres = fiMembres(), formule = document.getElementById('fi-formule').value;
   const famille = membres.length >= 2;
   const avecInscr = document.getElementById('fi-avec-inscr').checked, avecAssur = document.getElementById('fi-avec-assur').checked;
+  // Valeurs saisies à la main conservées tant que le montant calculé du poste ne change pas
+  const avant = [...zone.querySelectorAll('tbody tr')].map(tr => Object.fromEntries(FI_POSTES.map(k => {
+    const du = tr.querySelector(`.fi-${k}`), pa = tr.querySelector(`.fi-${k}-p`);
+    return [k, { def: du?.dataset.def, du: du?.dataset.touche ? du.value : null, pa: pa?.dataset.touche ? pa.value : null }];
+  })));
+  const cellules = (i, k, def, actif) => {
+    const a = avant[i]?.[k], garde = actif && a && a.def === String(def);
+    const du = garde && a.du !== null ? a.du : def, pa = garde && a.pa !== null ? a.pa : du;
+    const dis = actif ? '' : 'disabled';
+    return `<td><input type="number" class="fi-${k}" data-def="${def}" ${garde && a.du !== null ? 'data-touche="1"' : ''} min="0" step="0.01" value="${actif ? du : 0}" oninput="this.dataset.touche='1';fiTotal()" style="width:74px" ${dis}></td>
+      <td><input type="number" class="fi-${k}-p" ${garde && a.pa !== null ? 'data-touche="1"' : ''} min="0" step="0.01" value="${actif ? pa : 0}" oninput="this.dataset.touche='1';fiTotal()" style="width:74px;font-weight:700" ${dis}></td>`;
+  };
   const lignes = membres.map((m, i) => {
     const abo = montantAbonnement(m.sports, formule, famille);
-    const ins = avecInscr ? m.sports.reduce((a, s) => Math.max(a, parseFloat(SPORTS_CACHE.find(x => x.nom === s)?.tarif_inscription) || 0), 0) : 0;
-    const ass = avecAssur ? (montantAssurance() || 0) : 0;
+    const ins = m.sports.reduce((a, s) => Math.max(a, parseFloat(SPORTS_CACHE.find(x => x.nom === s)?.tarif_inscription) || 0), 0);
+    const ass = montantAssurance() || 0;
     return `<tr><td><strong>${echapper(`${formatPrenom(m.prenom)} ${formatNom(m.nom)}`.trim()) || `${t('fm.membre')} ${i + 1}`}</strong><div style="font-size:11px;color:var(--text3)">${echapper(m.sports.join(', ')) || '—'}</div></td>
-      <td><input type="number" class="fi-abo" min="0" step="0.01" value="${abo}" oninput="fiTotal()" style="width:100px"></td>
-      <td><input type="number" class="fi-ins" min="0" step="0.01" value="${ins}" oninput="fiTotal()" style="width:90px" ${avecInscr ? '' : 'disabled'}></td>
-      <td><input type="number" class="fi-ass" min="0" step="0.01" value="${ass}" oninput="fiTotal()" style="width:90px" ${avecAssur ? '' : 'disabled'}></td>
-      <td class="fi-tot" style="font-weight:700;white-space:nowrap"></td></tr>`;
+      ${cellules(i, 'abo', abo, true)}${cellules(i, 'ins', ins, avecInscr)}${cellules(i, 'ass', ass, avecAssur)}
+      <td class="fi-tot" style="font-weight:700;white-space:nowrap"></td><td class="fi-reste" style="font-weight:700;white-space:nowrap;color:var(--red)"></td></tr>`;
   }).join('');
+  const sous = `<th style="font-size:10px">${t('reste.a_payer')}</th><th style="font-size:10px">${t('fm.paye')}</th>`;
   zone.innerHTML = `<div class="al ${famille ? 'al-s' : 'al-i'}" style="margin-bottom:8px;font-size:12px">${famille ? t('fm.tarif_famille_ok').replace('%n', membres.length) : t('fm.tarif_famille_min')}</div>
-    <table class="tbl-compacte"><thead><tr><th>${t('fm.membre')}</th><th>${t('clients.abonnement')}</th><th>${t('paie.frais_inscr')}</th><th>${t('paie.frais_assur')}</th><th>${t('bq.total')}</th></tr></thead>
-    <tbody>${lignes}</tbody><tfoot><tr><td colspan="4" style="text-align:end;font-weight:800">${t('fm.total_famille')}</td><td id="fi-total-gen" style="font-weight:800;white-space:nowrap"></td></tr></tfoot></table>`;
+    <table class="tbl-compacte"><thead><tr><th rowspan="2">${t('fm.membre')}</th><th colspan="2" style="text-align:center">${t('clients.abonnement')}</th><th colspan="2" style="text-align:center">${t('paie.frais_inscr')}</th><th colspan="2" style="text-align:center">${t('paie.frais_assur')}</th><th rowspan="2">${t('fm.paye')}</th><th rowspan="2">${t('paie.reste')}</th></tr>
+    <tr>${sous}${sous}${sous}</tr></thead>
+    <tbody>${lignes}</tbody><tfoot><tr><td colspan="7" style="text-align:end;font-weight:800">${t('fm.total_famille')}</td><td id="fi-total-gen" style="font-weight:800;white-space:nowrap"></td><td id="fi-reste-gen" style="font-weight:800;white-space:nowrap;color:var(--red)"></td></tr></tfoot></table>`;
   fiTotal();
 }
 
+// Montants d'une ligne du tableau : { abo: { du, paye }, ins: {…}, ass: {…} } (poste décoché = 0)
+function fiMontantsLigne(tr) {
+  return Object.fromEntries(FI_POSTES.map(k => {
+    const du = tr.querySelector(`.fi-${k}`), pa = tr.querySelector(`.fi-${k}-p`);
+    if (!du || du.disabled) return [k, { du: 0, paye: 0 }];
+    return [k, { du: parseFloat(du.value) || 0, paye: parseFloat(pa.value) || 0 }];
+  }));
+}
+
 function fiTotal() {
-  let gen = 0;
+  let gen = 0, resteGen = 0;
   document.querySelectorAll('#fi-recap tbody tr').forEach(tr => {
-    const v = c => { const el = tr.querySelector(c); return el && !el.disabled ? (parseFloat(el.value) || 0) : 0; };
-    const tot = v('.fi-abo') + v('.fi-ins') + v('.fi-ass'); gen += tot;
-    tr.querySelector('.fi-tot').textContent = fmtDH2(tot);
+    // « Payé » suit « À payer » tant qu'il n'a pas été saisi à la main
+    FI_POSTES.forEach(k => { const du = tr.querySelector(`.fi-${k}`), pa = tr.querySelector(`.fi-${k}-p`); if (du && pa && !pa.dataset.touche) pa.value = du.value; });
+    const m = fiMontantsLigne(tr);
+    const paye = FI_POSTES.reduce((a, k) => a + m[k].paye, 0), reste = FI_POSTES.reduce((a, k) => a + Math.max(0, m[k].du - m[k].paye), 0);
+    gen += paye; resteGen += reste;
+    tr.querySelector('.fi-tot').textContent = fmtDH2(paye);
+    tr.querySelector('.fi-reste').textContent = reste > 0 ? fmtDH2(reste) : '—';
   });
   const g = document.getElementById('fi-total-gen'); if (g) g.textContent = fmtDH2(gen);
+  const r = document.getElementById('fi-reste-gen'); if (r) r.textContent = resteGen > 0 ? fmtDH2(resteGen) : '—';
 }
 
 async function saveInscriptionFamille() {
@@ -13667,10 +13698,7 @@ async function saveInscriptionFamille() {
   if (incomplet >= 0) { showToast(`${t('fm.membre')} ${incomplet + 1} : ${t('fm.membre_incomplet')}`, 'e'); return; }
   const formule = document.getElementById('fi-formule').value, mode = document.getElementById('fi-mode').value;
   const date = document.getElementById('fi-date').value || today(), tel = document.getElementById('fi-tel').value.trim() || null;
-  const montants = [...document.querySelectorAll('#fi-recap tbody tr')].map(tr => {
-    const v = c => { const el = tr.querySelector(c); return el && !el.disabled ? (parseFloat(el.value) || 0) : 0; };
-    return { abo: v('.fi-abo'), ins: v('.fi-ins'), ass: v('.fi-ass') };
-  });
+  const montants = [...document.querySelectorAll('#fi-recap tbody tr')].map(fiMontantsLigne);
   const btn = document.getElementById('fi-valider'); btn.disabled = true;
   try {
     const { data: fam, error: e1 } = await sb.from('familles').insert({ nom }).select().single();
@@ -13682,18 +13710,24 @@ async function saveInscriptionFamille() {
     if (e2) { await sb.from('familles').delete().eq('id', fam.id); throw new Error(e2.message); }
     // Un encaissement (et un reçu) par membre : abonnement au tarif famille + inscription + assurance
     const note = `${t('fam.badge')} — ${nom}`;
-    let nbRecus = 0, erreurs = [];
+    let nbRecus = 0, erreurs = [], zeroRefuse = false;
+    // Montant payé ; s'il est inférieur au montant à payer, le reste est suivi (montant_du, script 39)
+    const ligneM = (type, x) => x && (x.paye > 0 || x.du > 0) && { type, montant: x.paye, ...(x.du > x.paye ? { montant_du: x.du } : {}) };
     for (let i = 0; i < crees.length; i++) {
       const m = montants[i] || {}, c = crees[i];
-      const lignes = [
-        m.abo > 0 && { type: formule, montant: m.abo },
-        m.ins > 0 && { type: 'Inscription', montant: m.ins },
-        m.ass > 0 && { type: 'Assurance', montant: m.ass }
-      ].filter(Boolean).map(l => ({ ...l, client_id: c.id, date_paiement: date, mode, note, created_by: ME.id }));
+      let lignes = [ligneM(formule, m.abo), ligneM('Inscription', m.ins), ligneM('Assurance', m.ass)]
+        .filter(Boolean).map(l => ({ ...l, client_id: c.id, date_paiement: date, mode, note, created_by: ME.id }));
       if (!lignes.length) continue;
-      const r = await insererTransaction(lignes);
-      if (r.error) erreurs.push(`${c.prenom} : ${r.error.message}`); else nbRecus++;
+      let r = await insererTransaction(lignes);
+      // Base qui refuse un montant de 0 : on enregistre seulement ce qui est payé
+      if (r.error && /check|montant/i.test(r.error.message) && lignes.some(l => !(l.montant > 0))) {
+        lignes = lignes.filter(l => l.montant > 0); zeroRefuse = true;
+        if (!lignes.length) continue;
+        r = await insererTransaction(lignes);
+      }
+      if (r.error) erreurs.push(`${c.prenom} : ${/montant_du/.test(r.error.message) ? t('paie.sql_partiel') : r.error.message}`); else nbRecus++;
     }
+    if (zeroRefuse) showToast(t('inscr.zero_refuse'), 'e');
     await logAudit('CREATE', 'clients', `Inscription famille ${nom} : ${crees.length} membres`);
     if (erreurs.length) showToast(erreurs.join(' · '), 'e');
     else showToast(t('fm.inscrite').replace('%n', crees.length).replace('%r', nbRecus), 's');
