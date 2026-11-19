@@ -11309,7 +11309,8 @@ async function calculPourcentageCoach(e, mois, caSports = null) {
   const auj = today();
   let limite = auj.slice(0, 7) === mois ? auj : null;
   const dep = String(e.date_depart || '').slice(0, 10), emb = String(e.date_embauche || '').slice(0, 10);
-  if (limite && dep && dep < limite && (e.actif === false || dep.slice(0, 7) === mois)) limite = dep;
+  // Date de départ : seulement si le salarié est inactif (une date restée sur la fiche d'un actif est ignorée)
+  if (limite && dep && dep < limite && e.actif === false) limite = dep;
   let caAuj = 0, joursAuj = 0, debutAuj = null;
   const lignes = periodes.map(x => {
     const caSport = Math.round((ca[x.sport.nom]?.ca || 0) * 100) / 100;
@@ -16424,7 +16425,7 @@ function prorataAuJour(e, mois = thisMonth(), jusqua = today(), plein = null) {
   const emb = String(e.date_embauche || '').slice(0, 10), dep = String(e.date_depart || '').slice(0, 10);
   if (emb > debut) debut = emb;
   // Une ancienne date de départ restée sur la fiche d'un employé actif est ignorée
-  if (dep && dep < fin && (e.actif === false || dep.slice(0, 7) === mois)) fin = dep;
+  if (dep && dep < fin && e.actif === false) fin = dep;
   const jours = fin < debut ? 0 : parseInt(fin.slice(8), 10) - parseInt(debut.slice(8), 10) + 1;
   return { plein, debut, fin, jours, jours_mois, total: Math.round(plein * jours / jours_mois * 100) / 100 };
 }
