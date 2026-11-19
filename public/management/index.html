@@ -4835,6 +4835,11 @@ const I18N = {
     'coaches.edit_title':'Modifier le salarié',
     'coaches.add_title': 'Nouveau salarié',
     'coaches.delete_confirm':'Supprimer ce salarié ? Son historique de paiements sera conservé.',
+    'so.supprime':'Fiche du salarié supprimée',
+    'so.choisir':'— Rattacher au salarié… —',
+    'so.confirm':'Rattacher ce paiement de %m (%p) à %s ?',
+    'so.ok':'Paiement rattaché à %s',
+    'so.suppr_bloquee':"%s a %n paiement(s) de salaire : sa fiche ne peut pas être supprimée, sinon son nom disparaît de l'historique.\n\nS'il ne travaille plus au club : Modifier → Statut « Inactif » (et la date de départ).",
     'coaches.no_employee':'Aucun salarié enregistré',
     'coaches.departure': 'Départ',
     'coaches.since':     'dep.',
@@ -6317,6 +6322,11 @@ const I18N = {
     'coaches.edit_title':'تعديل الموظف',
     'coaches.add_title':'موظف جديد',
     'coaches.delete_confirm':'هل تريد حذف هذا الموظف؟ سيتم الاحتفاظ بسجل المدفوعات.',
+    'so.supprime':'تم حذف ملف الموظف',
+    'so.choisir':'— ربط بالموظف… —',
+    'so.confirm':'ربط هذا الأداء %m (%p) بـ %s ؟',
+    'so.ok':'تم ربط الأداء بـ %s',
+    'so.suppr_bloquee':'لدى %s %n أداء(ات) للأجر : لا يمكن حذف ملفه وإلا سيختفي اسمه من السجل.\n\nإذا لم يعد يعمل في النادي : تعديل ← الحالة « غير نشط ».',
     'coaches.no_employee':'لا يوجد موظفون مسجلون',
     'coaches.departure': 'المغادرة',
     'coaches.since':    'منذ',
@@ -16031,9 +16041,13 @@ function resetCoachForm() {
 }
 
 async function delCoach(id) {
+  const e = (window._COACHES_LIST || []).find(x => x.id === id);
+  const { count } = await sb.from('salaires_paie').select('id', { count: 'exact', head: true }).eq('employe_id', id);
+  if (count > 0) { alert(t('so.suppr_bloquee').replace('%s', e ? `${e.prenom} ${e.nom}` : '').replace('%n', count)); return; }
   if (!confirm(t('coaches.delete_confirm'))) return;
-  await sb.from('employes').delete().eq('id',id);
-  await logAudit('DELETE','coaches',`id:${id}`);
+  const { error } = await sb.from('employes').delete().eq('id',id);
+  if (error) { showToast(error.message, 'e'); return; }
+  await logAudit('DELETE','coaches',`${e ? `${e.prenom} ${e.nom} — ` : ''}id:${id}`);
   loadCoaches(); loadCoachNonPayes();
 }
 
@@ -16064,10 +16078,13 @@ async function saveCoachPaie() {
   // Détail du calcul conservé avec le paiement (reçu PDF) — seulement s'il correspond à ce salarié et ce mois
   const calc = (_salCalc && _salCalc.empId === empId && _salCalc.mois === mois) ? { ..._salCalc.detail, montant_verse: montant } : null;
   const empSal = (window._COACHES_LIST || []).find(x => x.id === empId);
-  const detail = retenues.length
+  const detailCalc = retenues.length
     ? { ...(calc || { remuneration: empSal?.remuneration || 'Mensuel', total: Math.round((montant + totRet) * 100) / 100 }), montant_verse: montant,
         retenues: retenues.map(({ reste, ...r }) => r), salaire_brut: Math.round((montant + totRet) * 100) / 100 }
     : calc;
+  // Nom et poste gardés avec le paiement : l'historique reste lisible même si la fiche du salarié change
+  const detail = { ...(detailCalc || { remuneration: empSal?.remuneration || 'Mensuel', total: montant }),
+    ...(empSal ? { employe: `${empSal.prenom} ${empSal.nom}`.trim(), poste: empSal.poste || null } : {}) };
   let { data: savedSal, error } = await sb.from('salaires_paie').insert({ employe_id:empId, mois, montant, mode, created_by:ME.id, ...(detail ? { detail } : {}) }).select('id').single();
   if (error && /detail/.test(error.message)) {
     ({ data: savedSal, error } = await sb.from('salaires_paie').insert({ employe_id:empId, mois, montant, mode, created_by:ME.id }).select('id').single());
@@ -16091,7 +16108,17 @@ async function loadCoachPaies() {
   let query = sb.from('salaires_paie').select('*,employes(prenom,nom,poste)').order('created_at',{ascending:false});
   if (empFilter)  query = query.eq('employe_id', empFilter);
   if (moisFilter) query = query.eq('mois', moisFilter);
-  const { data } = await query;
+  const [{ data }, { data: empsListe }] = await Promise.all([query, sb.from('employes').select('id,prenom,nom,poste,actif').order('nom')]);
+  const canW = PERMS.coaches?.ecrire;
+  // Paiement dont la fiche du salarié a été supprimée : nom gardé dans le paiement, ou choix du salarié
+  const nomSalarie = p => {
+    if (p.employes) return `<strong>${echapper(`${p.employes.prenom || ''} ${p.employes.nom || ''}`.trim())}</strong>`;
+    const garde = p.detail?.employe ? `<strong>${echapper(p.detail.employe)}</strong><br>` : '';
+    return `${garde}<span class="badge b-w" style="font-size:10px">${t('so.supprime')}</span>`
+      + (canW ? `<div style="margin-top:4px"><select style="font-size:11px;padding:3px 6px;max-width:170px" onchange="attribuerPaieSalarie('${p.id}', this)">
+          <option value="">${t('so.choisir')}</option>${(empsListe || []).map(e => `<option value="${e.id}">${echapper(e.prenom + ' ' + e.nom)}${e.actif === false ? ` (${t('sports.inactif')})` : ''}</option>`).join('')}</select></div>` : '');
+  };
+  window._soPaies = Object.fromEntries((data || []).map(p => [p.id, p]));
 
   // Filtre mois
   const { data: allPaies } = await sb.from('salaires_paie').select('mois');
@@ -16111,14 +16138,26 @@ async function loadCoachPaies() {
   const _mTr={'Espèces':t('paie.m_especes'),'Virement':t('paie.m_virement'),'Chèque':t('paie.m_cheque')};
   document.getElementById('co-paies-tb').innerHTML = (data||[]).length
     ? (data||[]).map(p=>`<tr>
-        <td><strong>${p.employes?.prenom||'?'} ${p.employes?.nom||''}</strong></td>
-        <td style="color:var(--text2)">${_pTr[p.employes?.poste]||p.employes?.poste||'—'}</td>
+        <td>${nomSalarie(p)}</td>
+        <td style="color:var(--text2)">${(p => _pTr[p] || p || '—')(p.employes?.poste || p.detail?.poste)}</td>
         <td>${estAvance(p) ? `<span class="badge b-w">${t('av.avance')}</span> ` : ''}<span class="badge b-i">${p.detail?.semaine_debut ? t('hebdo.sem_court') + ' ' + libelleSemaine(p.detail.semaine_debut) : estAvance(p) ? dateFr(p.detail.date || p.mois) : p.mois}</span></td>
         <td style="font-weight:500;color:${estAvance(p) ? 'var(--amber-text)' : 'var(--green)'}">${fmt(p.montant)}${p.detail?.retenues?.length ? `<div style="font-size:10px;font-weight:400;color:var(--text3)">${t('av.retenue')} ${fmt(p.detail.retenues.reduce((a, r) => a + (parseFloat(r.montant) || 0), 0))}</div>` : ''}</td>
         <td>${_mTr[p.mode]||p.mode||'—'}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="ouvrirRecuSalaire('${p.id}')">${t('recu.btn')}</button> ${canDel?`<button class="btn btn-sm btn-d" onclick="delCoachPaie('${p.id}')">${t('msg.suppr')}</button>`:''}</td>
       </tr>`).join('')
     : `<tr class="empty-row"><td colspan="6">${t('msg.no_payment')}</td></tr>`;
+}
+
+// Rattache un paiement « salarié supprimé » à la bonne fiche
+async function attribuerPaieSalarie(id, sel) {
+  const empId = sel.value; if (!empId) return;
+  const p = window._soPaies?.[id], nom = sel.options[sel.selectedIndex].text;
+  if (!confirm(t('so.confirm').replace('%m', fmt(p?.montant)).replace('%p', p?.mois || '').replace('%s', nom))) { sel.value = ''; return; }
+  const { error } = await sb.from('salaires_paie').update({ employe_id: empId }).eq('id', id);
+  if (error) { showToast(error.message, 'e'); sel.value = ''; return; }
+  await logAudit('UPDATE', 'coaches', `Paiement de salaire ${fmt(p?.montant)} (${p?.mois || ''}) rattaché à ${nom}`);
+  showToast(t('so.ok').replace('%s', nom), 's');
+  loadCoachPaies(); loadCoachNonPayes(); loadAvances();
 }
 
 async function delCoachPaie(id) {
@@ -16743,7 +16782,7 @@ async function ouvrirRecuSalaire(id) {
   if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
   const { data: p, error } = await sb.from('salaires_paie').select('*,employes(*)').eq('id', id).single();
   if (error || !p) { showToast(error?.message || t('recu.pdf_ko'), 'e'); return; }
-  const e = p.employes || {};
+  const e = p.employes || { prenom: p.detail?.employe || '', nom: '', poste: p.detail?.poste || '' };
   const d = p.detail || { remuneration: e.remuneration || 'Mensuel', total: parseFloat(p.montant) || 0 };
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
