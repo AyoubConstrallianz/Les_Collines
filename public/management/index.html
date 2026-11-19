@@ -3689,6 +3689,12 @@ const I18N = {
     "remu.prorata": "prorata",
     "remu.jours": "jours",
     "remu.depuis_le": "depuis le",
+    "remu.du": "du",
+    "remu.au": "au",
+    "remu.a_ce_jour": "Gagné à ce jour",
+    "remu.prorata_jour": "Prorata jusqu'à aujourd'hui",
+    "remu.payer_prorata": "Payer ce montant",
+    "remu.mois_complet": "Revenir au mois complet",
     "clients.tout_valider": "Tout valider",
     "clients.tout_valider_confirm": "Valider les %n client(s) en attente ? Ils passeront en statut « Actif ».",
     "clients.valides_n": "%n clients validés",
@@ -5208,6 +5214,12 @@ const I18N = {
     "remu.prorata": "بالتناسب",
     "remu.jours": "يوم",
     "remu.depuis_le": "منذ",
+    "remu.du": "من",
+    "remu.au": "إلى",
+    "remu.a_ce_jour": "المستحق إلى اليوم",
+    "remu.prorata_jour": "بالتناسب إلى اليوم",
+    "remu.payer_prorata": "أداء هذا المبلغ",
+    "remu.mois_complet": "الرجوع إلى الشهر كاملا",
     "clients.tout_valider": "تأكيد الكل",
     "clients.tout_valider_confirm": "تأكيد %n زبون(ات) في الانتظار ؟ سيصبح وضعهم « نشط ».",
     "clients.valides_n": "تم تأكيد %n زبناء",
@@ -15707,6 +15719,8 @@ async function loadCoaches() {
         <div style="display:flex;align-items:center;gap:8px">
           <div style="text-align:right">
             <div style="font-weight:500;font-size:13px">${libelleRemu(e)}</div>
+            ${(() => { const pa = (e.actif !== false || String(e.date_depart || '').slice(0, 7) === thisMonth()) ? prorataAuJour(e) : null;
+              return pa ? `<div style="font-size:11px;color:var(--blue-text);margin-top:2px" title="${echapper(libelleProrata(pa))}">${t('remu.a_ce_jour')} : <strong>${fmtDH2(pa.total)}</strong> (${pa.jours}/${pa.jours_mois} ${t('remu.jours')})</div>` : ''; })()}
             <div style="font-size:11px;color:var(--text3)">${e.date_embauche ? t('coaches.since')+' '+e.date_embauche : ''}</div>
           </div>
           ${canWrite?`<button class="btn btn-sm" onclick="editCoach(window._COACHES_LIST[${idx}])">${t('common.modifier')}</button>`:''}
@@ -16183,7 +16197,47 @@ function montantFixeMois(e, mois) {
   const pr = prorataEmbauche(e, mois);
   return { plein, prorata: pr, total: pr ? Math.round(plein * pr.jours / pr.jours_mois * 100) / 100 : plein };
 }
-const libelleProrata = pr => `${t('remu.prorata')} ${pr.jours}/${pr.jours_mois} ${t('remu.jours')} (${t('remu.depuis_le')} ${dateFr(pr.debut)})`;
+const libelleProrata = pr => `${t('remu.prorata')} ${pr.jours}/${pr.jours_mois} ${t('remu.jours')} (${pr.fin
+  ? `${t('remu.du')} ${dateFr(pr.debut)} ${t('remu.au')} ${dateFr(pr.fin)}` : `${t('remu.depuis_le')} ${dateFr(pr.debut)}`})`;
+const textePdfProrata = pr => `Prorata : ${pr.jours}/${pr.jours_mois} jours (${pr.fin ? `du ${dateFr(pr.debut)} au ${dateFr(pr.fin)}` : `embauche le ${dateFr(pr.debut)}`})`;
+
+// Prorata jusqu'à ce jour (salaire fixe : Mensuel ou Groupe), pour le mois en cours :
+// du 1er du mois (ou du jour d'embauche) jusqu'à aujourd'hui (ou jusqu'au jour de départ), jours calendaires.
+// ex. salaire 3 000, le 19 novembre (30 jours) → 3 000 × 19/30 = 1 900
+function prorataAuJour(e, mois = thisMonth(), jusqua = today()) {
+  const remu = e?.remuneration || 'Mensuel';
+  if (remu !== 'Mensuel' && remu !== 'Groupe') return null;
+  if (!mois || String(jusqua).slice(0, 7) !== mois) return null;
+  const plein = montantFixeMois({ ...e, remuneration: remu, date_embauche: null }, mois).plein;
+  if (!(plein > 0)) return null;
+  const [y, m] = mois.split('-').map(Number), jours_mois = new Date(y, m, 0).getDate();
+  let debut = `${mois}-01`, fin = String(jusqua).slice(0, 10);
+  const emb = String(e.date_embauche || '').slice(0, 10), dep = String(e.date_depart || '').slice(0, 10);
+  if (emb > debut) debut = emb;
+  if (dep && dep < fin) fin = dep;
+  const jours = fin < debut ? 0 : parseInt(fin.slice(8), 10) - parseInt(debut.slice(8), 10) + 1;
+  return { plein, debut, fin, jours, jours_mois, total: Math.round(plein * jours / jours_mois * 100) / 100 };
+}
+
+// Formulaire de paiement : propose de payer le prorata à ce jour (départ en cours de mois, solde…)
+function boiteProrataJour() {
+  const pa = _salCalc?.prorataJour; if (!pa) return '';
+  const applique = !!_salCalc.detail?.prorata?.fin;
+  return `<div class="al al-i" style="margin-top:8px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <span>📅 ${t('remu.prorata_jour')} : <strong>${fmtDH2(pa.total)}</strong>
+      <span style="font-size:11px;color:var(--text3)">(${fmtDH2(pa.plein)} × ${pa.jours}/${pa.jours_mois} · ${t('remu.du')} ${dateFr(pa.debut)} ${t('remu.au')} ${dateFr(pa.fin)})</span></span>
+    ${applique ? `<button type="button" class="btn btn-sm" onclick="calculerSalaire()">${t('remu.mois_complet')}</button>`
+      : `<button type="button" class="btn btn-sm btn-p" onclick="appliquerProrataJour()">${t('remu.payer_prorata')}</button>`}
+  </div>`;
+}
+function appliquerProrataJour() {
+  const pa = _salCalc?.prorataJour; if (!pa) return;
+  const d = { ..._salCalc.detail, plein: pa.plein, total: pa.total, prorata: { debut: pa.debut, fin: pa.fin, jours: pa.jours, jours_mois: pa.jours_mois } };
+  _salCalc.detail = d;
+  document.getElementById('co-sal-mont').value = d.total;
+  document.getElementById('co-sal-detail').innerHTML = detailSalaireHtml(d) + boiteProrataJour();
+  majRetenuesAvance();
+}
 
 function libelleRemu(e) {
   if (e.remuneration === 'Groupe') return `${fmt(e.salaire)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${e.nb_groupes || 0} × ${fmt(e.montant_groupe)})</span>`;
@@ -16316,9 +16370,10 @@ async function calculerSalaire(garderSemaine = false) {
   }
   // Le formulaire a pu changer pendant le calcul
   if (document.getElementById('co-sal-emp').value !== empId || document.getElementById('co-sal-mois').value !== mois) return;
-  _salCalc = { empId, mois, detail };
+  const pa = !hebdo && remu !== 'Pourcentage' ? prorataAuJour(e, mois) : null;
+  _salCalc = { empId, mois, detail, prorataJour: pa && pa.total !== detail.total ? pa : null };
   document.getElementById('co-sal-mont').value = detail.total || '';
-  zone.innerHTML = detailSalaireHtml(detail);
+  zone.innerHTML = detailSalaireHtml(detail) + boiteProrataJour();
   zone.style.display = '';
   majRetenuesAvance();
 }
@@ -16571,11 +16626,11 @@ async function ouvrirRecuSalaire(id) {
   } else if (d.remuneration === 'Groupe') {
     entete([['Désignation', M + 4], ['Groupes', 120, 'right'], ['Montant unitaire', 160, 'right'], ['Total', W - M - 4, 'right']]);
     ligne([[`Groupes encadrés — ${moisLib}`, M + 4], [d.nb_groupes, 120, 'right'], [montantPdf(d.montant_groupe), 160, 'right'], [montantPdf(d.prorata ? d.plein : d.total), W - M - 4, 'right']]);
-    if (d.prorata) ligne([[`Prorata : ${d.prorata.jours}/${d.prorata.jours_mois} jours (embauche le ${dateFr(d.prorata.debut)})`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
+    if (d.prorata) ligne([[textePdfProrata(d.prorata), M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
   } else {
     entete([['Désignation', M + 4], ['Montant', W - M - 4, 'right']]);
     ligne([[`Salaire mensuel — ${moisLib}`, M + 4], [montantPdf(d.prorata ? d.plein : d.total), W - M - 4, 'right']]);
-    if (d.prorata) ligne([[`Prorata : ${d.prorata.jours}/${d.prorata.jours_mois} jours (embauche le ${dateFr(d.prorata.debut)})`, M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
+    if (d.prorata) ligne([[textePdfProrata(d.prorata), M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
   }
 
   // Retenues sur avance
