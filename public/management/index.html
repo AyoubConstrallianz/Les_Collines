@@ -16054,6 +16054,12 @@ async function loadCoachNonPayes() {
     return `${fmtDH2(m.total)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${m.pct} % × ${t('remu.ca_mois')} ${fmt(m.ca)})</span>`;
   };
 
+  // Salaire fixe : montant gagné du 1er du mois (ou de l'embauche) jusqu'à aujourd'hui
+  const aCeJour = e => {
+    const pa = prorataAuJour(e, moisCur);
+    return pa ? `<div style="font-size:11px;color:var(--blue-text);margin-top:2px" title="${echapper(libelleProrata(pa))}">${t('remu.a_ce_jour')} : <strong>${fmtDH2(pa.total)}</strong> (${pa.jours}/${pa.jours_mois} ${t('remu.jours')})</div>` : '';
+  };
+
   document.getElementById('co-nonpayes').textContent = nonPayes.length;
   document.getElementById('co-nonpayes').style.color = nonPayes.length > 0 ? 'var(--amber)' : 'var(--green)';
 
@@ -16073,7 +16079,7 @@ async function loadCoachNonPayes() {
             ${canWrite?`<button class="btn btn-sm btn-p" onclick="prefillPaie('${e.id}','${l}')">${t('salaires.payer')}</button>`:''}
           </div>`).join('')}
         </div>` : `<div style="display:flex;align-items:center;gap:8px">
-          <span style="font-weight:500">${montantAPayer(e)}</span>
+          <div style="text-align:end"><span style="font-weight:500">${montantAPayer(e)}</span>${aCeJour(e)}</div>
           ${canWrite?`<button class="btn btn-sm btn-p" onclick="prefillPaie('${e.id}')">${t('salaires.payer')}</button>`:''}
         </div>`}
       </div>`).join('')
