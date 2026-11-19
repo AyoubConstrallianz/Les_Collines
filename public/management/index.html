@@ -1649,8 +1649,12 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <div class="fr"><div class="fg"><label data-i18n="fam.mensuel">Pack famille mensuel</label><input id="s-fam-mensuel" type="number" placeholder="0"></div><div class="fg"><label data-i18n="fam.trimestriel">Pack famille trimestriel</label><input id="s-fam-trim" type="number" placeholder="0"></div></div>
             <div class="fr"><div class="fg"><label data-i18n="fam.semestriel">Pack famille semestriel</label><input id="s-fam-sem" type="number" placeholder="0"></div><div class="fg"><label data-i18n="fam.annuel">Pack famille annuel</label><input id="s-fam-annuel" type="number" placeholder="0"></div></div>
             <div class="fr">
-              <div class="fg"><label data-i18n="sports.coach">Coach assigné</label><select id="s-coach"><option value="">— Aucun coach —</option></select></div>
+              <div class="fg"><label data-i18n="sports.coach">Coach assigné</label><select id="s-coach" onchange="majCoachDate()"><option value="">— Aucun coach —</option></select></div>
               <div class="fg"><label data-i18n="sports.horaires">Horaires</label><input id="s-horaires" placeholder="Lun-Mer 18h-20h"></div>
+            </div>
+            <div id="s-coach-date-wrap" class="al al-i" style="display:none;margin:0 0 12px">
+              <div class="fg" style="margin:0;max-width:260px"><label data-i18n="sc.date">Date du changement d'entraîneur</label><input id="s-coach-date" type="date" oninput="majCoachDate()"></div>
+              <div id="s-coach-date-info" style="font-size:12px;margin-top:6px"></div>
             </div>
             <div class="fr">
               <div class="fg"><label data-i18n="ac.porte_sport">Porte (contrôle d'accès)</label><select id="s-porte"><option value="" data-i18n="ac.porte_nd">— Non définie —</option><option value="1">Porte 1</option><option value="2">Porte 2</option><option value="0" data-i18n="ac.porte_deux">Les deux portes</option></select></div>
@@ -3689,6 +3693,17 @@ const I18N = {
     "remu.prorata": "prorata",
     "remu.jours": "jours",
     "remu.depuis_le": "depuis le",
+    "sc.date": "Date du changement d'entraîneur",
+    "sc.date_requise": "Indiquez la date du changement d'entraîneur",
+    "sc.info": "%a encadre ce sport jusqu'au %d1, %b à partir du %d2. Coachs payés au pourcentage : le CA du sport est partagé selon ces dates.",
+    "sc.aucun": "aucun coach",
+    "sc.sql_54": "Sport enregistré, mais la date du changement n'a pas été gardée : exécutez le script SQL 54 (historique des coachs) dans Supabase.",
+    "sc.depuis": "depuis le",
+    "sc.avant": "avant",
+    "sc.periode": "Période encadrée",
+    "sc.ca_retenu": "CA retenu",
+    "sc.mois_entier": "Mois entier",
+    "sc.partiel": "changement d'entraîneur dans le mois",
     "remu.du": "du",
     "remu.au": "au",
     "remu.a_ce_jour": "Gagné à ce jour",
@@ -5214,6 +5229,17 @@ const I18N = {
     "remu.prorata": "بالتناسب",
     "remu.jours": "يوم",
     "remu.depuis_le": "منذ",
+    "sc.date": "تاريخ تغيير المدرب",
+    "sc.date_requise": "حدد تاريخ تغيير المدرب",
+    "sc.info": "%a يؤطر هذه الرياضة إلى غاية %d1، و%b ابتداء من %d2. المدربون بالنسبة المئوية : رقم معاملات الرياضة يقسم حسب هذه التواريخ.",
+    "sc.aucun": "بدون مدرب",
+    "sc.sql_54": "تم حفظ الرياضة، لكن تاريخ التغيير لم يحفظ : نفذ السكريبت 54 في Supabase.",
+    "sc.depuis": "منذ",
+    "sc.avant": "قبل",
+    "sc.periode": "فترة التأطير",
+    "sc.ca_retenu": "رقم المعاملات المحتسب",
+    "sc.mois_entier": "الشهر كاملا",
+    "sc.partiel": "تغيير المدرب خلال الشهر",
     "remu.du": "من",
     "remu.au": "إلى",
     "remu.a_ce_jour": "المستحق إلى اليوم",
@@ -11045,10 +11071,19 @@ async function delTransaction(ids) {
 // SPORTS
 // ════════════════════════════════════════════════════════════
 async function loadSports() {
-  const [{ data }, { data: employes }] = await Promise.all([
+  const [{ data }, { data: employes }, aff] = await Promise.all([
     sb.from('sports').select('*').order('nom'),
-    sb.from('employes').select('id,prenom,nom,poste,actif').order('nom')
+    sb.from('employes').select('id,prenom,nom,poste,actif').order('nom'),
+    affectationsCoachs(true)
   ]);
+  // Coach en place depuis le … (avant : …), d'après l'historique (script 54)
+  const depuisCoach = s => {
+    const l = (aff || []).filter(a => String(a.sport_id) === String(s.id));
+    const actuel = l.filter(a => !a.date_fin).sort((a, b) => String(b.date_debut).localeCompare(String(a.date_debut)))[0];
+    if (!actuel || String(actuel.date_debut) <= '2000-01-01') return '';
+    const avant = l.filter(a => a.date_fin && String(a.date_fin) < String(actuel.date_debut)).sort((a, b) => String(b.date_fin).localeCompare(String(a.date_fin)))[0];
+    return `<span style="font-size:11px;color:var(--text3)">${t('sc.depuis')} ${dateFr(actuel.date_debut)}${avant ? ` (${t('sc.avant')} : ${echapper(avant.coach)})` : ''}</span>`;
+  };
 
   // Peuple le select coach
   const selCoach = document.getElementById('s-coach');
@@ -11096,7 +11131,7 @@ async function loadSports() {
             <span>${t('sports.lbl_inscription')}: <strong>${fmt(s.tarif_inscription)}</strong></span>
             ${['famille_mensuel', 'famille_trimestriel', 'famille_semestriel', 'famille_annuel'].some(k => parseFloat(s[k])) ? `<span style="flex-basis:100%;color:var(--blue-text)">${t('fam.badge')} : ${[['famille_mensuel', 'fam.l_mensuel'], ['famille_trimestriel', 'fam.l_trim'], ['famille_semestriel', 'fam.l_sem'], ['famille_annuel', 'fam.l_annuel']].filter(([k]) => parseFloat(s[k])).map(([k, l]) => `${t(l)} <strong>${fmt(s[k])}</strong>`).join(' · ')}</span>` : ''}
             ${'porte' in s ? `<span class="badge ${s.porte == null ? 'b-w' : 'b-i'}" style="font-size:10px">🚪 ${libellePorte(s.porte)}</span>` : ''}
-            ${s.coach?`<span style="display:flex;align-items:center;gap:4px;color:var(--text2)">${t('sports.lbl_coach')}: <strong style="color:var(--text)">${s.coach}</strong> ${coachBadge}</span>`:''}
+            ${s.coach?`<span style="display:flex;align-items:center;gap:4px;color:var(--text2)">${t('sports.lbl_coach')}: <strong style="color:var(--text)">${s.coach}</strong> ${coachBadge} ${depuisCoach(s)}</span>`:''}
           </div>
           ${s.horaires?`<div style="font-size:11px;color:var(--text3);margin-top:3px">${s.horaires}</div>`:''}
         </div>`;
@@ -11139,8 +11174,12 @@ async function saveSport() {
       ? { porte: document.getElementById('s-porte').value === '' ? null : parseInt(document.getElementById('s-porte').value) } : {})
   };
   if (!obj.nom) { showToast(t('sports.name_required'),'e'); return; }
+  const changeCoach = id && (window._sportEditCoach || '') !== (obj.coach || '');
+  const dateCoach = document.getElementById('s-coach-date').value;
+  if (changeCoach && !dateCoach) { showToast(t('sc.date_requise'), 'e'); return; }
   const { error } = id ? await sb.from('sports').update(obj).eq('id',id) : await sb.from('sports').insert(obj);
   if (error) { showToast(/porte/.test(error.message) ? t('ac.sql_43') : /famille_/.test(error.message) ? t('fam.sql_32') : /tarif_semestriel/.test(error.message) ? t('sports.sem_sql') : error.message,'e'); return; }
+  if (changeCoach) await enregistrerChangementCoach(id, window._sportEditCoach || null, obj.coach, dateCoach);
   SPORTS_CACHE = [];
   showToast(id?'Modifié':'Ajouté','s'); resetSportForm(); loadSports();
 }
@@ -11170,8 +11209,111 @@ function editSport(s) {
     if (opt) sel.value = s.coach;
     else sel.value = '';
   }
+  window._sportEditCoach = s.coach || '';
+  document.getElementById('s-coach-date').value = '';
+  majCoachDate();
   document.getElementById('sport-form-title').textContent = t('sports.edit_title');
   document.querySelector('#page-sports .card').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Changement d'entraîneur d'un sport (script 54) : historique des coachs ──
+// Affiche la date du changement quand on choisit un autre coach pour un sport existant
+function majCoachDate() {
+  const wrap = document.getElementById('s-coach-date-wrap'); if (!wrap) return;
+  const ancien = window._sportEditCoach, nouveau = document.getElementById('s-coach').value || '';
+  const change = !!document.getElementById('s-id').value && ancien !== undefined && (ancien || '') !== nouveau;
+  wrap.style.display = change ? '' : 'none';
+  if (!change) return;
+  const champ = document.getElementById('s-coach-date');
+  if (!champ.value) champ.value = today();
+  const d = champ.value;
+  document.getElementById('s-coach-date-info').innerHTML = t('sc.info')
+    .replace('%a', `<strong>${echapper(ancien || t('sc.aucun'))}</strong>`).replace('%d1', dateFr(ajouterJours(d, -1)))
+    .replace('%b', `<strong>${echapper(nouveau || t('sc.aucun'))}</strong>`).replace('%d2', dateFr(d));
+}
+
+// Ferme la période de l'ancien coach la veille et ouvre celle du nouveau à la date choisie
+async function enregistrerChangementCoach(sportId, ancien, nouveau, date) {
+  const sid = String(sportId);
+  const { data: lignes, error } = await sb.from('sports_coachs').select('id,coach,date_debut,date_fin').eq('sport_id', sid);
+  if (error) { showToast(t('sc.sql_54'), 'e'); return false; }
+  const veille = ajouterJours(date, -1), erreurs = [];
+  const note = r => { if (r?.error) erreurs.push(r.error.message); };
+  // Périodes qui continuent après la date : arrêtées la veille (ou supprimées si elles commencent ce jour-là ou après)
+  for (const l of (lignes || []).filter(l => !l.date_fin || l.date_fin >= date)) {
+    note(l.date_debut >= date ? await sb.from('sports_coachs').delete().eq('id', l.id)
+      : await sb.from('sports_coachs').update({ date_fin: veille }).eq('id', l.id));
+  }
+  // Pas encore d'historique pour ce sport : l'ancien coach était en place jusqu'à la veille
+  if (!(lignes || []).length && ancien) note(await sb.from('sports_coachs').insert({ sport_id: sid, coach: ancien, date_debut: '2000-01-01', date_fin: veille }));
+  if (nouveau) note(await sb.from('sports_coachs').insert({ sport_id: sid, coach: nouveau, date_debut: date }));
+  affectationsCoachs(true);
+  if (erreurs.length) { showToast(erreurs.join(' · '), 'e'); return false; }
+  await logAudit('UPDATE', 'sports', `Changement de coach : ${ancien || '—'} → ${nouveau || '—'} à partir du ${dateFr(date)}`);
+  return true;
+}
+
+// Historique des coachs (script 54), gardé 1 minute ; null si la table n'existe pas encore
+let _affCoachs = { t: 0, p: null };
+function affectationsCoachs(force = false) {
+  if (force || !_affCoachs.p || Date.now() - _affCoachs.t > 60000) {
+    _affCoachs = { t: Date.now(), p: Promise.resolve(sb.from('sports_coachs').select('sport_id,coach,date_debut,date_fin').order('date_debut'))
+      .then(({ data, error }) => error ? null : (data || [])).catch(() => null) };
+  }
+  return _affCoachs.p;
+}
+
+// Périodes où un coach encadre chaque sport dans un mois : [{ sport, debut, fin, jours, jours_mois }]
+// Sport sans historique : le coach actuel, tout le mois
+async function periodesCoachMois(nomComplet, mois) {
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
+  const aff = (await affectationsCoachs()) || [];
+  const [y, m] = mois.split('-').map(Number), jm = new Date(y, m, 0).getDate();
+  const d1 = `${mois}-01`, dN = `${mois}-${String(jm).padStart(2, '0')}`;
+  const cle = cleNomClient(nomComplet, ''), jour = d => parseInt(d.slice(8, 10), 10);
+  const res = [];
+  SPORTS_CACHE.forEach(sp => {
+    const lignes = aff.filter(a => String(a.sport_id) === String(sp.id));
+    const miennes = lignes.length ? lignes.filter(a => cleNomClient(a.coach, '') === cle)
+      : (sp.coach && cleNomClient(sp.coach, '') === cle ? [{ date_debut: d1, date_fin: null }] : []);
+    miennes.forEach(a => {
+      const deb = String(a.date_debut).slice(0, 10), fn = a.date_fin ? String(a.date_fin).slice(0, 10) : null;
+      const debut = deb > d1 ? deb : d1, fin = fn && fn < dN ? fn : dN;
+      if (fin >= debut) res.push({ sport: sp, debut, fin, jours: jour(fin) - jour(debut) + 1, jours_mois: jm });
+    });
+  });
+  return res;
+}
+
+// Rémunération au pourcentage d'un coach pour un mois : CA de chaque sport × jours encadrés / jours du mois × %
+// aCeJour : même calcul jusqu'à aujourd'hui (ou au départ), pour le mois en cours
+async function calculPourcentageCoach(e, mois, caSports = null) {
+  const periodes = await periodesCoachMois(`${e.prenom} ${e.nom}`, mois);
+  const noms = [...new Set(periodes.map(x => x.sport.nom))];
+  const ca = caSports || (noms.length ? await caSportsDuMois(mois, noms) : {});
+  const pct = parseFloat(e.pourcentage) || 0, jour = d => parseInt(d.slice(8, 10), 10);
+  const auj = today();
+  let limite = auj.slice(0, 7) === mois ? auj : null;
+  const dep = String(e.date_depart || '').slice(0, 10), emb = String(e.date_embauche || '').slice(0, 10);
+  if (limite && dep && dep < limite && (e.actif === false || dep.slice(0, 7) === mois)) limite = dep;
+  let caAuj = 0, joursAuj = 0, debutAuj = null;
+  const lignes = periodes.map(x => {
+    const caSport = Math.round((ca[x.sport.nom]?.ca || 0) * 100) / 100;
+    if (limite) {
+      const d = emb > x.debut ? emb : x.debut, f = limite < x.fin ? limite : x.fin;
+      const j = f < d ? 0 : jour(f) - jour(d) + 1;
+      caAuj += caSport * j / x.jours_mois;
+      if (j > 0) { joursAuj = Math.max(joursAuj, j); if (!debutAuj || d < debutAuj) debutAuj = d; }
+    }
+    return { sport: x.sport.nom, adherents: ca[x.sport.nom]?.adherents?.size || 0, ca: caSport, debut: x.debut, fin: x.fin,
+      jours: x.jours, jours_mois: x.jours_mois, ca_retenu: Math.round(caSport * x.jours / x.jours_mois * 100) / 100 };
+  });
+  const caTotal = Math.round(lignes.reduce((a, l) => a + l.ca_retenu, 0) * 100) / 100;
+  const adherents = new Set(noms.flatMap(n => [...(ca[n]?.adherents || [])])).size;
+  const jm = periodes[0]?.jours_mois || 30;
+  return { pct, lignes, ca_total: caTotal, adherents_total: adherents, total: Math.round(caTotal * pct) / 100, nbSports: noms.length,
+    partiel: lignes.some(l => l.jours < l.jours_mois),
+    aCeJour: limite && lignes.length ? { total: Math.round(caAuj * pct) / 100, ca: Math.round(caAuj * 100) / 100, pct, jours: joursAuj, jours_mois: jm, debut: debutAuj || `${mois}-01`, fin: limite } : null };
 }
 
 function resetSportForm() {
@@ -11181,6 +11323,9 @@ function resetSportForm() {
   document.getElementById('s-porte').value = '';
   ['s-id','s-nom','s-tarif','s-tarif-trim','s-tarif-sem','s-tarif-annuel','s-inscr','s-horaires','s-desc','s-fam-mensuel','s-fam-trim','s-fam-sem','s-fam-annuel'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('s-coach').value = '';
+  window._sportEditCoach = undefined;
+  document.getElementById('s-coach-date').value = '';
+  majCoachDate();
   document.getElementById('sport-form-title').textContent = t('sports.add_title');
 }
 
@@ -15974,17 +16119,17 @@ async function delCoachPaie(id) {
 }
 
 // Montant du mois pour les salariés payés au pourcentage du CA de leurs disciplines (CA du mois à ce jour)
+// (CA de chaque sport compté pour les jours où le coach l'encadre : historique des coachs, script 54)
 async function montantsPourcentageMois(emps, mois) {
   const res = {};
   if (!emps.length) return res;
-  const sportsParEmp = await Promise.all(emps.map(e => sportsDuCoach(`${e.prenom} ${e.nom}`)));
-  const tousSports = [...new Set(sportsParEmp.flat().map(sp => sp.nom))];
+  const periodes = await Promise.all(emps.map(e => periodesCoachMois(`${e.prenom} ${e.nom}`, mois)));
+  const tousSports = [...new Set(periodes.flat().map(x => x.sport.nom))];
   const ca = tousSports.length ? await caSportsDuMois(mois, tousSports) : {};
-  emps.forEach((e, i) => {
-    const caTotal = sportsParEmp[i].reduce((a, sp) => a + Math.round(ca[sp.nom].ca * 100) / 100, 0);
-    const pct = parseFloat(e.pourcentage) || 0;
-    res[e.id] = { pct, ca: caTotal, total: Math.round(caTotal * pct) / 100, nbSports: sportsParEmp[i].length };
-  });
+  for (const e of emps) {
+    const r = await calculPourcentageCoach(e, mois, ca);
+    res[e.id] = { pct: r.pct, ca: r.ca_total, total: r.total, nbSports: r.nbSports, partiel: r.partiel, aCeJour: r.aCeJour };
+  }
   return res;
 }
 
@@ -16051,12 +16196,13 @@ async function loadCoachNonPayes() {
     }
     if (!m) return libelleRemu(e);
     if (!m.nbSports) return `<span style="color:var(--amber-text);font-size:11px;font-weight:400">${m.pct} % ${t('remu.du_ca')} — ${t('remu.sans_discipline')}</span>`;
-    return `${fmtDH2(m.total)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${m.pct} % × ${t('remu.ca_mois')} ${fmt(m.ca)})</span>`;
+    return `${fmtDH2(m.total)} <span style="font-size:10px;color:var(--text3);font-weight:400">(${m.pct} % × ${t('remu.ca_mois')} ${fmt(m.ca)}${m.partiel ? ` · ${t('sc.partiel')}` : ''})</span>`;
   };
 
   // Salaire fixe : montant gagné du 1er du mois (ou de l'embauche) jusqu'à aujourd'hui
   const aCeJour = e => {
-    const pa = prorataAuJour(e, moisCur, today(), montantsPct[e.id] ? montantsPct[e.id].total : null);
+    const mp = montantsPct[e.id];
+    const pa = mp ? (mp.total > 0 && mp.aCeJour ? mp.aCeJour : null) : prorataAuJour(e, moisCur);
     return pa ? `<div style="font-size:11px;color:var(--blue-text);margin-top:2px" title="${echapper(libelleProrata(pa))}">${t('remu.a_ce_jour')} : <strong>${fmtDH2(pa.total)}</strong> (${pa.jours}/${pa.jours_mois} ${t('remu.jours')})</div>` : '';
   };
 
@@ -16236,14 +16382,14 @@ function boiteProrataJour() {
   const applique = !!_salCalc.detail?.prorata?.fin;
   return `<div class="al al-i" style="margin-top:8px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
     <span>📅 ${t('remu.prorata_jour')} : <strong>${fmtDH2(pa.total)}</strong>
-      <span style="font-size:11px;color:var(--text3)">(${fmtDH2(pa.plein)} × ${pa.jours}/${pa.jours_mois} · ${t('remu.du')} ${dateFr(pa.debut)} ${t('remu.au')} ${dateFr(pa.fin)})</span></span>
+      <span style="font-size:11px;color:var(--text3)">(${pa.ca != null ? `${t('sc.ca_retenu')} ${fmtDH2(pa.ca)} × ${pa.pct} %` : `${fmtDH2(pa.plein)} × ${pa.jours}/${pa.jours_mois}`} · ${t('remu.du')} ${dateFr(pa.debut)} ${t('remu.au')} ${dateFr(pa.fin)})</span></span>
     ${applique ? `<button type="button" class="btn btn-sm" onclick="calculerSalaire()">${t('remu.mois_complet')}</button>`
       : `<button type="button" class="btn btn-sm btn-p" onclick="appliquerProrataJour()">${t('remu.payer_prorata')}</button>`}
   </div>`;
 }
 function appliquerProrataJour() {
   const pa = _salCalc?.prorataJour; if (!pa) return;
-  const d = { ..._salCalc.detail, plein: pa.plein, total: pa.total, prorata: { debut: pa.debut, fin: pa.fin, jours: pa.jours, jours_mois: pa.jours_mois } };
+  const d = { ..._salCalc.detail, plein: pa.plein, total: pa.total, prorata: { debut: pa.debut, fin: pa.fin, jours: pa.jours, jours_mois: pa.jours_mois, ...(pa.ca != null ? { ca: pa.ca } : {}) } };
   _salCalc.detail = d;
   document.getElementById('co-sal-mont').value = d.total;
   document.getElementById('co-sal-detail').innerHTML = detailSalaireHtml(d) + boiteProrataJour();
@@ -16345,7 +16491,7 @@ async function calculerSalaire(garderSemaine = false) {
   document.getElementById('co-sal-mois-wrap').style.display = hebdo ? 'none' : '';
   if (!e) return;
   const remu = e.remuneration || 'Mensuel';
-  let detail;
+  let detail, pctAuJour = null;
   if (hebdo) {
     const champ = document.getElementById('co-sal-semaine');
     if (!garderSemaine || !champ.value) champ.value = semainePrecedente();
@@ -16366,14 +16512,10 @@ async function calculerSalaire(garderSemaine = false) {
     if (f.prorata) Object.assign(detail, { plein: f.plein, prorata: f.prorata });
   } else if (remu === 'Pourcentage') {
     zone.innerHTML = `<div style="font-size:12px;color:var(--text3)">${t('remu.calcul')}</div>`; zone.style.display = '';
-    const sports = await sportsDuCoach(`${e.prenom} ${e.nom}`);
-    const ca = await caSportsDuMois(mois, sports.map(sp => sp.nom));
-    const lignes = sports.map(sp => ({ sport: sp.nom, adherents: ca[sp.nom].adherents.size, ca: Math.round(ca[sp.nom].ca * 100) / 100 }));
-    const caTotal = lignes.reduce((a, l) => a + l.ca, 0);
-    const adhTotal = new Set(sports.flatMap(sp => [...ca[sp.nom].adherents])).size;
-    const pct = parseFloat(e.pourcentage) || 0;
-    detail = { remuneration: 'Pourcentage', pourcentage: pct, lignes, ca_total: Math.round(caTotal * 100) / 100,
-               adherents_total: adhTotal, total: Math.round(caTotal * pct) / 100 };
+    const r = await calculPourcentageCoach(e, mois);
+    detail = { remuneration: 'Pourcentage', pourcentage: r.pct, lignes: r.lignes, ca_total: r.ca_total,
+               adherents_total: r.adherents_total, total: r.total };
+    pctAuJour = r.aCeJour;
   } else {
     const f = montantFixeMois({ ...e, remuneration: 'Mensuel' }, mois);
     detail = { remuneration: 'Mensuel', total: f.total };
@@ -16381,7 +16523,7 @@ async function calculerSalaire(garderSemaine = false) {
   }
   // Le formulaire a pu changer pendant le calcul
   if (document.getElementById('co-sal-emp').value !== empId || document.getElementById('co-sal-mois').value !== mois) return;
-  const pa = !hebdo ? prorataAuJour(e, mois, today(), remu === 'Pourcentage' ? (detail.total || 0) : null) : null;
+  const pa = hebdo ? null : remu === 'Pourcentage' ? (pctAuJour && detail.total > 0 ? { ...pctAuJour, plein: detail.total } : null) : prorataAuJour(e, mois);
   _salCalc = { empId, mois, detail, prorataJour: pa && pa.total !== detail.total ? pa : null };
   document.getElementById('co-sal-mont').value = detail.total || '';
   zone.innerHTML = detailSalaireHtml(detail) + boiteProrataJour();
@@ -16566,10 +16708,15 @@ function detailSalaireHtml(d) {
     return resultat(d.semaine_debut ? `${t('hebdo.semaine')} ${libelleSemaine(d.semaine_debut)}` : `${d.nb_semaines} ${t('remu.semaines')} × ${fmtDH2(d.montant_semaine)}`);
   if (d.remuneration === 'Pourcentage') {
     if (!d.lignes.length) return boite(`<span style="color:var(--amber-text)">${t('remu.aucune_discipline')}</span>`);
-    return boite(`<table style="font-size:12px;margin-bottom:0"><thead><tr><th>${t('remu.discipline')}</th><th style="text-align:end">${t('remu.adherents')}</th><th style="text-align:end">${t('remu.ca_mois')}</th></tr></thead><tbody>
-      ${d.lignes.map(l => `<tr><td>${l.sport}</td><td style="text-align:end">${l.adherents}</td><td style="text-align:end">${fmtDH2(l.ca)}</td></tr>`).join('')}
-      <tr style="font-weight:700"><td>${t('stats.recap_total')}</td><td style="text-align:end">${d.adherents_total}</td><td style="text-align:end">${fmtDH2(d.ca_total)}</td></tr></tbody></table>`)
-      + resultat(`${fmtDH2(d.ca_total)} × ${d.pourcentage} %${d.prorata ? ` = ${fmtDH2(d.plein)} · ${libelleProrata(d.prorata)}` : ''}`);
+    // Changement d'entraîneur dans le mois : période encadrée et CA retenu
+    const partiel = d.lignes.some(l => l.jours && l.jours < l.jours_mois);
+    const per = l => !l.jours || l.jours >= l.jours_mois ? t('sc.mois_entier') : `${dateFr(l.debut).slice(0, 5)} → ${dateFr(l.fin).slice(0, 5)} (${l.jours}/${l.jours_mois} ${t('remu.jours')})`;
+    return boite(`<table style="font-size:12px;margin-bottom:0"><thead><tr><th>${t('remu.discipline')}</th><th style="text-align:end">${t('remu.adherents')}</th><th style="text-align:end">${t('remu.ca_mois')}</th>${partiel ? `<th>${t('sc.periode')}</th><th style="text-align:end">${t('sc.ca_retenu')}</th>` : ''}</tr></thead><tbody>
+      ${d.lignes.map(l => `<tr><td>${l.sport}</td><td style="text-align:end">${l.adherents}</td><td style="text-align:end">${fmtDH2(l.ca)}</td>${partiel ? `<td style="white-space:nowrap">${per(l)}</td><td style="text-align:end">${fmtDH2(l.ca_retenu ?? l.ca)}</td>` : ''}</tr>`).join('')}
+      <tr style="font-weight:700"><td>${t('stats.recap_total')}</td><td style="text-align:end">${d.adherents_total}</td><td style="text-align:end">${fmtDH2(partiel ? d.lignes.reduce((a, l) => a + l.ca, 0) : d.ca_total)}</td>${partiel ? `<td></td><td style="text-align:end">${fmtDH2(d.ca_total)}</td>` : ''}</tr></tbody></table>`)
+      + resultat(d.prorata?.ca != null
+        ? `${t('remu.prorata_jour')} (${t('remu.du')} ${dateFr(d.prorata.debut)} ${t('remu.au')} ${dateFr(d.prorata.fin)}) : ${t('sc.ca_retenu')} ${fmtDH2(d.prorata.ca)} × ${d.pourcentage} %`
+        : `${fmtDH2(d.ca_total)} × ${d.pourcentage} %${d.prorata ? ` = ${fmtDH2(d.plein)} · ${libelleProrata(d.prorata)}` : ''}`);
   }
   return resultat(d.prorata ? `${t('remu.mensuel_court')} ${fmtDH2(d.plein)} · ${libelleProrata(d.prorata)}` : t('remu.mensuel_court'));
 }
@@ -16626,11 +16773,17 @@ async function ouvrirRecuSalaire(id) {
   } else if (d.remuneration === 'Pourcentage') {
     entete([['Discipline', M + 4], ['Adhérents', 130, 'right'], ['CA du mois', W - M - 4, 'right']]);
     (d.lignes || []).forEach(l => ligne([[l.sport, M + 4], [l.adherents, 130, 'right'], [montantPdf(l.ca), W - M - 4, 'right']]));
+    const partielPdf = (d.lignes || []).some(l => l.jours && l.jours < l.jours_mois);
     doc.setFont('helvetica', 'bold');
-    ligne([['Total', M + 4], [d.adherents_total ?? '', 130, 'right'], [montantPdf(d.ca_total), W - M - 4, 'right']]);
+    ligne([['Total', M + 4], [d.adherents_total ?? '', 130, 'right'], [montantPdf(partielPdf ? (d.lignes || []).reduce((a, l) => a + l.ca, 0) : d.ca_total), W - M - 4, 'right']]);
     doc.setFont('helvetica', 'normal');
+    if (partielPdf) {
+      (d.lignes || []).filter(l => l.jours && l.jours < l.jours_mois).forEach(l =>
+        ligne([[`${l.sport} : encadré du ${dateFr(l.debut)} au ${dateFr(l.fin)} (${l.jours}/${l.jours_mois} jours)`, M + 4], [montantPdf(l.ca_retenu), W - M - 4, 'right']]));
+      ligne([['CA retenu (jours encadrés)', M + 4], [montantPdf(d.ca_total), W - M - 4, 'right']]);
+    }
     ligne([[`Pourcentage appliqué : ${montantPdf(d.ca_total)} × ${d.pourcentage} %`, M + 4], [montantPdf(d.prorata ? d.plein : d.total), W - M - 4, 'right']]);
-    if (d.prorata) ligne([[textePdfProrata(d.prorata), M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
+    if (d.prorata) ligne([[d.prorata.ca != null ? `Prorata à ce jour (du ${dateFr(d.prorata.debut)} au ${dateFr(d.prorata.fin)}) : CA retenu ${montantPdf(d.prorata.ca)} × ${d.pourcentage} %` : textePdfProrata(d.prorata), M + 4], [montantPdf(d.total), W - M - 4, 'right']]);
   } else if (d.remuneration === 'Semaine') {
     entete([['Désignation', M + 4], ['Semaines', 120, 'right'], ['Montant / semaine', 160, 'right'], ['Total', W - M - 4, 'right']]);
     ligne([[d.semaine_debut ? `Semaine travaillée du ${dateFr(d.semaine_debut).slice(0, 5)} au ${dateFr(d.semaine_fin || ajouterJours(d.semaine_debut, 6)).slice(0, 5)}` : `Semaines travaillées — ${moisLib}`, M + 4],
