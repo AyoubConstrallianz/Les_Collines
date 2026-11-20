@@ -1594,12 +1594,13 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
               <div style="font-weight:600;margin-bottom:6px" data-i18n="ac.h_titre">Horaires des séances (onglet Planning)</div>
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                 <span data-i18n="ac.h_entree">Entrée possible</span>
-                <input id="ac-h-avant" type="number" min="0" max="180" style="width:64px;padding:4px 6px">
+                <input id="ac-h-avant" type="number" min="0" max="180" style="width:64px;padding:4px 6px" oninput="exempleHorairesAcces()">
                 <span data-i18n="ac.h_avant">min avant le début, jusqu'à</span>
-                <input id="ac-h-fin" type="number" min="0" max="180" style="width:64px;padding:4px 6px">
+                <input id="ac-h-fin" type="number" min="0" max="180" style="width:64px;padding:4px 6px" oninput="exempleHorairesAcces()">
                 <span data-i18n="ac.h_fin">min avant la fin de la séance.</span>
                 <button class="btn btn-sm btn-p ac-ecrire" onclick="enregistrerHorairesAcces()" data-i18n="common.enregistrer">Enregistrer</button>
               </div>
+              <div id="ac-h-exemple" style="font-size:12px;margin-top:8px"></div>
               <p style="font-size:11px;color:var(--text3);margin-top:6px" data-i18n="ac.h_aide">Une discipline sans aucune séance dans le Planning est accessible toute la journée. Le personnel entre toujours. Les appareils doivent être en mode « contrôle de porte ».</p>
             </div>
           </div>
@@ -3390,6 +3391,10 @@ const I18N = {
     'ac.hors_ligne':     'Hors ligne depuis',
     'ac.personnes':      'personne(s)',
     'ac.visages':        'visage(s)',
+    'ac.h_exemple':      'Exemple : séance',
+    'ac.h_entree_de':    'entrée de',
+    'ac.h_a':            'à',
+    'ac.h_trop_tot':     "L'entrée se ferme avant le début de la séance : toute personne qui arrive à l'heure est refusée. Mettez un nombre plus petit dans la 2e case (0 = jusqu'à la fin de la séance).",
     'acv.voir':          'Voir la liste',
     'acv.avec':          'Avec visage',
     'acv.sans':          'Sans visage',
@@ -11939,12 +11944,14 @@ async function loadAcces() {
   _ac.visages = new Set((vis.data || []).filter(v => v.cle !== 'CARTE').map(v => v.pin));
   _ac.cartes = new Set((vis.data || []).filter(v => v.cle === 'CARTE').map(v => v.pin));
   _ac.attente = {}; (cmd.data || []).forEach(c => { _ac.attente[c.sn] = (_ac.attente[c.sn] || 0) + 1; });
+  _ac.planning = pla?.data || [];
   _ac.seances = {}; (pla?.data || []).forEach(p => { const k = cleSportAcces(p.sport); _ac.seances[k] = (_ac.seances[k] || 0) + 1; });
   const prm = {}; (par?.data || []).forEach(x => { prm[x.cle] = x.valeur; });
   _ac.horairesOk = !par?.error && 'acces_avant_min' in prm;
   document.getElementById('ac-h-avant').value = prm.acces_avant_min ?? 15;
   document.getElementById('ac-h-fin').value = prm.acces_fin_min ?? 30;
   ['ac-h-avant', 'ac-h-fin'].forEach(id => { document.getElementById(id).disabled = !PERMS.acces?.ecrire; });
+  exempleHorairesAcces();
   // Alertes : appareil sans porte, discipline sans porte
   const alertes = [];
   if (_ac.appareils.some(a => a.porte == null)) alertes.push(t('ac.al_appareil'));
@@ -12204,6 +12211,22 @@ async function changerPorteAppareil(sn, val) {
 }
 
 const cleSportAcces = n => String(n || '').trim().toLowerCase();
+
+// Exemple calculé sur une vraie séance du Planning : heures d'entrée possibles avec les délais saisis
+function exempleHorairesAcces() {
+  const el = document.getElementById('ac-h-exemple'); if (!el) return;
+  const avant = parseInt(document.getElementById('ac-h-avant').value, 10) || 0, fin = parseInt(document.getElementById('ac-h-fin').value, 10) || 0;
+  const pl = (_ac.planning || []).filter(x => x.heure_debut && x.heure_fin);
+  const s = pl.find(x => /rob/i.test(x.sport || '')) || pl[0];
+  if (!s) { el.innerHTML = ''; return; }
+  const m = h => { const [a, b] = String(h).split(':').map(Number); return a * 60 + (b || 0); };
+  const hm = v => `${String(Math.floor(((v % 1440) + 1440) % 1440 / 60)).padStart(2, '0')}:${String(((v % 60) + 60) % 60).padStart(2, '0')}`;
+  const d = m(s.heure_debut), f = m(s.heure_fin), ouv = d - avant, ferm = f - fin;
+  const lib = `${t('ac.h_exemple')} ${echapper(s.sport)} ${hm(d)} → ${hm(f)} : <strong>${t('ac.h_entree_de')} ${hm(ouv)} ${t('ac.h_a')} ${hm(ferm)}</strong>`;
+  el.innerHTML = ferm <= d
+    ? `<span style="color:var(--red)">⚠ ${lib}. ${t('ac.h_trop_tot')}</span>`
+    : `<span style="color:var(--text2)">${lib}</span>`;
+}
 
 async function enregistrerHorairesAcces() {
   const avant = parseInt(document.getElementById('ac-h-avant').value, 10), fin = parseInt(document.getElementById('ac-h-fin').value, 10);
