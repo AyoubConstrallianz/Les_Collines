@@ -4835,6 +4835,7 @@ const I18N = {
     'coaches.edit_title':'Modifier le salarié',
     'coaches.add_title': 'Nouveau salarié',
     'coaches.delete_confirm':'Supprimer ce salarié ? Son historique de paiements sera conservé.',
+    'users.email_sql55':"E-mail non affiché : exécutez le script SQL 55 dans Supabase",
     'so.supprime':'Fiche du salarié supprimée',
     'so.choisir':'— Rattacher au salarié… —',
     'so.confirm':'Rattacher ce paiement de %m (%p) à %s ?',
@@ -6322,6 +6323,7 @@ const I18N = {
     'coaches.edit_title':'تعديل الموظف',
     'coaches.add_title':'موظف جديد',
     'coaches.delete_confirm':'هل تريد حذف هذا الموظف؟ سيتم الاحتفاظ بسجل المدفوعات.',
+    'users.email_sql55':'البريد غير معروض : نفذ السكريبت 55 في Supabase',
     'so.supprime':'تم حذف ملف الموظف',
     'so.choisir':'— ربط بالموظف… —',
     'so.confirm':'ربط هذا الأداء %m (%p) بـ %s ؟',
@@ -15637,7 +15639,7 @@ async function loadUsers() {
   document.getElementById('users-tb').innerHTML = (data||[]).length
     ? (data||[]).map(u=>`<tr>
         <td><strong>${u.prenom} ${u.nom}</strong></td>
-        <td style="color:var(--text2)">${u.email||'—'}</td>
+        <td style="color:var(--text2)">${u.email ? echapper(u.email) : `<span style="color:var(--text3)" title="${echapper(t('users.email_sql55'))}">—</span>`}</td>
         <td><span class="badge r-${u.role}">${rl[u.role]||u.role}</span></td>
         <td><span class="badge ${u.actif?'b-g':'b-d'}">${u.actif?t('users.actif'):t('users.desactive')}</span></td>
         <td>${fmtLogin(u.last_login)}</td>
@@ -15698,7 +15700,10 @@ async function openUserModal(uid) {
     const { data: profil } = await sb.from('profils').select('*').eq('id',uid).single();
     document.getElementById('um-prenom').value = profil.prenom;
     document.getElementById('um-nom').value    = profil.nom;
-    document.getElementById('um-email').value  = '';  // email non modifiable par ici
+    // E-mail de connexion affiché (script 55), non modifiable ici
+    const champEmail = document.getElementById('um-email');
+    champEmail.value = profil.email || ''; champEmail.disabled = true;
+    champEmail.placeholder = profil.email ? '' : t('users.email_sql55');
     document.getElementById('um-role').value   = profil.role;
     document.getElementById('um-actif').value  = String(profil.actif);
     const { data: habs } = await sb.from('habilitations').select('*').eq('user_id',uid);
@@ -15707,6 +15712,8 @@ async function openUserModal(uid) {
     document.getElementById('perms-body').innerHTML = buildPermsBody(perms);
   } else {
     ['um-prenom','um-nom','um-email','um-pw'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('um-email').disabled = false;
+    document.getElementById('um-email').placeholder = 'email@example.com';
     document.getElementById('um-role').value  = 'employe';
     document.getElementById('um-actif').value = 'true';
     document.getElementById('perms-body').innerHTML = buildPermsBody(PERM_PRESETS.employe);
@@ -15784,6 +15791,8 @@ async function saveUser() {
       // Droits réenregistrés depuis l'application (tous les modules, erreurs affichées)
       const nouvelId = result.user?.id || result.user_id || result.id;
       if (nouvelId) { try { await saveHabilitations(nouvelId, role); } catch (e) { showToast(e.message, 'e'); } }
+      // E-mail gardé dans le profil pour la liste des utilisateurs (sans effet si le script 55 n'est pas exécuté)
+      if (nouvelId) { try { await sb.from('profils').update({ email }).eq('id', nouvelId); } catch (_) {} }
       await logAudit('CREATE','utilisateurs', email);
       showToast('Utilisateur créé avec succès','s');
 
