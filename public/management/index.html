@@ -2278,6 +2278,22 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
         </div>
       </div>
 
+      <div class="mo" id="acv-modal">
+        <div class="mo-box" style="max-width:640px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <div class="mo-title" style="margin-bottom:0" id="acv-titre"></div>
+            <button class="btn btn-sm" onclick="document.getElementById('acv-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <select id="acv-filtre" onchange="renderListeVisages()" style="width:auto">
+              <option value="avec" data-i18n="acv.avec">Avec visage</option><option value="sans" data-i18n="acv.sans">Sans visage</option><option value="" data-i18n="acv.tous">Toutes les personnes</option></select>
+            <input id="acv-q" placeholder="Rechercher…" oninput="renderListeVisages()" style="flex:1;min-width:160px">
+          </div>
+          <div style="overflow:auto;max-height:60vh"><table id="acv-table"></table></div>
+          <div class="mo-footer"><button class="btn" onclick="document.getElementById('acv-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button></div>
+        </div>
+      </div>
+
       <div class="mo" id="ld-modal">
         <div class="mo-box" style="max-width:440px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
@@ -3374,6 +3390,15 @@ const I18N = {
     'ac.hors_ligne':     'Hors ligne depuis',
     'ac.personnes':      'personne(s)',
     'ac.visages':        'visage(s)',
+    'acv.voir':          'Voir la liste',
+    'acv.avec':          'Avec visage',
+    'acv.sans':          'Sans visage',
+    'acv.tous':          'Toutes les personnes',
+    'acv.pin':           'N° (PIN)',
+    'acv.type':          'Type',
+    'acv.visage':        'Visage',
+    'acv.adherent':      'Adhérent',
+    'acv.personnel':     'Personnel',
     'ac.passages':       'passage(s)',
     'ac.a_enregistrer':  'À enregistrer',
     'ac.badge':          'Badge',
@@ -8346,7 +8371,7 @@ async function chargerAccesClients() {
   if (!PERMS.acces?.lire) return (_accesCli = null);
   const [vis, us, app] = await Promise.all([
     fetchAllRows(() => sb.from('acces_visages').select('pin,cle').order('pin')),
-    fetchAllRows(() => sb.from('acces_utilisateurs').select('sn,pin,pri').order('pin')),
+    fetchAllRows(() => sb.from('acces_utilisateurs').select('sn,pin,pri,nom').order('pin')),
     sb.from('acces_appareils').select('sn,porte')
   ]);
   if (vis.error || us.error || app.error) return (_accesCli = null);
@@ -11890,7 +11915,7 @@ async function loadAcces() {
     sb.from('acces_appareils').select('*').order('sn'),
     sb.from('sports').select('*').order('nom'),
     sb.from('employes').select('*').order('nom'),
-    fetchAllRows(() => sb.from('acces_utilisateurs').select('sn,pin,pri').order('pin')),
+    fetchAllRows(() => sb.from('acces_utilisateurs').select('sn,pin,pri,nom').order('pin')),
     fetchAllRows(() => sb.from('acces_visages').select('pin,cle').order('pin')),
     fetchAllRows(() => sb.from('acces_commandes').select('id,sn').is('termine_le', null).order('id')),
     sb.from('planning').select('sport,jour,heure_debut,heure_fin'),
@@ -11938,7 +11963,7 @@ function renderAppareilsAcces() {
       <td style="font-family:monospace;font-size:12px">${a.sn}</td>
       <td>${porte}</td>
       <td>${etatAppareil(a)}${a.ip ? `<div style="font-size:10px;color:var(--text3)">${a.ip}</div>` : ''}</td>
-      <td>${u.length} ${t('ac.personnes')} · ${nbVis} ${t('ac.visages')}</td>
+      <td>${u.length} ${t('ac.personnes')} · <a href="#" onclick="listeVisagesAppareil('${a.sn}');return false" title="${t('acv.voir')}" style="color:var(--accent,var(--blue-text));font-weight:700;text-decoration:underline">${nbVis} ${t('ac.visages')}</a></td>
       <td>${_ac.attente[a.sn] || 0}</td>
       <td class="ac-ecrire" style="${ecrire ? '' : 'display:none'}"><div style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="synchroAcces('${a.sn}', false)">${t('ac.synchro')}</button>
@@ -11946,6 +11971,39 @@ function renderAppareilsAcces() {
       </div></td>
     </tr>`;
   }).join('') || `<tr><td colspan="7" style="color:var(--text3)">—</td></tr>`;
+}
+
+// Liste des personnes d'un appareil : visage connu du site ou à enregistrer
+let _acv = { lignes: [] };
+async function listeVisagesAppareil(sn) {
+  const a = _ac.appareils.find(x => x.sn === sn); if (!a) return;
+  const u = _ac.users.filter(x => x.sn === sn && !x.pri);
+  // Noms : adhérent (N° adhérent = PIN) ou personnel (N° d'accès = PIN), sinon le nom enregistré sur l'appareil
+  const { data: cl } = await fetchAllRows(() => sb.from('clients').select('numero_adherent,prenom,nom,sports,sport,statut').not('numero_adherent', 'is', null).order('id'));
+  const parPin = {};
+  (cl || []).forEach(c => { parPin[String(c.numero_adherent)] = { nom: nomPersonne(c.prenom, c.nom), info: (c.sports || (c.sport ? [c.sport] : [])).join(', '), type: t('acv.adherent') }; });
+  _ac.employes.forEach(e => { if (e.numero_acces != null) parPin[String(e.numero_acces)] = { nom: nomPersonne(e.prenom, e.nom), info: e.poste || '', type: t('acv.personnel') }; });
+  _acv.lignes = u.map(x => ({ pin: x.pin, visage: _ac.visages.has(x.pin), ...(parPin[x.pin] || { nom: x.nom || '—', info: '', type: '' }) }))
+    .sort((p, q) => p.nom.localeCompare(q.nom, 'fr', { sensitivity: 'base' }));
+  _acv.sn = sn;
+  document.getElementById('acv-titre').textContent = `${a.nom || a.sn} — ${libellePorte(a.porte)}`;
+  document.getElementById('acv-filtre').value = 'avec';
+  document.getElementById('acv-q').value = '';
+  renderListeVisages();
+  document.getElementById('acv-modal').classList.add('open');
+}
+function renderListeVisages() {
+  const f = document.getElementById('acv-filtre').value, q = document.getElementById('acv-q').value.trim().toLowerCase();
+  const avec = _acv.lignes.filter(l => l.visage).length, sans = _acv.lignes.length - avec;
+  const sel = document.getElementById('acv-filtre');
+  sel.options[0].textContent = `${t('acv.avec')} (${avec})`; sel.options[1].textContent = `${t('acv.sans')} (${sans})`; sel.options[2].textContent = `${t('acv.tous')} (${_acv.lignes.length})`;
+  const liste = _acv.lignes.filter(l => (f === 'avec' ? l.visage : f === 'sans' ? !l.visage : true) && (!q || `${l.nom} ${l.pin} ${l.info}`.toLowerCase().includes(q)));
+  document.getElementById('acv-table').innerHTML = `<thead><tr><th>${t('acv.pin')}</th><th>${t('common.nom')}</th><th>${t('acv.type')}</th><th>${t('acv.visage')}</th></tr></thead><tbody>`
+    + (liste.length ? liste.map(l => `<tr><td style="font-family:monospace;font-weight:700">${echapper(l.pin)}</td>
+        <td><strong>${echapper(l.nom)}</strong>${l.info ? `<div style="font-size:11px;color:var(--text3)">${echapper(l.info)}</div>` : ''}</td>
+        <td style="font-size:12px">${echapper(l.type || '—')}</td>
+        <td>${l.visage ? '✅' : `<span style="color:var(--text3)">${t('ac.a_enregistrer')}</span>`}</td></tr>`).join('')
+      : `<tr class="empty-row"><td colspan="4">—</td></tr>`) + '</tbody>';
 }
 
 function renderSportsAcces() {
