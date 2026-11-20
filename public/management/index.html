@@ -2279,6 +2279,17 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
         </div>
       </div>
 
+      <div class="mo" id="acd-modal">
+        <div class="mo-box" style="max-width:620px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <div class="mo-title" style="margin-bottom:0" id="acd-titre"></div>
+            <button class="btn btn-sm" onclick="document.getElementById('acd-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+          </div>
+          <div id="acd-etapes" style="font-size:13px;line-height:1.55"></div>
+          <div class="mo-footer"><button class="btn" onclick="document.getElementById('acd-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button></div>
+        </div>
+      </div>
+
       <div class="mo" id="acv-modal">
         <div class="mo-box" style="max-width:640px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
@@ -3396,6 +3407,27 @@ const I18N = {
     'ac.h_a':            'à',
     'ac.h_trop_tot':     "L'entrée se ferme avant le début de la séance : toute personne qui arrive à l'heure est refusée. Mettez un nombre plus petit dans la 2e case (0 = jusqu'à la fin de la séance).",
     'acv.voir':          'Voir la liste',
+    'acd.pourquoi':      'Pourquoi ?',
+    'acd.titre':         'Pourquoi ce refus',
+    'acd.maintenant':    'Maintenant',
+    'acd.reglage':       'réglage enregistré',
+    'acd.pas_client':    "Ce N° n'est pas un adhérent (personnel ou inconnu).",
+    'acd.sans_discipline': "Aucune discipline sur la fiche du client.",
+    'acd.discipline':    'Discipline',
+    'acd.introuvable':   "introuvable dans Sports & Tarifs : aucune porte ne s'ouvre pour elle.",
+    'acd.ecrite_autrement': "écrite %s dans Sports & Tarifs (orthographe différente) : le site ne fait pas le lien. Corrigez la discipline sur la fiche du client.",
+    'acd.planning_autre_nom': "Planning : %n séance(s) écrite(s) %a au lieu de %b : le site ne les reconnaît pas. Corrigez le nom dans le Planning (Modifier la séance).",
+    'acd.sans_seance':   "Aucune séance %s au Planning : accès toute la journée.",
+    'acd.pas_aujourdhui': "Aucune séance %s le %j au Planning (séances enregistrées : %l) : porte fermée toute la journée pour cette discipline.",
+    'acd.seance':        'Séance',
+    'acd.trop_tot':      "trop tôt",
+    'acd.trop_tard':     "trop tard",
+    'acd.verdict_ok':    "Le site doit donner le droit d'ouvrir maintenant.",
+    'acd.verdict_non':   "Le site ne donne pas le droit d'ouvrir maintenant.",
+    'acd.droit_appareil': "Droit d'ouvrir envoyé à l'appareil",
+    'acd.absent':        "personne absente de cet appareil",
+    'acd.non':           'non',
+    'acd.attendre':      "Le droit doit partir vers l'appareil dans la minute (appareil en ligne). Sinon, cliquez « Synchroniser » sur la ligne de l'appareil.",
     'acv.avec':          'Avec visage',
     'acv.sans':          'Sans visage',
     'acv.tous':          'Toutes les personnes',
@@ -11925,7 +11957,7 @@ async function loadAcces() {
     sb.from('acces_appareils').select('*').order('sn'),
     sb.from('sports').select('*').order('nom'),
     sb.from('employes').select('*').order('nom'),
-    fetchAllRows(() => sb.from('acces_utilisateurs').select('sn,pin,pri,nom').order('pin')),
+    fetchAllRows(() => sb.from('acces_utilisateurs').select('*').order('pin')),
     fetchAllRows(() => sb.from('acces_visages').select('pin,cle').order('pin')),
     fetchAllRows(() => sb.from('acces_commandes').select('id,sn').is('termine_le', null).order('id')),
     sb.from('planning').select('sport,jour,heure_debut,heure_fin'),
@@ -11947,6 +11979,7 @@ async function loadAcces() {
   _ac.planning = pla?.data || [];
   _ac.seances = {}; (pla?.data || []).forEach(p => { const k = cleSportAcces(p.sport); _ac.seances[k] = (_ac.seances[k] || 0) + 1; });
   const prm = {}; (par?.data || []).forEach(x => { prm[x.cle] = x.valeur; });
+  _ac.prm = prm;
   _ac.horairesOk = !par?.error && 'acces_avant_min' in prm;
   document.getElementById('ac-h-avant').value = prm.acces_avant_min ?? 15;
   document.getElementById('ac-h-fin').value = prm.acces_fin_min ?? 30;
@@ -11983,6 +12016,62 @@ function renderAppareilsAcces() {
       </div></td>
     </tr>`;
   }).join('') || `<tr><td colspan="7" style="color:var(--text3)">—</td></tr>`;
+}
+
+// ── Diagnostic d'un refus : refait le calcul du site (fonction acces_ouverts, script 50) étape par étape ──
+async function diagnosticAcces(pin, porte, sn) {
+  const { data: c } = await sb.from('clients').select('*').eq('numero_adherent', parseInt(pin, 10)).maybeSingle();
+  const etapes = [];
+  const e = (etat, txt) => etapes.push(`<div style="padding:5px 0;border-bottom:1px solid var(--border)">${etat === true ? '✅' : etat === false ? '❌' : 'ℹ️'} ${txt}</div>`);
+  const q = x => `« <b>${echapper(String(x ?? ''))}</b> »`;
+  const norm = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const simple = x => String(x || '').trim().toLowerCase();   // comparaison faite par la base : lower(trim(…))
+  const min = h => { const [a, b] = String(h || '').split(':').map(Number); return a * 60 + (b || 0); };
+  const hm = v => `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
+  const maint = new Date(), minutes = maint.getHours() * 60 + maint.getMinutes();
+  const jourAuj = PLAN_JOURS[(maint.getDay() + 6) % 7];
+  const avant = parseInt(_ac.prm?.acces_avant_min ?? 15, 10), fin = parseInt(_ac.prm?.acces_fin_min ?? 30, 10);
+  document.getElementById('acd-titre').textContent = `${t('acd.titre')} — ${c ? nomPersonne(c.prenom, c.nom) : pin} (${t('ac.porte')} ${porte ?? '?'})`;
+  e(null, `${t('acd.maintenant')} : <b>${jourAuj} ${hm(minutes)}</b> · ${t('acd.reglage')} : ${t('ac.h_entree')} <b>${avant}</b> ${t('ac.h_avant')} <b>${fin}</b> ${t('ac.h_fin')}`);
+  let ouvert = false;
+  if (!c) e(null, t('acd.pas_client'));
+  else {
+    e(c.statut !== 'Suspendu', `${t('clients.statut')} : <b>${echapper(c.statut || '—')}</b>`);
+    const sportsC = c.sports || (c.sport ? [c.sport] : []);
+    if (!sportsC.length) e(false, t('acd.sans_discipline'));
+    sportsC.forEach(nomSport => {
+      const sp = _ac.sports.find(x => x.nom === nomSport || x.nom === c.sport && nomSport === c.sport);
+      if (!sp) {
+        const proche = _ac.sports.find(x => norm(x.nom) === norm(nomSport));
+        e(false, `${t('acd.discipline')} ${q(nomSport)} : ${proche ? t('acd.ecrite_autrement').replace('%s', q(proche.nom)) : t('acd.introuvable')}`);
+        return;
+      }
+      const surPorte = sp.porte === porte || sp.porte === 0;
+      e(surPorte, `${t('acd.discipline')} ${q(sp.nom)} : ${libellePorte(sp.porte)}`);
+      if (!surPorte) return;
+      const seances = (_ac.planning || []).filter(pl => simple(pl.sport) === simple(sp.nom));
+      const proches = (_ac.planning || []).filter(pl => simple(pl.sport) !== simple(sp.nom) && norm(pl.sport) === norm(sp.nom));
+      if (proches.length) e(false, t('acd.planning_autre_nom').replace('%n', proches.length).replace('%a', q(proches[0].sport)).replace('%b', q(sp.nom)));
+      if (!seances.length) { e(true, t('acd.sans_seance').replace('%s', q(sp.nom))); ouvert = true; return; }
+      const auj = seances.filter(pl => pl.jour === jourAuj);
+      if (!auj.length) {
+        const jours = [...new Set(seances.map(pl => pl.jour))].join(', ');
+        e(false, t('acd.pas_aujourdhui').replace('%s', q(sp.nom)).replace('%j', jourAuj).replace('%l', echapper(jours)));
+        return;
+      }
+      auj.forEach(pl => {
+        const d = min(pl.heure_debut), f = min(pl.heure_fin), o = d - avant, fe = f - fin, dedans = minutes >= o && minutes < fe;
+        if (dedans) ouvert = true;
+        e(dedans, `${t('acd.seance')} ${echapper(jourAuj)} ${hm(d)} → ${hm(f)} : ${t('ac.h_entree_de')} <b>${hm(o)} ${t('ac.h_a')} ${hm(fe)}</b>${dedans ? '' : ` — ${minutes < o ? t('acd.trop_tot') : t('acd.trop_tard')}`}`);
+      });
+    });
+  }
+  e(ouvert, `<b>${ouvert ? t('acd.verdict_ok') : t('acd.verdict_non')}</b>`);
+  const u = (_ac.users || []).find(x => x.sn === sn && x.pin === String(pin));
+  e(u ? u.autorise === true : false, `${t('acd.droit_appareil')} : <b>${!u ? t('acd.absent') : u.autorise ? t('acv.oui') : t('acd.non')}</b>`);
+  if (ouvert && u && !u.autorise) e(null, t('acd.attendre'));
+  document.getElementById('acd-etapes').innerHTML = etapes.join('');
+  document.getElementById('acd-modal').classList.add('open');
 }
 
 // Liste des personnes d'un appareil : visage connu du site ou à enregistrer
@@ -12293,7 +12382,8 @@ function renderEntreesAcces() {
     const type = (e.client_id ? `<span class="badge b-i">${t('ac.client')}</span>` : e.employe_id ? `<span class="badge b-g">${t('ac.salarie')}</span>` : `<span class="badge b-w">${t('ac.inconnu')}</span>`)
       + (refuse(e) ? ` <span class="badge b-d" title="code ${e.statut}">⛔ ${t('ac.refuse')}</span><div style="font-size:11px;color:var(--red-text,#dc2626);margin-top:2px">${raisonRefusAcces(e.statut)} <span style="color:var(--text3)">(code ${e.statut})</span></div>` : '');
     const nom = e.client_id ? `<a href="#" onclick="ouvrirFicheClient('${e.client_id}');return false">${e._nom}</a>` : (e._nom || '—');
-    return `<tr><td>${String(e.date_heure).slice(11, 16)}</td><td>${e.porte ?? '—'}</td><td style="font-family:monospace">${e.pin}</td><td>${nom}</td><td>${type}</td></tr>`;
+    const pourquoi = refuse(e) && e.client_id ? ` <button class="btn btn-sm" style="margin-top:4px" onclick="diagnosticAcces('${e.pin}', ${e.porte ?? 'null'}, '${e.sn}')">🔎 ${t('acd.pourquoi')}</button>` : '';
+    return `<tr><td>${String(e.date_heure).slice(11, 16)}</td><td>${e.porte ?? '—'}</td><td style="font-family:monospace">${e.pin}</td><td>${nom}</td><td>${type}${pourquoi}</td></tr>`;
   }).join('') || `<tr><td colspan="5" style="color:var(--text3)">${t('ac.aucune_entree')}</td></tr>`;
 }
 
