@@ -1711,7 +1711,8 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
         <div id="al-planning"></div>
         <div style="margin-bottom:14px"><button class="btn btn-p" id="pl-add-btn" onclick="basculerFormPlanning()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="planning.add">Ajouter une séance</span></button></div>
         <div class="card" id="pl-form-card" style="display:none">
-          <div class="ct" data-i18n="planning.add">Ajouter une séance</div>
+          <input type="hidden" id="pl-id">
+          <div class="ct" id="pl-form-titre" data-i18n="planning.add">Ajouter une séance</div>
           <div class="g3">
             <div class="fg"><label data-i18n="planning.sport">Sport</label><select id="pl-sport"></select></div>
             <div class="fg"><label data-i18n="planning.heure_debut">Heure début</label><input id="pl-deb" type="time" value="09:00"></div>
@@ -1729,7 +1730,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <div class="fg"><label data-i18n="planning.capacite">Capacité max</label><input id="pl-cap" type="number" placeholder="20"></div>
             <div class="fg"><label data-i18n="planning.coaches">Coach(es) assigné(s)</label><select id="pl-coach" multiple style="height:80px;font-size:12px"></select><span style="font-size:10px;color:var(--text3)" data-i18n="planning.coaches_hint">Ctrl+clic pour sélectionner plusieurs</span></div>
           </div>
-          <button class="btn btn-p" style="margin-top:8px" onclick="savePlanning()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="planning.add_btn">Ajouter la séance</span></button>
+          <button class="btn btn-p" style="margin-top:8px" onclick="savePlanning()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span id="pl-save-lib" data-i18n="planning.add_btn">Ajouter la séance</span></button>
           <button class="btn" style="margin-top:8px" onclick="basculerFormPlanning(false)" data-i18n="common.annuler">Annuler</button>
         </div>
         <div class="card" id="planning-card">
@@ -2427,6 +2428,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
           <div id="sm-detail"></div>
           <div class="mo-footer">
             <button class="btn" onclick="document.getElementById('seance-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button>
+            <button class="btn btn-p" id="sm-modif" data-i18n="common.modifier">Modifier</button>
             <button class="btn btn-d" id="sm-suppr" data-i18n="msg.suppr">Supprimer</button>
           </div>
         </div>
@@ -4937,6 +4939,9 @@ const I18N = {
     'planning.heure_debut':  'Heure début',
     'planning.heure_fin':    'Heure fin',
     'planning.capacite':     'Capacité max',
+    'planning.modifier_titre': 'Modifier la séance',
+    'planning.enregistrer_modif': 'Enregistrer les modifications',
+    'planning.modifiee':     'Séance modifiée',
     'planning.coaches':      'Coach(es) assigné(s)',
     'planning.coaches_hint': 'Ctrl+clic pour sélectionner plusieurs',
     'planning.add_btn':      'Ajouter la séance',
@@ -6456,6 +6461,9 @@ const I18N = {
     'planning.heure_debut':  'وقت البدء',
     'planning.heure_fin':    'وقت الانتهاء',
     'planning.capacite':     'السعة القصوى',
+    'planning.modifier_titre': 'تعديل الحصة',
+    'planning.enregistrer_modif': 'حفظ التعديلات',
+    'planning.modifiee':     'تم تعديل الحصة',
     'planning.coaches':      'المدرب(ون) المعينون',
     'planning.coaches_hint': 'Ctrl+نقر لتحديد عدة مدربين',
     'planning.add_btn':      'إضافة الحصة',
@@ -12361,6 +12369,9 @@ function ouvrirSeance(id) {
   const btn = document.getElementById('sm-suppr');
   btn.style.display = PERMS.planning?.supprimer ? '' : 'none';
   btn.onclick = () => delPlanning(p.id);
+  const bm = document.getElementById('sm-modif');
+  bm.style.display = PERMS.planning?.ecrire ? '' : 'none';
+  bm.onclick = () => modifierSeance(p.id);
   document.getElementById('seance-modal').classList.add('open');
 }
 
@@ -15092,6 +15103,22 @@ async function savePlanning() {
   };
   if (!jours.length) { showToast(t('planning.jour_requis'),'e'); return; }
   if (!base.heure_debut || !base.heure_fin || base.heure_fin <= base.heure_debut) { showToast(t('planning.heures_invalides'),'e'); return; }
+  const idModif = document.getElementById('pl-id').value;
+  if (idModif) {
+    // Modification : la séance garde un seul jour ; les autres jours cochés deviennent de nouvelles séances
+    const { error } = await sb.from('planning').update({ ...base, jour: jours[0] }).eq('id', idModif);
+    if (error) { showToast(error.message, 'e'); return; }
+    if (jours.length > 1) {
+      const { error: e2 } = await sb.from('planning').insert(jours.slice(1).map(jour => ({ ...base, jour })));
+      if (e2) { showToast(e2.message, 'e'); return; }
+    }
+    await logAudit('UPDATE', 'planning', `${base.sport} ${base.heure_debut}-${base.heure_fin} : ${jours.join(', ')}`);
+    showToast(t('planning.modifiee'), 's');
+    cocherJours([]);
+    basculerFormPlanning(false);
+    loadPlanning();
+    return;
+  }
   // Une séance par jour coché, même plage horaire
   const { error } = await sb.from('planning').insert(jours.map(jour => ({ ...base, jour })));
   if (error) { showToast(error.message,'e'); return; }
@@ -15102,9 +15129,34 @@ async function savePlanning() {
   loadPlanning();
 }
 
+// Ouvre le formulaire rempli avec la séance choisie
+function modifierSeance(id) {
+  const p = _plan.rows.find(r => r.id === id); if (!p) return;
+  document.getElementById('seance-modal').classList.remove('open');
+  document.getElementById('pl-id').value = p.id;
+  const selS = document.getElementById('pl-sport');
+  if (![...selS.options].some(o => o.value === p.sport)) selS.insertAdjacentHTML('beforeend', `<option value="${echapper(p.sport)}">${echapper(p.sport)}</option>`);
+  selS.value = p.sport;
+  document.getElementById('pl-deb').value = String(p.heure_debut || '').slice(0, 5);
+  document.getElementById('pl-fin').value = String(p.heure_fin || '').slice(0, 5);
+  document.getElementById('pl-cap').value = p.capacite || '';
+  const ids = (p.coaches_ids && p.coaches_ids.length ? p.coaches_ids : String(p.coach || '').split(',')).map(String);
+  [...(document.getElementById('pl-coach')?.options || [])].forEach(o => { o.selected = ids.includes(o.value); });
+  document.querySelectorAll('#pl-jours input').forEach(cb => { cb.checked = cb.value === p.jour; });
+  document.getElementById('pl-form-titre').textContent = t('planning.modifier_titre');
+  document.getElementById('pl-save-lib').textContent = t('planning.enregistrer_modif');
+  basculerFormPlanning(true);
+}
+
 function basculerFormPlanning(ouvrir) {
   const c = document.getElementById('pl-form-card');
   const o = typeof ouvrir === 'boolean' ? ouvrir : c.style.display === 'none';
+  if (!o || (o && c.style.display === 'none' && !document.getElementById('pl-id').value)) {
+    // Fermeture (ou nouvelle séance) : retour au mode « Ajouter »
+    if (!o) document.getElementById('pl-id').value = '';
+    document.getElementById('pl-form-titre').textContent = t('planning.add');
+    document.getElementById('pl-save-lib').textContent = t('planning.add_btn');
+  }
   c.style.display = o ? '' : 'none';
   document.getElementById('pl-add-btn').style.display = o ? 'none' : '';
   if (o) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
