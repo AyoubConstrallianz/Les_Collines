@@ -2290,7 +2290,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <input id="acv-q" placeholder="Rechercher…" oninput="renderListeVisages()" style="flex:1;min-width:160px">
           </div>
           <div style="overflow:auto;max-height:60vh"><table id="acv-table"></table></div>
-          <div class="mo-footer"><button class="btn" onclick="document.getElementById('acv-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button></div>
+          <div class="mo-footer"><span id="acv-info" style="font-size:12px;color:var(--green-text);margin-inline-end:auto"></span><button class="btn" onclick="copierListeAppareil()" data-i18n="acv.copier">📋 Copier la liste</button><button class="btn" onclick="document.getElementById('acv-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button></div>
         </div>
       </div>
 
@@ -3399,6 +3399,11 @@ const I18N = {
     'acv.visage':        'Visage',
     'acv.adherent':      'Adhérent',
     'acv.personnel':     'Personnel',
+    'acv.copier':        '📋 Copier la liste',
+    'acv.copie_ok':      '%n ligne(s) copiée(s) : collez dans Excel (Ctrl+V)',
+    'acv.info':          'Discipline / poste',
+    'acv.oui':           'Oui',
+    'acv.non':           'À enregistrer',
     'ac.passages':       'passage(s)',
     'ac.a_enregistrer':  'À enregistrer',
     'ac.badge':          'Badge',
@@ -11963,7 +11968,7 @@ function renderAppareilsAcces() {
       <td style="font-family:monospace;font-size:12px">${a.sn}</td>
       <td>${porte}</td>
       <td>${etatAppareil(a)}${a.ip ? `<div style="font-size:10px;color:var(--text3)">${a.ip}</div>` : ''}</td>
-      <td>${u.length} ${t('ac.personnes')} · <a href="#" onclick="listeVisagesAppareil('${a.sn}');return false" title="${t('acv.voir')}" style="color:var(--accent,var(--blue-text));font-weight:700;text-decoration:underline">${nbVis} ${t('ac.visages')}</a></td>
+      <td><a href="#" onclick="listeVisagesAppareil('${a.sn}', '');return false" title="${t('acv.voir')}" style="color:var(--accent,var(--blue-text));font-weight:700;text-decoration:underline">${u.length} ${t('ac.personnes')}</a> · <a href="#" onclick="listeVisagesAppareil('${a.sn}');return false" title="${t('acv.voir')}" style="color:var(--accent,var(--blue-text));font-weight:700;text-decoration:underline">${nbVis} ${t('ac.visages')}</a></td>
       <td>${_ac.attente[a.sn] || 0}</td>
       <td class="ac-ecrire" style="${ecrire ? '' : 'display:none'}"><div style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="synchroAcces('${a.sn}', false)">${t('ac.synchro')}</button>
@@ -11975,7 +11980,7 @@ function renderAppareilsAcces() {
 
 // Liste des personnes d'un appareil : visage connu du site ou à enregistrer
 let _acv = { lignes: [] };
-async function listeVisagesAppareil(sn) {
+async function listeVisagesAppareil(sn, filtre = 'avec') {
   const a = _ac.appareils.find(x => x.sn === sn); if (!a) return;
   const u = _ac.users.filter(x => x.sn === sn && !x.pri);
   // Noms : adhérent (N° adhérent = PIN) ou personnel (N° d'accès = PIN), sinon le nom enregistré sur l'appareil
@@ -11987,12 +11992,23 @@ async function listeVisagesAppareil(sn) {
     .sort((p, q) => p.nom.localeCompare(q.nom, 'fr', { sensitivity: 'base' }));
   _acv.sn = sn;
   document.getElementById('acv-titre').textContent = `${a.nom || a.sn} — ${libellePorte(a.porte)}`;
-  document.getElementById('acv-filtre').value = 'avec';
+  document.getElementById('acv-filtre').value = filtre;
   document.getElementById('acv-q').value = '';
   renderListeVisages();
   document.getElementById('acv-modal').classList.add('open');
 }
+// Copie la liste affichée (N°, nom, discipline / poste, type, visage) : à coller dans Excel ou un message
+async function copierListeAppareil() {
+  const f = document.getElementById('acv-filtre').value, q = document.getElementById('acv-q').value.trim().toLowerCase();
+  const liste = _acv.lignes.filter(l => (f === 'avec' ? l.visage : f === 'sans' ? !l.visage : true) && (!q || `${l.nom} ${l.pin} ${l.info}`.toLowerCase().includes(q)));
+  const texte = [[t('acv.pin'), t('common.nom'), t('acv.info'), t('acv.type'), t('acv.visage')].join('\t'),
+    ...liste.map(l => [l.pin, l.nom, l.info, l.type, l.visage ? t('acv.oui') : t('acv.non')].join('\t'))].join('\n');
+  try { await navigator.clipboard.writeText(texte); }
+  catch (_) { const ta = document.createElement('textarea'); ta.value = texte; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  document.getElementById('acv-info').textContent = '✓ ' + t('acv.copie_ok').replace('%n', liste.length);
+}
 function renderListeVisages() {
+  const info = document.getElementById('acv-info'); if (info) info.textContent = '';
   const f = document.getElementById('acv-filtre').value, q = document.getElementById('acv-q').value.trim().toLowerCase();
   const avec = _acv.lignes.filter(l => l.visage).length, sans = _acv.lignes.length - avec;
   const sel = document.getElementById('acv-filtre');
