@@ -1122,7 +1122,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
           <div class="sc"><div class="sc-label" data-i18n="fin.depenses_col">Dépenses</div><div class="sc-val" id="db-cm" style="color:var(--red-text)">—</div><div class="sc-sub" data-i18n="fin.depenses_sub">Charges + salaires</div></div>
           <div class="sc"><div class="sc-label" data-i18n="fin.solde_tous">Solde (tous modes)</div><div class="sc-val" id="db-sol">—</div><div class="sc-sub" data-i18n="fin.solde_sub">Recettes − dépenses</div></div>
           <div class="sc" style="cursor:pointer;border:1px solid var(--blue)" onclick="openRapportJour()" title="Voir le rapport journalier"><div class="sc-label" data-i18n="db.solde_jour">Solde du jour</div><div class="sc-val" id="db-sj">—</div><div class="sc-sub" id="db-sj-sub"></div></div>
-          <div class="sc" style="border:1px solid var(--green);"><div class="sc-label" data-i18n="vs.caisse_reelle">Caisse réelle (espèces)</div><div class="sc-val" id="db-caisse">—</div><div class="sc-sub" id="db-caisse-sub"></div></div>
+          <div class="sc" style="border:1px solid var(--green);"><div class="sc-label" data-i18n="fin.caisse_tous">Caisse réelle (tous modes)</div><div class="sc-val" id="db-caisse">—</div><div class="sc-sub" id="db-caisse-sub"></div></div>
         </div>
 
         <!-- Recettes et dépenses de tous les mois -->
@@ -3654,16 +3654,19 @@ const I18N = {
     "db.sj_sorties": "Sorties",
     "db.sj_detail": "Cliquez pour le détail",
     "fin.titre_mois": "Recettes et dépenses par mois",
-    "fin.note": "Tous les mois, y compris les paiements d'avance datés des mois à venir. Cliquez sur un mois pour voir son détail. Caisse réelle = espèces encaissées − charges, salaires et versements aux associés payés en espèces (+ capital), comme sur la page Associés.",
+    "fin.note": "Tous les mois, y compris les paiements d'avance datés des mois à venir. Cliquez sur un mois pour voir son détail. Caisse réelle = tous les encaissements (espèces, virements, chèques) + boutique − charges, salaires et versements / avances des associés (+ capital).",
     "fin.periode": "Période",
-    "fin.esp_mois": "Mouvement espèces du mois",
+    "fin.esp_mois": "Mouvement de caisse du mois (tous modes)",
     "fin.caisse_fin": "Caisse à la fin du mois",
-    "fin.caisse_sub": "Tout l'argent en espèces à ce jour, paiements d'avance compris",
+    "fin.caisse_tous": "Caisse réelle (tous modes)",
+    "fin.capital_court": "Capital des associés",
+    "fin.associes_court": "Versements / avances associés",
+    "fin.caisse_sub": "Tous les encaissements (espèces, virements, chèques) et la boutique, moins les charges, les salaires et les versements / avances des associés. Paiements d'avance compris.",
     "fin.voir_detail": "Voir le détail de ce mois",
     "fin.a_venir": "à venir",
     "fin.recettes": "Recettes",
     "fin.depenses_col": "Dépenses",
-    "fin.esp_col": "Espèces du mois",
+    "fin.esp_col": "Caisse du mois",
     "fin.total": "Total",
     "fin.capital": "Caisse réelle : capital apporté par les associés compris",
     "fin.t_abo": "Abonnements",
@@ -3674,8 +3677,8 @@ const I18N = {
     "fin.par_type": "Par type",
     "fin.par_mode": "Par mode de paiement",
     "fin.par_cat": "Par catégorie",
-    "fin.esp_detail": "Espèces encaissées",
-    "fin.esp_sorties": "dépenses en espèces",
+    "fin.esp_detail": "Encaissé (tous modes)",
+    "fin.esp_sorties": "dépenses",
     "relance.btn": "🖨️ Liste",
     "relance.vide": "La liste est vide",
     "paie.note_ph": "Commentaire sur le paiement (facultatif)",
@@ -5213,16 +5216,19 @@ const I18N = {
     "db.sj_sorties": "المصاريف",
     "db.sj_detail": "اضغط لرؤية التفاصيل",
     "fin.titre_mois": "الإيرادات والمصاريف حسب الشهر",
-    "fin.note": "كل الأشهر، بما فيها الأداءات المسبقة المؤرخة في الأشهر القادمة. انقر على شهر لرؤية تفاصيله. الصندوق الفعلي = النقد المحصل − التكاليف والأجور والدفعات للشركاء المؤداة نقداً (+ رأس المال)، كما في صفحة الشركاء.",
+    "fin.note": "كل الأشهر، بما فيها الأداءات المسبقة المؤرخة في الأشهر القادمة. انقر على شهر لرؤية تفاصيله. الصندوق الفعلي = كل المداخيل (نقداً، تحويلات، شيكات) + المتجر − التكاليف والأجور ودفعات / تسبيقات الشركاء (+ رأس المال).",
     "fin.periode": "الفترة",
-    "fin.esp_mois": "حركة النقد خلال الشهر",
+    "fin.esp_mois": "حركة الصندوق خلال الشهر (كل الطرق)",
     "fin.caisse_fin": "الصندوق في نهاية الشهر",
-    "fin.caisse_sub": "كل النقد إلى اليوم، بما فيه الأداءات المسبقة",
+    "fin.caisse_tous": "الصندوق الفعلي (كل الطرق)",
+    "fin.capital_court": "رأس مال الشركاء",
+    "fin.associes_court": "دفعات / تسبيقات الشركاء",
+    "fin.caisse_sub": "كل المداخيل (نقداً، تحويلات، شيكات) والمتجر، ناقص التكاليف والأجور ودفعات / تسبيقات الشركاء. بما فيها الأداءات المسبقة.",
     "fin.voir_detail": "عرض تفاصيل هذا الشهر",
     "fin.a_venir": "قادم",
     "fin.recettes": "الإيرادات",
     "fin.depenses_col": "المصاريف",
-    "fin.esp_col": "نقد الشهر",
+    "fin.esp_col": "صندوق الشهر",
     "fin.total": "المجموع",
     "fin.capital": "الصندوق الفعلي : يشمل رأس المال الذي قدمه الشركاء",
     "fin.t_abo": "الاشتراكات",
@@ -5233,8 +5239,8 @@ const I18N = {
     "fin.par_type": "حسب النوع",
     "fin.par_mode": "حسب طريقة الأداء",
     "fin.par_cat": "حسب الفئة",
-    "fin.esp_detail": "النقد المحصل",
-    "fin.esp_sorties": "المصاريف نقداً",
+    "fin.esp_detail": "المحصل (كل الطرق)",
+    "fin.esp_sorties": "المصاريف",
     "relance.btn": "🖨️ قائمة",
     "relance.vide": "القائمة فارغة",
     "paie.note_ph": "تعليق على الأداء (اختياري)",
@@ -6650,7 +6656,7 @@ function applyLang() {
   if (cemoisBtn) cemoisBtn.textContent = t('db.cemois');
 
   [{id:'db-nc',k:'db.clients_actifs'},{id:'db-rm',k:'fin.recettes'},
-   {id:'db-cm',k:'fin.depenses_col'},{id:'db-sol',k:'fin.solde_tous'},{id:'db-caisse',k:'vs.caisse_reelle'},
+   {id:'db-cm',k:'fin.depenses_col'},{id:'db-sol',k:'fin.solde_tous'},{id:'db-caisse',k:'fin.caisse_tous'},
    {id:'db-rec-annee',k:'db.rec_annee'},{id:'db-sal-mois',k:'db.salaires_mois'}
   ].forEach(({id,k})=>{
     const sc=document.getElementById(id)?.closest('.sc');
@@ -15040,12 +15046,13 @@ async function loadStats() {
 let _fin = null;
 
 async function loadFinances() {
-  const [rp0, rc0, rs, rv, ra] = await Promise.all([
+  const [rp0, rc0, rs, rv, ra, rb] = await Promise.all([
     fetchAllRows(() => sb.from('paiements').select('id,montant,date_paiement,type,mode,reste_de').order('id')),
     fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie,mode').order('id')),
     fetchAllRows(() => sb.from('salaires_paie').select('montant,mois,mode').order('id')),
-    fetchAllRows(() => sb.from('versements_associes').select('montant,date_versement,mode,nature').eq('activite', 'club').order('id')),
-    sb.from('associes').select('capital,actif')
+    fetchAllRows(() => sb.from('versements_associes').select('montant,date_versement,mode,nature,activite').order('id')),
+    sb.from('associes').select('capital,actif'),
+    fetchAllRows(() => sb.from('ventes').select('quantite,prix_vente,date_vente').order('id'))
   ]);
   // Script 36 non exécuté (pas de mode sur les charges) : toutes les charges comptées en espèces
   const rc = rc0.error ? await fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie').order('id')) : rc0;
@@ -15054,7 +15061,9 @@ async function loadFinances() {
   const typeOrig = {}; (rp.data || []).forEach(x => { typeOrig[x.id] = x.type; });
   const esp = m => !m || !/^(virement|ch[eè]que)$/i.test(String(m).trim());   // même règle que la caisse de la page Associés
   const M = {};
-  const mois = m => M[m] ??= { recettes: 0, depenses: 0, espIn: 0, espOut: 0, verse: 0, types: {}, modesR: {}, cats: {}, modesD: {} };
+  const mois = m => M[m] ??= { recettes: 0, depenses: 0, boutique: 0, verse: 0, types: {}, modesR: {}, cats: {}, modesD: {} };
+  // Totaux de la caisse réelle (tous modes) pour le détail de la carte
+  const T = { modes: {}, boutique: 0, depenses: 0, verse: 0 };
   const add = (o, k, v) => { o[k] = (o[k] || 0) + v; };
   (rp.data || []).forEach(x => {
     const m = String(x.date_paiement || '').slice(0, 7); if (!m) return;
@@ -15063,28 +15072,37 @@ async function loadFinances() {
     const ty = x.type === 'Complément' && typeOrig[x.reste_de] ? typeOrig[x.reste_de] : x.type;   // reste payé = type de la ligne d'origine
     add(o.types, DUREE_ABONNEMENT[ty] ? 'abo' : ty === 'Inscription' ? 'inscr' : ty === 'Assurance' ? 'assur' : 'autre', v);
     add(o.modesR, x.mode || 'Espèces', v);
-    if (x.mode === 'Espèces') o.espIn += v;
+    add(T.modes, x.mode || 'Espèces', v);
   });
   (rc.data || []).forEach(x => {
     const m = String(x.date_charge || '').slice(0, 7); if (!m) return;
     const o = mois(m), v = parseFloat(x.montant) || 0;
     o.depenses += v; add(o.cats, x.categorie || 'Autre', v); add(o.modesD, esp(x.mode) ? 'Espèces' : x.mode, v);
-    if (esp(x.mode)) o.espOut += v;
+    T.depenses += v;
   });
   (rs.data || []).forEach(x => {
     if (!x.mois) return;
     const o = mois(x.mois), v = parseFloat(x.montant) || 0;
     o.depenses += v; add(o.cats, 'Salaires', v); add(o.modesD, esp(x.mode) ? 'Espèces' : x.mode, v);
-    if (esp(x.mode)) o.espOut += v;
+    T.depenses += v;
   });
-  (rv.error ? [] : rv.data || []).filter(x => esp(x.mode)).forEach(x => {
-    const m = String(x.date_versement || '').slice(0, 7); if (m) mois(m).verse += mV(x);
+  // Versements, bénéfices et avances des associés (club et boutique, tous modes) : sortent de la caisse
+  (rv.error ? [] : rv.data || []).forEach(x => {
+    const m = String(x.date_versement || '').slice(0, 7); if (!m) return;
+    const v = mV(x); mois(m).verse += v; T.verse += v;
+  });
+  // Boutique : ventes (un retour est négatif)
+  (rb.error ? [] : rb.data || []).forEach(x => {
+    const m = String(x.date_vente || '').slice(0, 7); if (!m) return;
+    const v = (parseInt(x.quantite, 10) || 1) * (parseFloat(x.prix_vente) || 0);
+    mois(m).boutique += v; T.boutique += v;
   });
   const capital = (ra.data || []).filter(a => a.actif !== false).reduce((s, a) => s + (parseFloat(a.capital) || 0), 0);
   // Caisse espèces à la fin de chaque mois (du plus ancien au plus récent, mois à venir compris)
   let caisse = capital;
-  Object.keys(M).sort().forEach(m => { const o = M[m]; o.esp = o.espIn - o.espOut - o.verse; caisse += o.esp; o.caisseFin = Math.round(caisse * 100) / 100; });
-  _fin = { M, capital, caisse: Math.round(caisse * 100) / 100 };
+  // Mouvement du mois = encaissements (tous modes) + boutique − charges et salaires (tous modes) − versements associés
+  Object.keys(M).sort().forEach(m => { const o = M[m]; o.esp = o.recettes + o.boutique - o.depenses - o.verse; caisse += o.esp; o.caisseFin = Math.round(caisse * 100) / 100; });
+  _fin = { M, capital, T, caisse: Math.round(caisse * 100) / 100 };
 
   remplirMoisDashboard();
   renderFinances();
@@ -15135,7 +15153,14 @@ function renderFinances() {
     sub.innerHTML = `${t('fin.esp_mois')}<br>${t('fin.caisse_fin')} : <strong style="${cl(o.caisseFin)}">${fmt(o.caisseFin)}</strong>`;
   } else {
     ca.textContent = fmt(_fin.caisse); ca.style.cssText = cl(_fin.caisse);
-    sub.textContent = t('fin.caisse_sub');
+    const T = _fin.T || { modes: {}, boutique: 0, depenses: 0, verse: 0 };
+    const MODES = { 'Espèces': t('paie.m_especes'), 'Virement': t('paie.m_virement'), 'Chèque': t('paie.m_cheque') };
+    const l = (lib, v, signe = '+') => v ? `<div style="display:flex;justify-content:space-between;gap:8px"><span>${signe} ${echapper(lib)}</span><b style="white-space:nowrap">${fmt(Math.abs(v))}</b></div>` : '';
+    sub.innerHTML = `<div style="margin-top:4px;line-height:1.6">`
+      + Object.entries(T.modes).sort((a, b) => b[1] - a[1]).map(([k, v]) => l(MODES[k] || k, v)).join('')
+      + l(t('rj.boutique'), T.boutique) + l(t('fin.capital_court'), _fin.capital)
+      + l(t('fin.depenses_col'), T.depenses, '−') + l(t('fin.associes_court'), T.verse, '−')
+      + `</div><div style="margin-top:4px">${t('fin.caisse_sub')}</div>`;
   }
 
   // Tableau : un mois par ligne (les plus récents en haut), cliquable
@@ -15180,8 +15205,9 @@ function renderFinances() {
       <div><div style="display:flex;justify-content:space-between;font-weight:800"><span>${t('fin.depenses_col')}</span><span style="color:var(--red)">${fmt(o.depenses)}</span></div>
         ${bloc(t('fin.par_cat'), o.cats, {}, 'var(--red)')}${bloc(t('fin.par_mode'), o.modesD, MODES, 'var(--red)')}</div>
     </div>
-    ${!voirCaisse ? '' : `<div style="margin-top:10px;font-size:12px;color:var(--text2)">${t('fin.esp_detail')} <strong style="color:var(--green-text)">${fmt(o.espIn)}</strong>
-      − ${t('fin.esp_sorties')} <strong>${fmt(o.espOut)}</strong> − ${t('vs.det_verses')} <strong>${fmt(o.verse)}</strong>
+    ${!voirCaisse ? '' : `<div style="margin-top:10px;font-size:12px;color:var(--text2)">${t('fin.esp_detail')} <strong style="color:var(--green-text)">${fmt(o.recettes)}</strong>
+      + ${t('rj.boutique')} <strong style="color:var(--green-text)">${fmt(o.boutique)}</strong>
+      − ${t('fin.esp_sorties')} <strong>${fmt(o.depenses)}</strong> − ${t('fin.associes_court')} <strong>${fmt(o.verse)}</strong>
       = <strong style="${cl(o.esp)}">${fmt(o.esp)}</strong> · ${t('fin.caisse_fin')} : <strong style="${cl(o.caisseFin)}">${fmt(o.caisseFin)}</strong></div>`}
   </div>`;
 }
