@@ -2973,7 +2973,15 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
         <tbody id="perms-body"></tbody>
       </table>
     </div>
-    <div class="fg" style="margin-top:12px"><label data-i18n="common.statut">Statut</label><select id="um-actif"><option value="true" data-i18n="users.actif">Actif</option><option value="false" data-i18n="users.desactive">Désactivé</option></select></div>
+    <div class="fr" style="margin-top:12px">
+      <div class="fg"><label data-i18n="common.statut">Statut</label><select id="um-actif"><option value="true" data-i18n="users.actif">Actif</option><option value="false" data-i18n="users.desactive">Désactivé</option></select></div>
+      <div class="fg"><label data-i18n="fs.label">Fin de session (inactivité)</label><select id="um-inactivite">
+        <option value="" data-i18n="fs.defaut">Par défaut (10 min ; jamais pour le super admin)</option>
+        <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option>
+        <option value="60">1 h</option><option value="120">2 h</option><option value="240">4 h</option><option value="480">8 h</option><option value="720">12 h</option>
+        <option value="0" data-i18n="fs.jamais_opt">Jamais (reste connecté)</option></select>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px" data-i18n="fs.aide">Déconnexion automatique après ce temps sans utiliser l'application. Appliqué à la prochaine ouverture de l'application par cet utilisateur.</div></div>
+    </div>
     <div id="al-user-modal" style="margin-top:10px"></div>
     <div class="mo-footer">
       <button class="btn" onclick="closeUserModal()" data-i18n="common.annuler">Annuler</button>
@@ -3791,7 +3799,13 @@ const I18N = {
     "err.reseau": "Connexion à la base de données impossible depuis ce réseau",
     "inact.avert": "Aucune activité : déconnexion automatique dans %s s",
     "inact.rester": "Rester connecté",
-    "inact.deconnecte": "Vous avez été déconnecté après 10 minutes d’inactivité. Reconnectez-vous.",
+    "inact.deconnecte": "Vous avez été déconnecté après %s d’inactivité. Reconnectez-vous.",
+    "fs.label": "Fin de session (inactivité)",
+    "fs.defaut": "Par défaut (10 min ; jamais pour le super admin)",
+    "fs.jamais": "jamais",
+    "fs.jamais_opt": "Jamais (reste connecté)",
+    "fs.aide": "Déconnexion automatique après ce temps sans utiliser l'application. Appliqué à la prochaine ouverture de l'application par cet utilisateur.",
+    "fs.sql_56": "Durée de fin de session non enregistrée : exécutez le script SQL 56 dans Supabase.",
     "nt.titre": "Notifications",
     "nt.tout_vu": "Tout marquer comme vu",
     "nt.connexions": "Connexions (7 derniers jours)",
@@ -5335,7 +5349,13 @@ const I18N = {
     "err.reseau": "تعذر الاتصال بقاعدة البيانات من هذه الشبكة",
     "inact.avert": "لا يوجد نشاط : سيتم تسجيل الخروج تلقائياً بعد %s ثانية",
     "inact.rester": "البقاء متصلاً",
-    "inact.deconnecte": "تم تسجيل خروجك بعد 10 دقائق من عدم النشاط. يرجى تسجيل الدخول من جديد.",
+    "inact.deconnecte": "تم تسجيل خروجك بعد %s من عدم النشاط. يرجى تسجيل الدخول من جديد.",
+    "fs.label": "نهاية الجلسة (عدم النشاط)",
+    "fs.defaut": "افتراضي (10 دقائق ؛ أبدا للمشرف العام)",
+    "fs.jamais": "أبدا",
+    "fs.jamais_opt": "أبدا (يبقى متصلا)",
+    "fs.aide": "تسجيل الخروج التلقائي بعد هذه المدة دون استعمال التطبيق. يطبق عند الفتح القادم للتطبيق من طرف هذا المستخدم.",
+    "fs.sql_56": "لم يتم حفظ مدة نهاية الجلسة : نفذ السكريبت 56 في Supabase.",
     "nt.titre": "الإشعارات",
     "nt.tout_vu": "تعليم الكل كمقروء",
     "nt.connexions": "تسجيلات الدخول (آخر 7 أيام)",
@@ -6884,10 +6904,25 @@ document.addEventListener('DOMContentLoaded', () => {
   if (LANG === 'ar') applyLang();
 });
 
-// ── Déconnexion automatique après 10 minutes d'inactivité ─────────────────
-// Activité = souris, clavier, toucher, défilement. Avertissement 1 minute avant. Le super admin reste connecté.
+// ── Déconnexion automatique après inactivité (durée réglable par utilisateur, script 56) ──
+// Activité = souris, clavier, toucher, défilement. Avertissement 1 minute avant.
+// profils.inactivite_minutes : vide = 10 minutes (jamais pour le super admin) · 0 = jamais · n = n minutes.
 // Dernière activité partagée entre les onglets (stockage local) ; mémoire seule si le stockage est bloqué.
-const INACTIVITE_MAX = 10 * 60 * 1000, INACTIVITE_AVERTIR = 60 * 1000;
+const INACTIVITE_DEFAUT = 10 * 60 * 1000, INACTIVITE_AVERTIR = 60 * 1000;
+function delaiInactivite(p) {
+  if (!p) return Infinity;
+  const v = p.inactivite_minutes;
+  if (v === 0 || v === '0') return Infinity;
+  if (parseInt(v, 10) > 0) return parseInt(v, 10) * 60000;
+  return p.role === 'super_admin' ? Infinity : INACTIVITE_DEFAUT;
+}
+// Libellé d'une durée en minutes : « 10 min », « 2 h », « 1 h 30 »
+function libelleDuree(min) {
+  if (!(min > 0)) return t('fs.jamais');
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} h${min % 60 ? ' ' + String(min % 60).padStart(2, '0') : ''}`;
+}
+function messageDeconnexion(ms) { return t('inact.deconnecte').replace('%s', libelleDuree(Math.round(ms / 60000))); }
 let _inact = { dernier: Date.now() };
 function derniereActivite() {
   const s = parseInt(stockage.get('derniere_activite') || '', 10);
@@ -6914,15 +6949,18 @@ function avertissementInactivite(secondes) {
   av.style.display = '';
 }
 async function deconnexionInactivite() {
+  const ms = delaiInactivite(ME);
   await doLogout();
   const av = document.getElementById('inactivite-avert'); if (av) av.style.display = 'none';
-  showLoginErr(t('inact.deconnecte'));
+  showLoginErr(messageDeconnexion(ms));
 }
 setInterval(() => {
-  if (!ME || ME.role === 'super_admin') return;
+  const max = delaiInactivite(ME);
+  if (!ME || max === Infinity) return;
+  const avertir = Math.min(INACTIVITE_AVERTIR, max / 2);
   const ecoule = Date.now() - derniereActivite();
-  if (ecoule >= INACTIVITE_MAX) deconnexionInactivite();
-  else if (ecoule >= INACTIVITE_MAX - INACTIVITE_AVERTIR) avertissementInactivite(Math.ceil((INACTIVITE_MAX - ecoule) / 1000));
+  if (ecoule >= max) deconnexionInactivite();
+  else if (ecoule >= max - avertir) avertissementInactivite(Math.ceil((max - ecoule) / 1000));
   else { const av = document.getElementById('inactivite-avert'); if (av && av.style.display !== 'none') av.style.display = 'none'; }
 }, 1000);
 
@@ -6933,13 +6971,14 @@ setInterval(() => {
     const { data: { session }, error } = await sb.auth.getSession();
     if (error) throw error;
     if (session) {
-      // Application rouverte après plus de 10 minutes sans activité : nouvelle connexion obligatoire (sauf super admin)
+      // Application rouverte après une inactivité plus longue que la durée de l'utilisateur : nouvelle connexion obligatoire
       const s = parseInt(stockage.get('derniere_activite') || '', 10);
-      if (!isNaN(s) && Date.now() - s >= INACTIVITE_MAX) {
-        const { data: p } = await sb.from('profils').select('role').eq('id', session.user.id).maybeSingle();
-        if (p?.role !== 'super_admin') {
+      if (!isNaN(s) && Date.now() - s >= Math.min(INACTIVITE_DEFAUT, 60000)) {
+        const { data: p } = await sb.from('profils').select('*').eq('id', session.user.id).maybeSingle();
+        const max = delaiInactivite(p);
+        if (p && Date.now() - s >= max) {
           await sb.auth.signOut({ scope: 'local' }).catch(() => {});
-          showLoginErr(t('inact.deconnecte'));
+          showLoginErr(messageDeconnexion(max));
           return;
         }
       }
@@ -15640,7 +15679,8 @@ async function loadUsers() {
     ? (data||[]).map(u=>`<tr>
         <td><strong>${u.prenom} ${u.nom}</strong></td>
         <td style="color:var(--text2)">${u.email ? echapper(u.email) : `<span style="color:var(--text3)" title="${echapper(t('users.email_sql55'))}">—</span>`}</td>
-        <td><span class="badge r-${u.role}">${rl[u.role]||u.role}</span></td>
+        <td><span class="badge r-${u.role}">${rl[u.role]||u.role}</span>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px" title="${echapper(t('fs.label'))}">⏱ ${(() => { const d = delaiInactivite(u); return d === Infinity ? t('fs.jamais') : libelleDuree(Math.round(d / 60000)); })()}</div></td>
         <td><span class="badge ${u.actif?'b-g':'b-d'}">${u.actif?t('users.actif'):t('users.desactive')}</span></td>
         <td>${fmtLogin(u.last_login)}</td>
         <td><div style="display:flex;gap:4px">
@@ -15706,6 +15746,13 @@ async function openUserModal(uid) {
     champEmail.placeholder = profil.email ? '' : t('users.email_sql55');
     document.getElementById('um-role').value   = profil.role;
     document.getElementById('um-actif').value  = String(profil.actif);
+    document.getElementById('um-inactivite').value = profil.inactivite_minutes == null ? '' : String(profil.inactivite_minutes);
+    if (document.getElementById('um-inactivite').value === '' && profil.inactivite_minutes != null) {
+      // Durée choisie autrement (ex. 45 min) : ajoutée à la liste
+      const o = new Option(libelleDuree(profil.inactivite_minutes), String(profil.inactivite_minutes));
+      document.getElementById('um-inactivite').add(o, document.getElementById('um-inactivite').options[document.getElementById('um-inactivite').options.length - 1]);
+      document.getElementById('um-inactivite').value = String(profil.inactivite_minutes);
+    }
     const { data: habs } = await sb.from('habilitations').select('*').eq('user_id',uid);
     const perms = {};
     (habs||[]).forEach(h=>{ perms[h.module]={lire:h.peut_lire, ecrire:h.peut_ecrire, supprimer:h.peut_supprimer}; });
@@ -15716,6 +15763,7 @@ async function openUserModal(uid) {
     document.getElementById('um-email').placeholder = 'email@example.com';
     document.getElementById('um-role').value  = 'employe';
     document.getElementById('um-actif').value = 'true';
+    document.getElementById('um-inactivite').value = '';
     document.getElementById('perms-body').innerHTML = buildPermsBody(PERM_PRESETS.employe);
   }
   document.getElementById('um-perms-zone').style.display = document.getElementById('um-role').value === 'super_admin' ? 'none' : 'block';
@@ -15748,6 +15796,15 @@ async function saveUser() {
   const role   = document.getElementById('um-role').value;
   const actif  = document.getElementById('um-actif').value === 'true';
   const pw     = document.getElementById('um-pw').value;
+  const inact  = document.getElementById('um-inactivite').value;
+  const inactivite_minutes = inact === '' ? null : parseInt(inact, 10);
+  // Durée de fin de session (script 56) : enregistrée à part pour signaler si le script manque
+  const saveInactivite = async id => {
+    if (!id) return;
+    const { error } = await sb.from('profils').update({ inactivite_minutes }).eq('id', id);
+    if (error && /inactivite_minutes/.test(error.message)) { if (inactivite_minutes !== null) showToast(t('fs.sql_56'), 'e'); }
+    else if (error) showToast(error.message, 'e');
+  };
 
   if (!prenom||!nom) { showMoAl(t('users.name_required'),'e'); return; }
 
@@ -15793,6 +15850,7 @@ async function saveUser() {
       if (nouvelId) { try { await saveHabilitations(nouvelId, role); } catch (e) { showToast(e.message, 'e'); } }
       // E-mail gardé dans le profil pour la liste des utilisateurs (sans effet si le script 55 n'est pas exécuté)
       if (nouvelId) { try { await sb.from('profils').update({ email }).eq('id', nouvelId); } catch (_) {} }
+      if (nouvelId) await saveInactivite(nouvelId);
       await logAudit('CREATE','utilisateurs', email);
       showToast('Utilisateur créé avec succès','s');
 
@@ -15813,7 +15871,9 @@ async function saveUser() {
         if (result.error) { showMoAl(`Profil mis à jour mais erreur mot de passe: ${result.error}`,'w'); }
       }
       await saveHabilitations(uid, role);
-      await logAudit('UPDATE','utilisateurs', `${prenom} ${nom}`);
+      await saveInactivite(uid);
+      if (uid === ME?.id) ME.inactivite_minutes = inactivite_minutes;
+      await logAudit('UPDATE','utilisateurs', `${prenom} ${nom}${inactivite_minutes === null ? '' : ` — fin de session : ${libelleDuree(inactivite_minutes)}`}`);
       showToast('Utilisateur modifié','s');
     }
 
