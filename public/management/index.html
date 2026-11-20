@@ -4942,6 +4942,7 @@ const I18N = {
     'planning.modifier_titre': 'Modifier la séance',
     'planning.enregistrer_modif': 'Enregistrer les modifications',
     'planning.modifiee':     'Séance modifiée',
+    'planning.sql_58':       "La séance n'a pas été modifiée : exécutez une fois le script SQL 58 dans Supabase (droit de modification du planning).",
     'planning.coaches':      'Coach(es) assigné(s)',
     'planning.coaches_hint': 'Ctrl+clic pour sélectionner plusieurs',
     'planning.add_btn':      'Ajouter la séance',
@@ -6464,6 +6465,7 @@ const I18N = {
     'planning.modifier_titre': 'تعديل الحصة',
     'planning.enregistrer_modif': 'حفظ التعديلات',
     'planning.modifiee':     'تم تعديل الحصة',
+    'planning.sql_58':       'لم يتم تعديل الحصة : نفذ مرة واحدة السكريبت 58 في Supabase (صلاحية تعديل البرنامج).',
     'planning.coaches':      'المدرب(ون) المعينون',
     'planning.coaches_hint': 'Ctrl+نقر لتحديد عدة مدربين',
     'planning.add_btn':      'إضافة الحصة',
@@ -15106,8 +15108,10 @@ async function savePlanning() {
   const idModif = document.getElementById('pl-id').value;
   if (idModif) {
     // Modification : la séance garde un seul jour ; les autres jours cochés deviennent de nouvelles séances
-    const { error } = await sb.from('planning').update({ ...base, jour: jours[0] }).eq('id', idModif);
+    const { data: maj, error } = await sb.from('planning').update({ ...base, jour: jours[0] }).eq('id', idModif).select('id');
     if (error) { showToast(error.message, 'e'); return; }
+    // Aucune ligne modifiée sans erreur = modification refusée par la sécurité de la base (script 58)
+    if (!maj || !maj.length) { showToast(t('planning.sql_58'), 'e'); return; }
     if (jours.length > 1) {
       const { error: e2 } = await sb.from('planning').insert(jours.slice(1).map(jour => ({ ...base, jour })));
       if (e2) { showToast(e2.message, 'e'); return; }
