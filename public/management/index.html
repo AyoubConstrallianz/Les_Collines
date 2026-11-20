@@ -1787,11 +1787,18 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <button class="btn btn-sm" type="button" id="bv-ajouter" onclick="bvAjouterLigne()" style="margin-top:8px" data-i18n="bq.ajouter_article">+ Ajouter un article</button>
             <div style="display:flex;gap:24px;flex-wrap:wrap;margin:12px 0;font-size:14px">
               <div><span style="color:var(--text2)" data-i18n="bq.total">Total</span> : <strong id="bv-total">—</strong> <span id="bv-nb" style="font-size:12px;color:var(--text3)"></span></div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="color:var(--text2)" data-i18n="br.paye">Payé</span>
+                <input id="bv-paye" type="number" min="0" step="0.01" style="width:120px;padding:6px 10px" oninput="this.dataset.touche='1';bvMarge()">
+                <span id="bv-reste" style="color:var(--red);font-weight:700"></span></div>
             </div>
             <div class="btns">
               <button class="btn btn-p" id="bv-save" onclick="saveVente()">Enregistrer la vente</button>
               <button class="btn" id="bv-annuler" style="display:none" onclick="resetVente()" data-i18n="bq.annuler_modif">Annuler la modification</button>
             </div>
+          </div>
+          <div class="card" id="br-card" style="display:none;border-color:rgba(239,68,68,.45)">
+            <div class="ct" style="color:var(--red)" id="br-titre"></div>
+            <div style="overflow-x:auto"><table id="br-table"></table></div>
           </div>
           <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
@@ -4197,6 +4204,19 @@ const I18N = {
     "bq.retirer": "Retirer cet article",
     "bq.nb_articles": "%n article(s)",
     "bq.enregistrer_recu": "🧾 Enregistrer la vente et faire le reçu",
+    "br.paye": "Payé",
+    "br.paye_trop": "Le montant payé dépasse le total",
+    "br.client_requis": "Vente avec un reste à payer : indiquez le nom du client",
+    "br.titre": "Restes à payer — boutique",
+    "br.deja_paye": "Déjà payé",
+    "br.regler": "Régler",
+    "br.rien": "Cette vente est déjà payée",
+    "br.prompt": "Règlement de %c\nReste à payer : %s\n\nMontant reçu (DH) :",
+    "br.montant_invalide": "Montant invalide (maximum %s)",
+    "br.regle_ok": "Règlement de %s enregistré",
+    "br.reglement": "Règlement reste boutique",
+    "br.flux": "Restes à payer des clients",
+    "br.sql_57": "Pour les ventes payées en partie, exécutez une fois le script SQL 57 dans Supabase.",
     "bq.enregistrer_modif": "Enregistrer la modification",
     "bq.aucun_article_saisi": "Ajoutez au moins un article",
     "bq.recu": "Reçu",
@@ -5759,6 +5779,19 @@ const I18N = {
     "bq.retirer": "حذف هذا المنتج",
     "bq.nb_articles": "%n منتج",
     "bq.enregistrer_recu": "🧾 تسجيل البيع وإصدار الوصل",
+    "br.paye": "المدفوع",
+    "br.paye_trop": "المبلغ المدفوع أكبر من المجموع",
+    "br.client_requis": "بيع مع باقي للأداء : أدخل اسم الزبون",
+    "br.titre": "الباقي للأداء — المتجر",
+    "br.deja_paye": "المدفوع سابقاً",
+    "br.regler": "تسوية",
+    "br.rien": "هذا البيع مدفوع بالكامل",
+    "br.prompt": "تسوية %c\nالباقي للأداء : %s\n\nالمبلغ المستلم (درهم) :",
+    "br.montant_invalide": "مبلغ غير صحيح (الحد الأقصى %s)",
+    "br.regle_ok": "تم تسجيل تسوية %s",
+    "br.reglement": "تسوية باقي المتجر",
+    "br.flux": "الباقي للأداء على الزبناء",
+    "br.sql_57": "للبيع المدفوع جزئياً، نفذ مرة واحدة السكريبت 57 في Supabase.",
     "bq.enregistrer_modif": "حفظ التعديل",
     "bq.aucun_article_saisi": "أضف منتجا واحدا على الأقل",
     "bq.recu": "وصل",
@@ -12388,6 +12421,8 @@ async function loadBoutique() {
       .order('date_mouvement', { ascending: false }).order('created_at', { ascending: false })
   ]);
   _bt.stockActif = !rp.error && !rm.error;
+  const rb = await chargerRestesBoutique().catch(() => ({ actif: false, regl: {}, lignes: [], total: 0 }));
+  _bt.creditActif = rb.actif; _bt.regl = rb.regl; _bt.restes = rb.lignes;
   const err = rv.error || (!_bt.stockActif ? (rp.error || rm.error) : null);
   document.getElementById('al-boutique').innerHTML = err
     ? `<div class="al al-e">${echapper(/relation|does not exist|schema cache|column/i.test(err.message) ? t('bq.sql_27') : err.message)}</div>` : '';
@@ -12423,9 +12458,72 @@ function renderBoutique() {
   const kb = document.getElementById('bt-k-benef'); kb.textContent = fmtDH2(benef); kb.style.color = benef >= 0 ? 'var(--green)' : 'var(--red)';
   document.getElementById('bt-k-valeur').textContent = fmtDH2(valeur);
   const kr = document.getElementById('bt-k-bas'); kr.textContent = bas; kr.style.color = bas ? 'var(--red)' : 'var(--green)';
-  renderVentes(); renderProduits(); renderMouvements(); bvMarge();
+  renderVentes(); renderRestesBoutique(); renderProduits(); renderMouvements(); bvMarge();
   if (_bt.onglet === 'bilan') loadBilanBoutique();
   if (_bt.onglet === 'factures' && _bf.liste) renderFactures();
+}
+
+// ── Reste à payer de la boutique (script 57) ──
+// Payé le jour de la vente : montant_paye (vide = ligne payée en entier) ; reste = total − payé − règlements
+const totalLigneVente = v => qteVente(v) * (parseFloat(v.prix_vente) || 0);
+const payeVente = v => qteVente(v) < 0 || v.montant_paye == null ? totalLigneVente(v) : (parseFloat(v.montant_paye) || 0);
+const resteVente = (v, regl = _bt.regl || {}) => qteVente(v) < 0 ? 0 : Math.max(0, Math.round((totalLigneVente(v) - payeVente(v) - (regl[v.id] || 0)) * 100) / 100);
+const cleGroupeVente = v => `${v.created_at || v.id}|${v.date_vente}|${v.client_id || ''}|${v.client_nom || ''}`;
+async function chargerRestesBoutique() {
+  const [rr, rg] = await Promise.all([
+    fetchAllRows(() => sb.from('ventes').select('*').not('montant_paye', 'is', null).order('id')),
+    fetchAllRows(() => sb.from('ventes_reglements').select('vente_id,montant,date_reglement').order('id'))
+  ]);
+  const regl = {};
+  (rg.error ? [] : rg.data || []).forEach(x => { regl[x.vente_id] = (regl[x.vente_id] || 0) + (parseFloat(x.montant) || 0); });
+  const lignes = (rr.error ? [] : rr.data || []).filter(v => resteVente(v, regl) > 0);
+  return { actif: !rr.error && !rg.error, regl, lignes, total: Math.round(lignes.reduce((a, v) => a + resteVente(v, regl), 0) * 100) / 100 };
+}
+
+// Carte « Restes à payer — boutique » : une ligne par vente (articles enregistrés ensemble)
+function renderRestesBoutique() {
+  const card = document.getElementById('br-card'); if (!card) return;
+  const groupes = new Map();
+  (_bt.restes || []).forEach(v => { const k = cleGroupeVente(v); if (!groupes.has(k)) groupes.set(k, []); groupes.get(k).push(v); });
+  if (!groupes.size) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  const canW = PERMS.boutique?.ecrire;
+  const lignes = [...groupes.values()].sort((a, b) => String(a[0].date_vente).localeCompare(String(b[0].date_vente)));
+  const total = lignes.reduce((a, g) => a + g.reduce((s, v) => s + resteVente(v), 0), 0);
+  document.getElementById('br-titre').innerHTML = `${t('br.titre')} <span class="badge b-d">${lignes.length}</span> <span style="font-size:13px;margin-inline-start:8px">${t('bq.total')} : ${fmtDH2(total)}</span>`;
+  document.getElementById('br-table').innerHTML = `<thead><tr><th>${t('bq.date')}</th><th>${t('bq.client')}</th><th>${t('bq.article')}</th><th style="text-align:end">${t('bq.total')}</th><th style="text-align:end">${t('br.deja_paye')}</th><th style="text-align:end">${t('paie.reste')}</th><th></th></tr></thead><tbody>`
+    + lignes.map(g => {
+      const tot = g.reduce((a, v) => a + totalLigneVente(v), 0), r = g.reduce((a, v) => a + resteVente(v), 0);
+      return `<tr><td>${dateCourte(g[0].date_vente)}</td><td><strong>${echapper(nomClientVente(g[0])) || '—'}</strong></td>
+        <td style="font-size:12px">${g.map(v => `${qteVente(v) > 1 ? qteVente(v) + ' × ' : ''}${echapper(v.article || '—')}`).join(', ')}</td>
+        <td style="text-align:end">${fmtDH2(tot)}</td><td style="text-align:end">${fmtDH2(tot - r)}</td><td style="text-align:end;font-weight:800;color:var(--red)">${fmtDH2(r)}</td>
+        <td>${canW ? `<button class="btn btn-sm btn-p" onclick="reglerVente('${g[0].id}')">💰 ${t('br.regler')}</button>` : ''}</td></tr>`;
+    }).join('') + '</tbody>';
+}
+
+// Règlement du reste d'une vente (tout ou partie), réparti sur ses articles
+async function reglerVente(id) {
+  const toutes = [...(_bt.restes || []), ..._bt.ventes];
+  const v = toutes.find(x => x.id === id); if (!v) return;
+  const k = cleGroupeVente(v), vus = new Set();
+  const g = toutes.filter(x => cleGroupeVente(x) === k && !vus.has(x.id) && vus.add(x.id) && resteVente(x) > 0);
+  const reste = Math.round(g.reduce((a, x) => a + resteVente(x), 0) * 100) / 100;
+  if (!reste) { showToast(t('br.rien'), 's'); return; }
+  const saisie = prompt(t('br.prompt').replace('%c', nomClientVente(v) || '').replace('%s', fmtDH2(reste)), String(reste));
+  if (saisie === null) return;
+  const montant = Math.round((parseFloat(String(saisie).replace(',', '.')) || 0) * 100) / 100;
+  if (!(montant > 0) || montant > reste + 0.001) { showToast(t('br.montant_invalide').replace('%s', fmtDH2(reste)), 'e'); return; }
+  let r = montant;
+  const rows = g.map(x => { const m = Math.round(Math.min(resteVente(x), r) * 100) / 100; r -= m; return m > 0 ? { vente_id: x.id, montant: m, date_reglement: today(), mode: 'Espèces', created_by: ME.id } : null; }).filter(Boolean);
+  const { error } = await sb.from('ventes_reglements').insert(rows);
+  if (error) { showToast(/ventes_reglements|relation|schema cache/i.test(error.message) ? t('br.sql_57') : error.message, 'e'); return; }
+  await logAudit('CREATE', 'boutique', `Règlement boutique ${fmtDH2(montant)} — ${nomClientVente(v) || ''}`);
+  showToast(t('br.regle_ok').replace('%s', fmtDH2(montant)), 's');
+  await loadBoutique();
+  // Reçu de la vente mis à jour (payé / reste après ce règlement)
+  const frais = new Map();
+  [...g, ...(_bt.restes || []), ..._bt.ventes].forEach(x => { if (cleGroupeVente(x) === k) frais.set(x.id, x); });
+  ouvrirRecuVente([...frais.values()].filter(x => qteVente(x) > 0));
 }
 
 // ── Ventes ───────────────────────────────────────────────────
@@ -12440,8 +12538,8 @@ function renderVentes() {
     const marque = ret ? ` <span class="badge b-d" style="font-size:9px">↩ ${t('rt.badge')}</span>${v.note ? `<div style="font-size:11px;color:var(--text3)">${echapper(v.note)}</div>` : ''}`
       : rendu ? ` <span class="badge b-w" style="font-size:9px">↩ ${rendu} ${t('rt.retourne')}</span>` : '';
     return `<tr${ret ? ' style="background:rgba(239,68,68,.04)"' : ''}><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || `<span style="color:var(--text3)">${t('bq.passage')}</span>`}</td>
-      <td><strong>${echapper(v.article || '—')}</strong>${libre}${marque}</td><td${ret ? ' style="color:var(--red)"' : ''}>${qte}</td><td>${fmtDH2(pv)}</td><td><strong${ret ? ' style="color:var(--red)"' : ''}>${fmtDH2(qte * pv)}</strong></td>
-      <td><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-sm" onclick="recuVenteListe('${v.id}')" title="${echapper(t('bq.recu_aide'))}">🧾 ${t('bq.recu')}</button>${canW && !ret ? `<button class="btn btn-sm" onclick="ouvrirRetour('${v.id}')" title="${echapper(t('rt.btn_aide'))}">↩ ${t('rt.btn')}</button><button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${ret ? t('rt.annuler') : t('msg.suppr')}</button>` : ''}</div></td></tr>`;
+      <td><strong>${echapper(v.article || '—')}</strong>${libre}${marque}</td><td${ret ? ' style="color:var(--red)"' : ''}>${qte}</td><td>${fmtDH2(pv)}</td><td><strong${ret ? ' style="color:var(--red)"' : ''}>${fmtDH2(qte * pv)}</strong>${resteVente(v) > 0 ? `<div style="font-size:11px;font-weight:700;color:var(--red)">${t('paie.reste')} ${fmtDH2(resteVente(v))}</div>` : ''}</td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">${canW && resteVente(v) > 0 ? `<button class="btn btn-sm btn-p" onclick="reglerVente('${v.id}')">💰 ${t('br.regler')}</button>` : ''}<button class="btn btn-sm" onclick="recuVenteListe('${v.id}')" title="${echapper(t('bq.recu_aide'))}">🧾 ${t('bq.recu')}</button>${canW && !ret ? `<button class="btn btn-sm" onclick="ouvrirRetour('${v.id}')" title="${echapper(t('rt.btn_aide'))}">↩ ${t('rt.btn')}</button><button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${ret ? t('rt.annuler') : t('msg.suppr')}</button>` : ''}</div></td></tr>`;
   }).join('') : `<tr class="empty-row"><td colspan="7">${t(q ? 'bq.aucune_recherche' : 'bq.aucune_mois')}</td></tr>`;
 }
 
@@ -12525,13 +12623,20 @@ function bvMarge() {
   if (!elT) return;
   elT.textContent = saisi ? fmtDH2(tot) : '—';
   document.getElementById('bv-nb').textContent = saisi ? `(${t('bq.nb_articles').replace('%n', nb)})` : '';
+  // Payé : suit le total tant qu'il n'est pas saisi à la main ; moins = reste à payer
+  const elP = document.getElementById('bv-paye');
+  if (elP && !elP.dataset.touche) elP.value = saisi ? Math.round(tot * 100) / 100 : '';
+  const paye = elP && elP.value !== '' ? parseFloat(elP.value) || 0 : tot;
+  const reste = Math.round((tot - paye) * 100) / 100;
+  document.getElementById('bv-reste').textContent = saisi && reste > 0 ? `${t('paie.reste')} : ${fmtDH2(reste)}` : saisi && reste < 0 ? t('br.paye_trop') : '';
   const enModif = !!document.getElementById('bv-id').value;
   document.getElementById('bv-save').textContent = enModif ? t('bq.enregistrer_modif')
-    : t('bq.enregistrer_recu') + (saisi ? ` · ${fmtDH2(tot)}` : '');
+    : t('bq.enregistrer_recu') + (saisi ? ` · ${fmtDH2(Math.min(paye, tot))}` : '') + (saisi && reste > 0 ? ` (${t('paie.reste')} ${fmtDH2(reste)})` : '');
 }
 
 function resetVente() {
-  ['bv-id', 'bv-client'].forEach(i => { document.getElementById(i).value = ''; });
+  ['bv-id', 'bv-client', 'bv-paye'].forEach(i => { document.getElementById(i).value = ''; });
+  document.getElementById('bv-paye').dataset.touche = '';
   document.getElementById('bv-lignes').innerHTML = '';
   document.getElementById('bv-ajouter').style.display = '';
   document.getElementById('bv-titre').textContent = t('bq.nouvelle');
@@ -12549,6 +12654,7 @@ function editVente(id) {
   document.getElementById('bv-titre').textContent = t('bq.modifier');
   document.getElementById('bv-annuler').style.display = '';
   bvAjouterLigne({ article: (produitDe(v.produit_id)?.nom) || v.article || '', qte: qteVente(v), achat: v.prix_achat, vente: v.prix_vente }, false);
+  const elP = document.getElementById('bv-paye'); elP.value = Math.round(payeVente(v) * 100) / 100; elP.dataset.touche = '1'; bvMarge();
   boutiqueOnglet('ventes');
   document.getElementById('bv-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -12585,12 +12691,22 @@ async function saveVente() {
     ...(_bt.stockActif ? { produit_id: l.p ? l.p.id : null, quantite: l.qte } : {})
   }));
   const total = lignes.reduce((a, l) => a + l.qte * l.vente, 0);
+  // Montant payé : moins que le total = reste à payer (script 57), réparti sur les articles dans l'ordre
+  const payeTxt = document.getElementById('bv-paye').value;
+  const paye = payeTxt === '' ? total : Math.max(0, parseFloat(payeTxt) || 0);
+  if (paye > total + 0.001) { showToast(t('br.paye_trop'), 'e'); return; }
+  const reste = Math.round((total - paye) * 100) / 100;
+  if (reste > 0 && !nomClient) { showToast(t('br.client_requis'), 'e'); document.getElementById('bv-client').focus(); return; }
+  if (reste > 0) {
+    let r = paye;
+    objs.forEach((o, k) => { const lt = lignes[k].qte * lignes[k].vente; o.montant_paye = Math.round(Math.min(lt, Math.max(r, 0)) * 100) / 100; r -= o.montant_paye; });
+  } else if (id && _bt.creditActif) objs.forEach(o => { o.montant_paye = null; });
   const btn = document.getElementById('bv-save'); btn.disabled = true;
   // Plusieurs articles : une seule insertion, donc la même heure d'enregistrement (sert à regrouper le reçu)
   const res = id ? await sb.from('ventes').update(objs[0]).eq('id', id)
                  : await sb.from('ventes').insert(objs).select('id,created_at,created_by');
   btn.disabled = false;
-  if (res.error) { showToast(/produit_id|quantite|schema cache|relation/i.test(res.error.message) ? t('bq.sql_27') : res.error.message, 'e'); return; }
+  if (res.error) { showToast(/montant_paye/.test(res.error.message) ? t('br.sql_57') : /produit_id|quantite|schema cache|relation/i.test(res.error.message) ? t('bq.sql_27') : res.error.message, 'e'); return; }
   await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `${lignes.map(l => `${l.qte} × ${l.p ? l.p.nom : l.article}`).join(', ')} — ${fmtDH2(total)}${nomClient ? ' — ' + nomClient : ''}`);
   showToast(t(id ? 'bq.modifiee' : 'bq.enregistree'), 's');
   resetVente();
@@ -12713,6 +12829,10 @@ async function ouvrirRecuVente(rows) {
   };
   r.total = r.lignes.reduce((a, l) => a + l.qte * l.pu, 0);
   r.nb = r.lignes.reduce((a, l) => a + l.qte, 0);
+  if (!retour) {
+    r.reste = Math.round(rows.reduce((a, v) => a + resteVente(v), 0) * 100) / 100;
+    r.paye = Math.round((r.total - r.reste) * 100) / 100;
+  }
   let doc;
   try { doc = await genererRecuVentePdf(r); }
   catch (e) { console.error(e); showToast(t('recu.pdf_ko'), 'e'); return; }
@@ -12800,6 +12920,14 @@ async function genererRecuVentePdf(r) {
   doc.text(montantPdf(r.total), cMnt, y + 11.5, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
   doc.text(`${r.nb} article${r.nb > 1 ? 's' : ''}${r.retour ? ` retourné${r.nb > 1 ? 's' : ''}` : ''}`, M, y + 11.5);
+  if (r.reste > 0) {   // vente payée en partie
+    doc.setFontSize(10.5); doc.setTextColor(...noir);
+    doc.text('Payé', W - M - 76, y + 21); doc.text(montantPdf(r.paye), cMnt, y + 21, { align: 'right' });
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(220, 38, 38);
+    doc.text('RESTE À PAYER', W - M - 76, y + 28); doc.text(montantPdf(r.reste), cMnt, y + 28, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...gris);
+    y += 16;
+  }
   y += 24;
   doc.setFontSize(9.5); doc.setTextColor(...noir);
   doc.text(doc.splitTextToSize(r.fournisseur ? `Somme à rembourser par le fournisseur : ${montantEnLettres(r.total)}.` : r.retour ? `Somme remboursée au client : ${montantEnLettres(r.total)}.` : `Arrêté le présent reçu à la somme de : ${montantEnLettres(r.total)}.`, W - 2 * M), M, y);
@@ -12869,6 +12997,7 @@ function imprimerTicketVente() {
     <div class="sep"></div>
     <div class="kv pt"><span>${r.retour ? 'Articles retournés' : "Nombre d'articles"}</span><span>${r.nb}</span></div>
     <div class="total"><span>${r.fournisseur ? 'À REMBOURSER' : r.retour ? 'REMBOURSÉ' : 'TOTAL'}</span><span>${mt(r.total)}</span></div>
+    ${r.reste > 0 ? `<div style="display:flex;justify-content:space-between"><span>Payé</span><span>${mt(r.paye)}</span></div><div style="display:flex;justify-content:space-between;font-weight:900"><span>RESTE À PAYER</span><span>${mt(r.reste)}</span></div>` : ''}
     <div class="pt">${r.fournisseur ? 'À rembourser par le fournisseur' : r.retour ? 'Somme remboursée' : 'Arrêté à la somme de'} : ${e(montantEnLettres(r.total))}.</div>
     ${r.fournisseur && r.mode && r.total ? `<div class="pt">Remboursement : ${e(r.mode)}</div>` : ''}
     ${r.retour && r.motif ? `<div class="pt">Motif : ${e(r.motif)}</div>` : ''}
@@ -13456,6 +13585,7 @@ async function loadBilanBoutique() {
   _bb.apports = rap.error ? null : (rap.data || []);   // null = script 31 non exécuté
   _bb.achatsListe = (rs.data || []).filter(m => !m.facture_id);   // achats payés par la caisse de la boutique
   _bb.ventes = rv.data || [];
+  _bb.restesTotal = (await chargerRestesBoutique().catch(() => ({ total: 0 }))).total;
   _bb.associes = (ra.data || []).filter(estActif);
   _bb.achats = _bb.achatsListe.reduce((s, m) => s + (m.quantite || 0) * (parseFloat(m.prix_unitaire) || 0), 0);
   _bb.manqueSql = !ra.error && (ra.data || []).length && !('capital_boutique' in ra.data[0]);
@@ -13521,7 +13651,8 @@ function renderBilanBoutique() {
   const versTot = versementsActifs('boutique') ? _vs.boutique.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0)
     : associes.reduce((s, a) => s + (parseFloat(a.deja_verse_boutique) || 0), 0);
   const apportsTot = (_bb.apports || []).reduce((s, x) => s + (parseFloat(x.montant) || 0), 0);
-  const caisseB = Math.round((apportsTot + ventesTot - versTot) * 100) / 100;
+  const restesB = _bb.restesTotal || 0;   // ventes pas encore payées par les clients (script 57)
+  const caisseB = Math.round((apportsTot + ventesTot - versTot - restesB) * 100) / 100;
   _bb.caisse = null;   // les achats de stock ne sortent plus de la caisse de la boutique (factures payées par la salle)
   const lf = (signe, lib, v, gras, style = '') => `<tr${gras ? ' style="border-top:2px solid var(--border2);background:var(--bg3)"' : ''}>
       <td style="${gras ? 'font-weight:800' : ''}">${signe ? `<span style="display:inline-block;width:16px;color:var(--text3)">${signe}</span>` : ''}${lib}</td>
@@ -13531,6 +13662,7 @@ function renderBilanBoutique() {
     + lf('+', t('bb.flux_ventes'), ventesTot, false, 'color:var(--green-text)')
     + (apportsTot ? lf('+', t('ap.flux'), apportsTot) : '')
     + lf('−', t('bb.flux_versements'), -versTot, false, 'color:var(--red-text)')
+    + (restesB ? lf('−', t('br.flux'), -restesB, false, 'color:var(--red-text)') : '')
     + lf('=', t('bb.flux_caisse'), caisseB, true, cl(caisseB))
     + (caisseB < 0 ? `<tr><td colspan="2"><div class="al al-e" style="margin:6px 0">${t('bb.flux_manque').replace('%s', fmtDH2(-caisseB))}</div></td></tr>` : '')
     + lf('+', t('bb.flux_stock'), valeurStock)
@@ -15052,8 +15184,9 @@ async function loadFinances() {
     fetchAllRows(() => sb.from('salaires_paie').select('montant,mois,mode').order('id')),
     fetchAllRows(() => sb.from('versements_associes').select('montant,date_versement,mode,nature,activite').order('id')),
     sb.from('associes').select('capital,actif'),
-    fetchAllRows(() => sb.from('ventes').select('quantite,prix_vente,date_vente').order('id'))
+    fetchAllRows(() => sb.from('ventes').select('*').order('id'))
   ]);
+  const rbr = await fetchAllRows(() => sb.from('ventes_reglements').select('montant,date_reglement').order('id')).catch(() => ({ data: [] }));
   // Script 36 non exécuté (pas de mode sur les charges) : toutes les charges comptées en espèces
   const rc = rc0.error ? await fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie').order('id')) : rc0;
   // Script 39 non exécuté (pas de reste_de) : lecture sans le lien des restes payés
@@ -15092,10 +15225,15 @@ async function loadFinances() {
     const v = mV(x); mois(m).verse += v; T.verse += v;
   });
   // Boutique : ventes (un retour est négatif)
+  // (vente payée en partie : seul le montant payé ; les règlements du reste au mois où ils sont reçus)
   (rb.error ? [] : rb.data || []).forEach(x => {
     const m = String(x.date_vente || '').slice(0, 7); if (!m) return;
-    const v = (parseInt(x.quantite, 10) || 1) * (parseFloat(x.prix_vente) || 0);
+    const v = payeVente(x);
     mois(m).boutique += v; T.boutique += v;
+  });
+  (rbr.error ? [] : rbr.data || []).forEach(x => {
+    const m = String(x.date_reglement || '').slice(0, 7); if (!m) return;
+    const v = parseFloat(x.montant) || 0; mois(m).boutique += v; T.boutique += v;
   });
   const capital = (ra.data || []).filter(a => a.actif !== false).reduce((s, a) => s + (parseFloat(a.capital) || 0), 0);
   // Caisse espèces à la fin de chaque mois (du plus ancien au plus récent, mois à venir compris)
@@ -15233,7 +15371,7 @@ async function loadSoldeJour() {
   const debut = new Date(y, m - 1, d).toISOString(), fin = new Date(y, m - 1, d + 1).toISOString();
   const [rp, rv, rc, rs] = await Promise.all([
     fetchAllRows(() => sb.from('paiements').select('id,montant').gte('created_at', debut).lt('created_at', fin).order('id')),
-    fetchAllRows(() => sb.from('ventes').select('id,quantite,prix_vente').eq('date_vente', auj).order('id')),
+    fetchAllRows(() => sb.from('ventes').select('*').eq('date_vente', auj).order('id')),
     fetchAllRows(() => sb.from('charges').select('id,montant').eq('date_charge', auj).order('id')),
     fetchAllRows(() => sb.from('salaires_paie').select('id,montant').gte('created_at', debut).lt('created_at', fin).order('id'))
   ]);
@@ -15241,7 +15379,9 @@ async function loadSoldeJour() {
   const som = (r, f) => (r.error ? [] : r.data || []).reduce((a, x) => a + f(x), 0);
   const mv = x => (parseInt(x.quantite, 10) || 1) * (parseFloat(x.prix_vente) || 0);   // retour boutique : négatif
   const ch = x => parseFloat(x.montant) || 0;   // charge négative = remboursement (retour fournisseur) : entrée
-  const entrees = som(rp, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, mv(x))) + som(rc, x => Math.max(0, -ch(x)));
+  const rrj = await fetchAllRows(() => sb.from('ventes_reglements').select('id,montant').eq('date_reglement', auj).order('id')).catch(() => ({ data: [] }));
+  // Boutique : montant payé le jour de la vente (script 57) + règlements de restes reçus aujourd'hui
+  const entrees = som(rp, x => parseFloat(x.montant) || 0) + som(rv, x => mv(x) > 0 ? payeVente(x) : 0) + som(rrj, x => parseFloat(x.montant) || 0) + som(rc, x => Math.max(0, -ch(x)));
   const sorties = som(rc, x => Math.max(0, ch(x))) + som(rs, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, -mv(x)));
   const solde = entrees - sorties;
   el.textContent = fmt(solde);
@@ -15281,6 +15421,8 @@ async function chargerRapportJour() {
     fetchAllRows(() => sb.from('salaires_paie').select('id,montant,mois,mode,created_at,detail,employes(prenom,nom)').gte('created_at', debutJour(du)).lt('created_at', finISO).order('id')),
     fetchAllRows(() => sb.from('ventes').select('*,clients(prenom,nom)').gte('date_vente', du).lte('date_vente', au).order('id'))
   ]);
+  // Règlements des restes boutique (script 57) : entrée le jour du règlement
+  const rr = await fetchAllRows(() => sb.from('ventes_reglements').select('*,ventes(article,client_nom,clients(prenom,nom))').gte('date_reglement', du).lte('date_reglement', au).order('id')).catch(() => ({ data: [] }));
   if (rp.error) { showToast(rp.error.message, 'e'); return; }
   const J = {};
   const jour = k => J[k] ??= { entrees: 0, sorties: 0, boutique: 0, lignesE: [], lignesS: [] };
@@ -15316,9 +15458,17 @@ async function chargerRapportJour() {
         mode: 'Espèces', note: [client, x.note].filter(Boolean).join(' · '), montant: -v });
       return;
     }
-    o.entrees += v; o.boutique += v;
+    // Vente payée en partie : seul le montant payé entre dans la caisse ce jour-là
+    const vp = payeVente(x), restant = Math.round((v - vp) * 100) / 100;
+    o.entrees += vp; o.boutique += vp;
     o.lignesE.push({ heure: heure(x.created_at), qui: `${q > 1 ? q + ' × ' : ''}${x.article || t('rj.boutique')}`, quoi: t('rj.boutique'),
-      mode: '', note: client, montant: v, boutique: true });
+      mode: '', note: [client, restant > 0 ? `${t('paie.reste')} ${fmt(restant)}` : ''].filter(Boolean).join(' · '), montant: vp, boutique: true });
+  });
+  (rr.error ? [] : rr.data || []).forEach(x => {
+    const v = parseFloat(x.montant) || 0, o = jour(x.date_reglement); if (!v) return;
+    const cl = x.ventes?.clients ? `${x.ventes.clients.prenom || ''} ${x.ventes.clients.nom || ''}`.trim() : (x.ventes?.client_nom || '');
+    o.entrees += v; o.boutique += v;
+    o.lignesE.push({ heure: heure(x.created_at), qui: x.ventes?.article || t('rj.boutique'), quoi: t('br.reglement'), mode: x.mode || 'Espèces', note: cl, montant: v, boutique: true });
   });
   // Salaires : pas de date de versement, on retient le jour où ils ont été enregistrés
   (rs.error ? [] : rs.data || []).forEach(x => {
