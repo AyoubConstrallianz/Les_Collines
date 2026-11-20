@@ -1354,6 +1354,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <button class="btn" onclick="ouvrirListeDisciplines()" style="white-space:nowrap" data-i18n="ld.btn">🖨️ Liste par discipline</button>
             <input id="sc-q" placeholder="Rechercher..." oninput="loadClients()" style="flex:1;max-width:260px">
             <select id="sc-sport" onchange="loadClients()"><option value="" data-i18n="select.all_sports">Tous les sports</option></select>
+            <select id="sc-vue" onchange="stockage.set('clients_vue', this.value);loadClients()" title="Affichage"><option value="client" data-i18n="cv.par_client">👤 Par client</option><option value="famille" data-i18n="cv.par_famille">👪 Par famille</option></select>
             <select id="sc-stat" onchange="loadClients()"><option value="" data-i18n="clients.tous_statuts">Tous statuts</option><option value="Actif" data-i18n="clients.actif">Actif</option><option value="Inactif" data-i18n="clients.inactif">Inactif</option><option value="Suspendu" data-i18n="clients.suspendu">Suspendu</option><option value="En attente" data-i18n="clients.attente">En attente de validation</option></select>
           </div>
           <table><thead><tr>
@@ -3861,6 +3862,11 @@ const I18N = {
     "fm.tarif_famille_court": "Tarif famille",
     "fm.tarif_normal_court": "Tarif normal (1 membre actif)",
     "fm.total_famille": "Total famille",
+    "cv.par_client": "👤 Par client",
+    "cv.par_famille": "👪 Par famille",
+    "cv.membres": "membre(s)",
+    "cv.clients": "client(s)",
+    "cv.sans_famille": "Clients sans famille",
     "fm.paye": "Payé",
     "fm.nom_requis": "Indiquez le nom de la famille",
     "fm.deux_membres": "Une famille compte au moins 2 membres",
@@ -5411,6 +5417,11 @@ const I18N = {
     "fm.tarif_famille_court": "تعريفة عائلية",
     "fm.tarif_normal_court": "تعريفة عادية (فرد نشط واحد)",
     "fm.total_famille": "مجموع العائلة",
+    "cv.par_client": "👤 حسب المنخرط",
+    "cv.par_famille": "👪 حسب العائلة",
+    "cv.membres": "عضو",
+    "cv.clients": "منخرط",
+    "cv.sans_famille": "منخرطون بدون عائلة",
     "fm.paye": "المدفوع",
     "fm.nom_requis": "أدخل اسم العائلة",
     "fm.deux_membres": "العائلة تضم فردين على الأقل",
@@ -8327,13 +8338,17 @@ async function loadClients() {
 
   const canWrite = PERMS.clients?.ecrire;
   const canDel   = PERMS.clients?.supprimer;
-  document.getElementById('clients-tb').innerHTML = list.length
-    ? list.map((c,i)=>{
+  // Affichage par client (liste) ou par famille (membres regroupés sous leur famille)
+  const selVue = document.getElementById('sc-vue');
+  if (selVue && !selVue.dataset.init) { selVue.dataset.init = '1'; if (stockage.get('clients_vue') === 'famille') selVue.value = 'famille'; }
+  const parFamille = selVue?.value === 'famille';
+  if (parFamille) await chargerFamilles().catch(() => {});
+  const ligneClient = (c, i, dansFamille) => {
         const sports = c.sports || (c.sport ? [c.sport] : []);
         const mensuel = prixPerso(c) || sports.reduce((a,s)=>a+(sportMap[s]?.tarif_mensuel||0),0);
         const badges  = sports.map(s=>`<span class="badge b-i" style="margin-right:3px">${s}</span>`).join('');
-        return `<tr style="cursor:pointer" onclick="showClientFiche(${i},event)">
-          <td style="color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600">${c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '—'}</td>
+        return `<tr style="cursor:pointer${dansFamille ? ';box-shadow:inset 3px 0 0 var(--blue-text)' : ''}" onclick="showClientFiche(${i},event)">
+          <td style="color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600${dansFamille ? ';padding-inline-start:22px' : ''}">${c.numero_adherent ? String(c.numero_adherent).padStart(4, '0') : '—'}</td>
           <td><div style="display:flex;align-items:center;gap:8px">${renderAvatar(c.photo_url, c.prenom+' '+c.nom, 30)}<strong>${c.prenom} ${c.nom}</strong>${badgesAccesClient(c)}${c.famille_id || c.pack_famille ? ` <span class="badge ${c.famille_id && c.famille_actif === false ? 'b-d' : 'b-i'}" style="font-size:9px">${t('fam.badge')}${c.famille_id && c.famille_actif === false ? ' · ' + t('fm.arrete') : ''}</span>` : ''}</div></td>
           <td style="font-size:12px">${c.cin||'—'}</td>
           <td style="font-size:12px">${[c.telephone, c.telephone2].filter(Boolean).join('<br>')||'—'}</td>
@@ -8345,7 +8360,29 @@ async function loadClients() {
             ${canWrite?`<button class="btn btn-sm" onclick="editClient(CLIENTS_CACHE[${i}])">${t('common.modifier')}</button>`:''}
             ${canDel?`<button class="btn btn-sm btn-d" onclick="delClient('${c.id}')">${t('msg.suppr')}</button>`:''}
           </div></td></tr>`;
-      }).join('')
+  };
+  let lignesHtml = '';
+  if (!parFamille) lignesHtml = list.map((c, i) => ligneClient(c, i, false)).join('');
+  else {
+    // Familles dans l'ordre du tri (première apparition d'un membre), puis les clients sans famille
+    const groupes = new Map(), seuls = [];
+    list.forEach((c, i) => { if (c.famille_id) { if (!groupes.has(c.famille_id)) groupes.set(c.famille_id, []); groupes.get(c.famille_id).push(i); } else seuls.push(i); });
+    const canPay = PERMS.paiements?.ecrire;
+    const tete = (html, actions = '') => `<tr class="cv-tete"><td colspan="8" style="background:var(--bg3);padding:9px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">${html}<div style="display:flex;gap:4px;flex-wrap:wrap">${actions}</div></div></td></tr>`;
+    groupes.forEach((idx, fid) => {
+      const tous = membresFamille(fid), actifs = tous.filter(membreActif).length;
+      lignesHtml += tete(`<span><strong style="font-size:14px">👪 ${echapper(nomFamille(fid))}</strong>
+          <span style="font-size:12px;color:var(--text3);margin-inline-start:8px">${tous.length || idx.length} ${t('cv.membres')} · ${actifs} ${t('fm.actifs')}${actifs >= 2 ? ` · ${t('fm.tarif_famille_court')}` : ''}</span></span>`,
+        `<button class="btn btn-sm" onclick="ouvrirDetailsFamille('${fid}')">${t('fd.details')}</button>
+         <button class="btn btn-sm" onclick="ouvrirRecusFamille('${fid}')">${t('frc.btn')}</button>
+         ${canPay && actifs ? `<button class="btn btn-sm btn-p" onclick="ouvrirPaiementFamille('${fid}')">${t('fm.payer_famille')}</button>` : ''}`)
+        + idx.map(i => ligneClient(list[i], i, true)).join('');
+    });
+    if (seuls.length) lignesHtml += (groupes.size ? tete(`<span><strong style="font-size:14px">👤 ${t('cv.sans_famille')}</strong> <span style="font-size:12px;color:var(--text3);margin-inline-start:8px">${seuls.length} ${t('cv.clients')}</span></span>`) : '')
+      + seuls.map(i => ligneClient(list[i], i, false)).join('');
+  }
+  document.getElementById('clients-tb').innerHTML = list.length ? lignesHtml
     : `<tr class="empty-row"><td colspan="8">${t('msg.no_client')}</td></tr>`;
   // Import Excel : réservé au Super Admin
   const btnImport = document.getElementById('btn-import');
