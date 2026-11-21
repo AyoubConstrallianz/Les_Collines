@@ -10309,8 +10309,10 @@ async function groupesListeDisciplines() {
   if (!choix) { const sans = clients.filter(c => !sportsDe(c).length).sort(cmp); if (sans.length) groupes.push({ nom: 'Sans discipline', liste: sans }); }
   return { groupes, choix, statut };
 }
-// Numéro au format international pour WhatsApp (+212…), ou '' si le numéro est absent ou invalide
-const telWhatsApp = c => { const n = numeroWhatsApp(c); return n ? '+' + n : ''; };
+// Numéro au format international (00212…), ou '' si le numéro est absent ou invalide
+// Numéro au format international avec 00 (ex. 00212612345678) ; un numéro non reconnu reste tel quel
+const telWhatsApp = c => { const n = numeroWhatsApp(c); return n ? '00' + n : ''; };
+const telIndicatif = v => telWhatsApp({ telephone: v }) || String(v || '').trim();
 const nomContact = c => `${formatPrenom(c.prenom || '')} ${(c.nom || '').toUpperCase()}`.trim();
 
 // Fichier de contacts (vCard) : un contact par adhérent, nommé « Prénom NOM (discipline) »
@@ -10427,7 +10429,7 @@ async function imprimerListeDisciplines() {
     titreGroupe(g, false);
     g.liste.forEach((c, k) => {
       const vals = [c.numero_adherent != null && c.numero_adherent !== '' ? String(c.numero_adherent) : '—', (c.nom || '').toUpperCase(), c.prenom || '',
-        ...(avecTel ? [[c.telephone, c.telephone2].filter(Boolean).join(' / ') || '—'] : [])];
+        ...(avecTel ? [[c.telephone, c.telephone2].filter(Boolean).map(telIndicatif).join(' / ') || '—'] : [])];
       const lignes = vals.map((v, i) => doc.splitTextToSize(v, cols[i].w - 5));
       const h = Math.max(7, ...lignes.map(l => l.length * 4.4 + 2.6));
       if (y + h > bas) { doc.addPage(); y = M; titreGroupe(g, true); }
