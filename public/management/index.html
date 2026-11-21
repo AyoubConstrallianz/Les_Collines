@@ -1769,6 +1769,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
         <div class="plan-vues" style="margin-bottom:14px;flex-wrap:wrap">
           <button id="bt-tab-ventes" class="on" onclick="boutiqueOnglet('ventes')" data-i18n="bq.ventes">Ventes</button>
           <button id="bt-tab-stock" onclick="boutiqueOnglet('stock')" data-i18n="bq.stock">Stock</button>
+          <button id="bt-tab-packs" onclick="boutiqueOnglet('packs')" data-i18n="pk.onglet">📦 Packs</button>
           <button id="bt-tab-mvts" onclick="boutiqueOnglet('mvts')" data-i18n="bq.mouvements">Mouvements</button>
           <button id="bt-tab-factures" onclick="boutiqueOnglet('factures')" data-i18n="bf.onglet">Factures fournisseurs</button>
           <button id="bt-tab-bilan" onclick="boutiqueOnglet('bilan')" data-i18n="bb.onglet">Bilan &amp; associés</button>
@@ -1780,13 +1781,14 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <div class="ct" id="bv-titre" data-i18n="bq.nouvelle">Nouvelle vente</div>
             <input type="hidden" id="bv-id">
             <div class="g2" style="margin-bottom:12px">
-              <div class="fg"><label data-i18n="bq.client">Client</label><input id="bv-client" list="bv-clients" placeholder="Client de passage" data-i18n-ph="bq.client_ph" autocomplete="off"><datalist id="bv-clients"></datalist></div>
+              <div class="fg"><label data-i18n="bq.client">Client</label><input id="bv-client" onchange="renderSelectPacks()" list="bv-clients" placeholder="Client de passage" data-i18n-ph="bq.client_ph" autocomplete="off"><datalist id="bv-clients"></datalist></div>
               <div class="fg"><label data-i18n="bq.date">Date</label><input id="bv-date" type="date"></div>
             </div>
             <datalist id="bv-articles"></datalist>
             <div class="bv-entete"><span data-i18n="bq.article">Article</span><span data-i18n="bq.qte">Qté</span><span data-i18n="bq.prix_vente">Prix de vente</span><span data-i18n="bq.total">Total</span><span></span></div>
             <div id="bv-lignes"></div>
             <button class="btn btn-sm" type="button" id="bv-ajouter" onclick="bvAjouterLigne()" style="margin-top:8px" data-i18n="bq.ajouter_article">+ Ajouter un article</button>
+            <select id="bv-pack" onchange="if (this.value) bvAjouterPack(this.value)" style="width:auto;max-width:100%;margin-top:8px;display:none"></select>
             <div style="display:flex;gap:24px;flex-wrap:wrap;margin:12px 0;font-size:14px">
               <div><span style="color:var(--text2)" data-i18n="bq.total">Total</span> : <strong id="bv-total">—</strong> <span id="bv-nb" style="font-size:12px;color:var(--text3)"></span></div>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="color:var(--text2)" data-i18n="br.paye">Payé</span>
@@ -1835,6 +1837,22 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             </div>
             <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bq.note_stock">Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » enregistre le stock compté dans la case « Stock inventaire », sans modifier le stock calculé.</p>
             <table><thead><tr><th data-i18n="bq.article">Article</th><th data-i18n="bq.categorie">Catégorie</th><th data-i18n="bq.prix_vente">Prix de vente</th><th data-i18n="bq.stock">Stock</th><th data-i18n="bq.stock_inventaire">Stock inventaire</th><th data-i18n="bq.valeur">Valeur</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bp-tb"></tbody></table>
+          </div>
+        </div>
+
+        <!-- Onglet Packs (script 61) -->
+        <div id="bt-packs" style="display:none">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+              <div class="ct" style="margin:0" data-i18n="pk.titre">Packs par discipline</div>
+              <div class="toolbar" style="margin:0;gap:8px">
+                <select id="bk-sport" onchange="renderPacks()"></select>
+                <button class="btn btn-p" id="bk-new" onclick="ouvrirPack()" data-i18n="pk.nouveau">+ Nouveau pack</button>
+              </div>
+            </div>
+            <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="pk.note">Un pack regroupe plusieurs articles du stock à un prix fixé. « Vendre » ajoute ses articles à la vente : le stock de chaque article diminue et le client reçoit un seul reçu.</p>
+            <div id="bk-sql"></div>
+            <div style="overflow-x:auto"><table><thead><tr><th data-i18n="pk.col_pack">Pack</th><th data-i18n="pk.col_articles">Articles</th><th data-i18n="pk.prix_separe">Prix séparé</th><th data-i18n="pk.prix">Prix du pack</th><th data-i18n="pk.disponibles">Disponibles</th><th data-i18n="common.actions">Actions</th></tr></thead><tbody id="bk-tb"></tbody></table></div>
           </div>
         </div>
 
@@ -1956,6 +1974,26 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
             <div class="al al-i" id="bp-stock-info" style="font-size:12px;margin-bottom:10px" data-i18n="bq.stock_par_facture">Le stock d'un nouvel article arrive par une facture fournisseur (onglet « Factures fournisseurs »).</div>
             <div class="fg" id="bp-actif-wrap" style="margin-bottom:10px"><label data-i18n="bq.statut">Statut</label><select id="bp-actif"><option value="true" data-i18n="bq.en_vente">En vente</option><option value="false" data-i18n="bq.archive">Archivé (plus proposé à la vente)</option></select></div>
             <div class="btns"><button class="btn btn-p" onclick="saveProduit()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('bp-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
+          </div>
+        </div>
+
+        <!-- Fenêtre pack (script 61) -->
+        <div class="mo" id="bk-modal">
+          <div class="mo-box" style="max-width:620px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+              <div class="mo-title" style="margin-bottom:0" id="bk-titre">Nouveau pack</div>
+              <button class="btn btn-sm" onclick="document.getElementById('bk-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+            </div>
+            <input type="hidden" id="bk-id">
+            <div class="fr"><div class="fg"><label data-i18n="pk.nom">Nom du pack</label><input id="bk-nom" placeholder="Ex : Pack Boxe débutant" data-i18n-ph="pk.nom_ph"></div>
+              <div class="fg"><label data-i18n="pk.discipline">Discipline</label><select id="bk-sport-f"></select></div></div>
+            <div class="fg" style="margin-bottom:10px"><label data-i18n="pk.articles">Articles du pack</label>
+              <div id="bk-lignes"></div>
+              <button class="btn btn-sm" type="button" onclick="bkAjouterLigne()" data-i18n="bq.ajouter_article">+ Ajouter un article</button></div>
+            <div class="fr"><div class="fg"><label data-i18n="pk.prix_dh">Prix du pack (DH)</label><input id="bk-prix" type="number" min="0" step="0.01" placeholder="0" oninput="this.dataset.touche='1';bkResume()"></div>
+              <div class="fg"><label data-i18n="pk.statut">Statut</label><select id="bk-actif"><option value="true" data-i18n="pk.en_vente">En vente</option><option value="false" data-i18n="pk.archive">Archivé</option></select></div></div>
+            <div class="al al-i" id="bk-resume" style="font-size:12px;margin-bottom:10px"></div>
+            <div class="btns"><button class="btn btn-p" id="bk-save" onclick="savePack()" data-i18n="common.enregistrer">Enregistrer</button><button class="btn" onclick="document.getElementById('bk-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
           </div>
         </div>
 
@@ -4289,6 +4327,45 @@ const I18N = {
     "bq.modifiee": "Vente modifiée",
     "bq.enregistree": "Vente enregistrée",
     "bq.ajouter_article": "+ Ajouter un article",
+    "pk.onglet": "📦 Packs",
+    "pk.titre": "Packs par discipline",
+    "pk.nouveau": "+ Nouveau pack",
+    "pk.note": "Un pack regroupe plusieurs articles du stock à un prix fixé. « Vendre » ajoute ses articles à la vente : le stock de chaque article diminue et le client reçoit un seul reçu.",
+    "pk.f_toutes": "Toutes les disciplines",
+    "pk.sans_discipline": "Toutes disciplines (sans discipline)",
+    "pk.col_pack": "Pack",
+    "pk.col_articles": "Articles",
+    "pk.prix_separe": "Prix séparé",
+    "pk.prix": "Prix du pack",
+    "pk.disponibles": "Disponibles",
+    "pk.vendre": "Vendre",
+    "pk.modifier": "Modifier le pack",
+    "pk.nouveau_titre": "Nouveau pack",
+    "pk.nom": "Nom du pack",
+    "pk.nom_ph": "Ex : Pack Boxe débutant",
+    "pk.discipline": "Discipline",
+    "pk.articles": "Articles du pack",
+    "pk.choisir_article": "Choisir un article…",
+    "pk.prix_dh": "Prix du pack (DH)",
+    "pk.statut": "Statut",
+    "pk.en_vente": "En vente",
+    "pk.archive": "Archivé",
+    "pk.economie": "Remise",
+    "pk.plus_cher": "Plus cher que les articles séparés",
+    "pk.marge": "Bénéfice",
+    "pk.ajoutez_articles": "Ajoutez les articles du pack.",
+    "pk.nom_requis": "Nom du pack obligatoire",
+    "pk.nom_existe": "Un pack porte déjà ce nom",
+    "pk.vide": "Ajoutez au moins un article au pack",
+    "pk.prix_requis": "Prix du pack obligatoire",
+    "pk.non_enregistre": "Rien n'a été enregistré : vérifiez vos droits sur la boutique.",
+    "pk.suppr_confirm": "Supprimer le pack « %s » ? Les ventes déjà faites ne changent pas.",
+    "pk.sql_61": "Pour les packs, exécutez une fois le script SQL 61 dans Supabase.",
+    "pk.ajouter_pack": "Ajouter un pack…",
+    "pk.ajoute": "%s ajouté à la vente",
+    "pk.stock_insuffisant": "Stock insuffisant pour ce pack : vérifiez les articles en rouge.",
+    "pk.article_supprime": "Article supprimé du stock",
+    "pk.aucun": "Aucun pack. Cliquez « + Nouveau pack ».",
     "bq.retirer": "Retirer cet article",
     "bq.nb_articles": "%n article(s)",
     "bq.enregistrer_recu": "🧾 Enregistrer la vente et faire le reçu",
@@ -12695,7 +12772,7 @@ const etatStock = p => p.stock <= 0 ? ['b-d', t('bq.rupture')] : p.stock <= (p.s
 
 function boutiqueOnglet(o) {
   _bt.onglet = o;
-  [['ventes', 'bt-ventes'], ['stock', 'bt-stock'], ['mvts', 'bt-mvts'], ['factures', 'bt-factures'], ['bilan', 'bt-bilan']].forEach(([k, id]) => {
+  [['ventes', 'bt-ventes'], ['stock', 'bt-stock'], ['packs', 'bt-packs'], ['mvts', 'bt-mvts'], ['factures', 'bt-factures'], ['bilan', 'bt-bilan']].forEach(([k, id]) => {
     document.getElementById(id).style.display = k === o ? '' : 'none';
     document.getElementById('bt-tab-' + k).classList.toggle('on', k === o);
   });
@@ -12713,7 +12790,7 @@ async function loadBoutique() {
   const [rv, rc, rp, rm] = await Promise.all([
     sb.from('ventes').select('*').gte('date_vente', mois + '-01').lt('date_vente', suivant)
       .order('date_vente', { ascending: false }).order('created_at', { ascending: false }),
-    fetchAllRows(() => sb.from('clients').select('id,prenom,nom,telephone,telephone2,numero_adherent').order('id')),
+    fetchAllRows(() => sb.from('clients').select('id,prenom,nom,telephone,telephone2,numero_adherent,sports,sport').order('id')),
     sb.from('produits').select('*').order('nom'),
     sb.from('stock_mouvements').select('*').gte('date_mouvement', mois + '-01').lt('date_mouvement', suivant)
       .order('date_mouvement', { ascending: false }).order('created_at', { ascending: false })
@@ -12721,6 +12798,7 @@ async function loadBoutique() {
   _bt.stockActif = !rp.error && !rm.error;
   const rb = await chargerRestesBoutique().catch(() => ({ actif: false, regl: {}, lignes: [], total: 0 }));
   _bt.creditActif = rb.actif; _bt.regl = rb.regl; _bt.restes = rb.lignes;
+  await chargerPacks();
   const err = rv.error || (!_bt.stockActif ? (rp.error || rm.error) : null);
   document.getElementById('al-boutique').innerHTML = err
     ? `<div class="al al-e">${echapper(/relation|does not exist|schema cache|column/i.test(err.message) ? t('bq.sql_27') : err.message)}</div>` : '';
@@ -12756,7 +12834,7 @@ function renderBoutique() {
   const kb = document.getElementById('bt-k-benef'); kb.textContent = fmtDH2(benef); kb.style.color = benef >= 0 ? 'var(--green)' : 'var(--red)';
   document.getElementById('bt-k-valeur').textContent = fmtDH2(valeur);
   const kr = document.getElementById('bt-k-bas'); kr.textContent = bas; kr.style.color = bas ? 'var(--red)' : 'var(--green)';
-  renderVentes(); renderRestesBoutique(); renderProduits(); renderMouvements(); bvMarge();
+  renderVentes(); renderRestesBoutique(); renderProduits(); renderPacks(); renderSelectPacks(); renderMouvements(); bvMarge();
   if (_bt.onglet === 'bilan') loadBilanBoutique();
   if (_bt.onglet === 'factures' && _bf.liste) renderFactures();
 }
@@ -12827,7 +12905,7 @@ async function reglerVente(id) {
 // ── Ventes ───────────────────────────────────────────────────
 function renderVentes() {
   const q = (document.getElementById('bt-q')?.value || '').toLowerCase().trim();
-  const liste = _bt.ventes.filter(v => !q || `${nomClientVente(v)} ${v.article || ''}`.toLowerCase().includes(q));
+  const liste = _bt.ventes.filter(v => !q || `${nomClientVente(v)} ${v.article || ''} ${v.pack || ''}`.toLowerCase().includes(q));
   const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
   document.getElementById('bv-tb').innerHTML = liste.length ? liste.map(v => {
     const qte = qteVente(v), pv = parseFloat(v.prix_vente) || 0, ret = qte < 0;
@@ -12836,7 +12914,7 @@ function renderVentes() {
     const marque = ret ? ` <span class="badge b-d" style="font-size:9px">↩ ${t('rt.badge')}</span>${v.note ? `<div style="font-size:11px;color:var(--text3)">${echapper(v.note)}</div>` : ''}`
       : rendu ? ` <span class="badge b-w" style="font-size:9px">↩ ${rendu} ${t('rt.retourne')}</span>` : '';
     return `<tr${ret ? ' style="background:rgba(239,68,68,.04)"' : ''}><td>${dateCourte(v.date_vente)}</td><td>${echapper(nomClientVente(v)) || `<span style="color:var(--text3)">${t('bq.passage')}</span>`}</td>
-      <td><strong>${echapper(v.article || '—')}</strong>${libre}${marque}</td><td${ret ? ' style="color:var(--red)"' : ''}>${qte}</td><td>${fmtDH2(pv)}</td><td><strong${ret ? ' style="color:var(--red)"' : ''}>${fmtDH2(qte * pv)}</strong>${resteVente(v) > 0 ? `<div style="font-size:11px;font-weight:700;color:var(--red)">${t('paie.reste')} ${fmtDH2(resteVente(v))}</div>` : ''}</td>
+      <td><strong>${echapper(v.article || '—')}</strong>${libre}${marque}${v.pack ? `<div style="font-size:11px;color:var(--blue-text)">📦 ${echapper(v.pack)}</div>` : ''}</td><td${ret ? ' style="color:var(--red)"' : ''}>${qte}</td><td>${fmtDH2(pv)}</td><td><strong${ret ? ' style="color:var(--red)"' : ''}>${fmtDH2(qte * pv)}</strong>${resteVente(v) > 0 ? `<div style="font-size:11px;font-weight:700;color:var(--red)">${t('paie.reste')} ${fmtDH2(resteVente(v))}</div>` : ''}</td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">${canW && resteVente(v) > 0 ? `<button class="btn btn-sm btn-p" onclick="reglerVente('${v.id}')">💰 ${t('br.regler')}</button>` : ''}<button class="btn btn-sm" onclick="recuVenteListe('${v.id}')" title="${echapper(t('bq.recu_aide'))}">🧾 ${t('bq.recu')}</button>${canW && !ret ? `<button class="btn btn-sm" onclick="ouvrirRetour('${v.id}')" title="${echapper(t('rt.btn_aide'))}">↩ ${t('rt.btn')}</button><button class="btn btn-sm" onclick="editVente('${v.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delVente('${v.id}')">${ret ? t('rt.annuler') : t('msg.suppr')}</button>` : ''}</div></td></tr>`;
   }).join('') : `<tr class="empty-row"><td colspan="7">${t(q ? 'bq.aucune_recherche' : 'bq.aucune_mois')}</td></tr>`;
 }
@@ -12847,7 +12925,7 @@ const bvProduitNom = nom => { const k = cleArticle(nom); return k ? _bt.produits
 function bvLigneHtml(l = {}) {
   const v = x => x === undefined || x === null ? '' : echapper(x);
   return `<div class="bv-ligne">
-    <label class="bvl-c bvl-art"><span class="bvl-lab">${t('bq.article')}</span><input class="bvl-article" list="bv-articles" placeholder="${echapper(t('bq.article_ph'))}" autocomplete="off" value="${v(l.article)}" oninput="bvArticleLigne(this)"><span class="bvl-info"></span></label>
+    <label class="bvl-c bvl-art"><span class="bvl-lab">${t('bq.article')}</span><input class="bvl-article" list="bv-articles" placeholder="${echapper(t('bq.article_ph'))}" autocomplete="off" value="${v(l.article)}" oninput="bvArticleLigne(this)"><span class="bvl-info"></span>${l.pack ? `<span style="display:block;font-size:11px;color:var(--blue-text)">📦 ${v(l.pack)}</span>` : ''}<input class="bvl-pack" type="hidden" value="${v(l.pack)}"></label>
     <label class="bvl-c"><span class="bvl-lab">${t('bq.qte')}</span><input class="bvl-qte" type="number" min="1" step="1" value="${v(l.qte ?? 1)}" oninput="bvMarge()"></label>
     <input class="bvl-achat" type="hidden" value="${v(l.achat)}">
     <label class="bvl-c"><span class="bvl-lab">${t('bq.prix_vente_u')}</span><input class="bvl-vente" type="number" min="0" step="0.01" placeholder="0" value="${v(l.vente)}" oninput="bvMarge()"></label>
@@ -12860,7 +12938,7 @@ function bvLignes() {
   return bvLignesEls().map(el => {
     const val = c => el.querySelector(c).value;
     const article = val('.bvl-article').trim();
-    return { el, article, p: bvProduitNom(article), qte: parseInt(val('.bvl-qte'), 10) || 0,
+    return { el, article, p: bvProduitNom(article), qte: parseInt(val('.bvl-qte'), 10) || 0, pack: el.querySelector('.bvl-pack')?.value || '',
       achat: parseFloat(val('.bvl-achat')) || 0, venteTxt: val('.bvl-vente'), vente: parseFloat(val('.bvl-vente')) || 0 };
   });
 }
@@ -12883,6 +12961,204 @@ function bvAjouterLigne(l, focus = true) {
   box.insertAdjacentHTML('beforeend', bvLigneHtml(l));
   if (focus) box.lastElementChild.querySelector('.bvl-article').focus();
   bvMarge();
+}
+
+// ── Packs par discipline (script 61) ──
+// Un pack = articles du stock [{produit_id, quantite}] vendus ensemble à un prix fixé
+async function chargerPacks() {
+  try {
+    const r = await sb.from('boutique_packs').select('*').order('nom');
+    _bt.packsActif = !r.error; _bt.packs = r.data || [];
+  } catch (_) { _bt.packsActif = false; _bt.packs = []; }
+  if (!SPORTS_CACHE.length) {
+    try { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; } catch (_) {}
+  }
+}
+
+function infoPack(k) {
+  const lignes = (Array.isArray(k.articles) ? k.articles : []).map(a => ({ p: produitDe(a.produit_id), qte: parseInt(a.quantite, 10) || 1 }));
+  const ok = lignes.filter(l => l.p);
+  const separe = ok.reduce((s, l) => s + l.qte * (parseFloat(l.p.prix_vente) || 0), 0);
+  const cout = ok.reduce((s, l) => s + l.qte * (parseFloat(l.p.prix_achat) || 0), 0);
+  const dispo = ok.length ? Math.max(0, Math.min(...ok.map(l => Math.floor(Math.max(l.p.stock || 0, 0) / l.qte)))) : 0;
+  return { lignes, ok, manque: lignes.length - ok.length, separe, cout, dispo, prix: parseFloat(k.prix) || 0 };
+}
+
+// Prix du pack réparti sur ses articles, au prorata de leur prix de vente : total exact au centime
+function repartirPrixPack(k) {
+  const { ok, prix } = infoPack(k);
+  const r2 = x => Math.round(x * 100) / 100;
+  let w = l => l.qte * (parseFloat(l.p.prix_vente) || 0), base = ok.reduce((s, l) => s + w(l), 0);
+  if (base <= 0) { w = l => l.qte * (parseFloat(l.p.prix_achat) || 0); base = ok.reduce((s, l) => s + w(l), 0); }
+  if (base <= 0) { w = l => l.qte; base = ok.reduce((s, l) => s + l.qte, 0); }
+  const res = ok.map(l => ({ p: l.p, qte: l.qte, vente: r2(prix * w(l) / base / l.qte) }));
+  const diff = r2(prix - res.reduce((s, l) => s + l.qte * l.vente, 0));
+  if (diff && res.length) {
+    let i = res.map(l => l.qte).lastIndexOf(1);
+    if (i < 0) { const d = res[res.length - 1]; d.qte -= 1; res.push({ p: d.p, qte: 1, vente: d.vente }); i = res.length - 1; }
+    res[i].vente = r2(res[i].vente + diff);
+  }
+  return res;
+}
+
+function nomsSportsPacks() {
+  return [...new Set([...SPORTS_CACHE.map(x => x.nom), ...(_bt.packs || []).map(k => k.sport)].filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+}
+
+function renderPacks() {
+  const tb = document.getElementById('bk-tb'); if (!tb) return;
+  const canW = PERMS.boutique?.ecrire, canD = PERMS.boutique?.supprimer;
+  const packs = _bt.packs || [];
+  document.getElementById('bk-new').style.display = canW ? '' : 'none';
+  document.getElementById('bk-sql').innerHTML = _bt.packsActif ? '' : `<div class="al al-w">${t('pk.sql_61')}</div>`;
+  const selF = document.getElementById('bk-sport'), avant = selF.value;
+  const nb = sp => packs.filter(k => (k.sport || '') === sp).length;
+  selF.innerHTML = `<option value="">${t('pk.f_toutes')} (${packs.length})</option>`
+    + nomsSportsPacks().map(sp => `<option value="${echapper(sp)}">${echapper(sp)} (${nb(sp)})</option>`).join('')
+    + `<option value="__aucune">${t('pk.sans_discipline')} (${nb('')})</option>`;
+  selF.value = [...selF.options].some(o => o.value === avant) ? avant : '';
+  const f = selF.value;
+  const liste = packs.filter(k => !f || (f === '__aucune' ? !k.sport : k.sport === f));
+  if (!liste.length) { tb.innerHTML = `<tr class="empty-row"><td colspan="6">${t('pk.aucun')}</td></tr>`; return; }
+  const groupes = {};
+  liste.forEach(k => { (groupes[k.sport || ''] = groupes[k.sport || ''] || []).push(k); });
+  const ordre = Object.keys(groupes).sort((a, b) => !a ? 1 : !b ? -1 : a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+  tb.innerHTML = ordre.map(sp => `<tr><td colspan="6" style="background:rgba(37,99,235,.07);font-weight:700">${echapper(sp || t('pk.sans_discipline'))}</td></tr>`
+    + groupes[sp].map(k => {
+      const i = infoPack(k), eco = i.separe - i.prix, archive = k.actif === false;
+      const arts = i.lignes.map(l => l.p
+        ? `${l.qte} × ${echapper(l.p.nom)} <span style="color:${Math.max(l.p.stock || 0, 0) < l.qte ? 'var(--red)' : 'var(--text3)'}">(${t('bq.stock')} ${l.p.stock})</span>`
+        : `<span style="color:var(--red)">${t('pk.article_supprime')}</span>`).join('<br>');
+      const vendre = canW && !archive
+        ? `<button class="btn btn-sm btn-p" onclick="vendrePack('${k.id}')"${i.dispo < 1 ? ` disabled title="${echapper(t('pk.stock_insuffisant'))}"` : ''}>🛒 ${t('pk.vendre')}</button>` : '';
+      return `<tr${archive ? ' style="opacity:.55"' : ''}><td><strong>${echapper(k.nom)}</strong>${archive ? ` <span class="badge b-w" style="font-size:9px">${t('pk.archive')}</span>` : ''}</td>
+        <td style="font-size:12px;line-height:1.5">${arts || '—'}</td>
+        <td>${fmtDH2(i.separe)}</td>
+        <td><strong>${fmtDH2(i.prix)}</strong>${eco > 0.004 ? `<div style="font-size:11px;color:var(--green)">${t('pk.economie')} ${fmtDH2(eco)}</div>` : ''}</td>
+        <td><span class="badge ${i.dispo < 1 ? 'b-d' : i.dispo <= 2 ? 'b-w' : 'b-g'}">${i.dispo}</span></td>
+        <td><div style="display:flex;gap:4px;flex-wrap:wrap">${vendre}${canW ? `<button class="btn btn-sm" onclick="ouvrirPack('${k.id}')">${t('common.modifier')}</button>` : ''}${canD ? `<button class="btn btn-sm btn-d" onclick="delPack('${k.id}')">${t('msg.suppr')}</button>` : ''}</div></td></tr>`;
+    }).join('')).join('');
+}
+
+// Liste des packs dans le formulaire de vente : ceux de la discipline du client en premier
+function renderSelectPacks() {
+  const sel = document.getElementById('bv-pack'); if (!sel) return;
+  const packs = (_bt.packs || []).filter(k => k.actif !== false);
+  sel.style.display = packs.length && !document.getElementById('bv-id').value ? '' : 'none';
+  const cle = cleArticle(document.getElementById('bv-client').value);
+  const c = cle && _bt.clients.find(x => cleArticle(`${x.prenom} ${x.nom}`) === cle);
+  const sportsC = c ? (c.sports || (c.sport ? [c.sport] : [])) : [];
+  const opt = k => { const i = infoPack(k); return `<option value="${k.id}">${echapper(k.nom)} — ${fmtDH2(i.prix)}${i.dispo < 1 ? ' — ' + t('bq.rupture') : ''}</option>`; };
+  const groupes = {};
+  packs.forEach(k => { (groupes[k.sport || ''] = groupes[k.sport || ''] || []).push(k); });
+  const ordre = Object.keys(groupes).sort((a, b) => (sportsC.includes(b) - sportsC.includes(a)) || (!a ? 1 : !b ? -1 : a.localeCompare(b, 'fr', { sensitivity: 'base' })));
+  sel.innerHTML = `<option value="">📦 ${t('pk.ajouter_pack')}</option>`
+    + ordre.map(sp => `<optgroup label="${sportsC.includes(sp) ? '⭐ ' : ''}${echapper(sp || t('pk.sans_discipline'))}">${groupes[sp].map(opt).join('')}</optgroup>`).join('');
+  sel.value = '';
+}
+
+function bvAjouterPack(id) {
+  const sel = document.getElementById('bv-pack'); if (sel) sel.value = '';
+  const k = (_bt.packs || []).find(x => x.id === id); if (!k) return;
+  const lignes = repartirPrixPack(k);
+  if (!lignes.length) { showToast(t('pk.vide'), 'e'); return; }
+  // Lignes vides du formulaire remplacées par les articles du pack
+  bvLignesEls().forEach(el => { if (!el.querySelector('.bvl-article').value.trim() && el.querySelector('.bvl-vente').value === '') el.remove(); });
+  lignes.forEach(l => bvAjouterLigne({ article: l.p.nom, qte: l.qte, achat: l.p.prix_achat, vente: l.vente, pack: k.nom }, false));
+  if (infoPack(k).dispo < 1) showToast(t('pk.stock_insuffisant'), 'e');
+  else showToast(t('pk.ajoute').replace('%s', k.nom), 's');
+}
+
+function vendrePack(id) {
+  if (document.getElementById('bv-id').value) resetVente();
+  boutiqueOnglet('ventes');
+  bvAjouterPack(id);
+  document.getElementById('bv-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function ouvrirPack(id) {
+  if (!_bt.packsActif) { showToast(t('pk.sql_61'), 'e'); return; }
+  const k = id ? (_bt.packs || []).find(x => x.id === id) : null;
+  document.getElementById('bk-titre').textContent = t(k ? 'pk.modifier' : 'pk.nouveau_titre');
+  document.getElementById('bk-id').value = k?.id || '';
+  document.getElementById('bk-nom').value = k?.nom || '';
+  const filtre = document.getElementById('bk-sport').value;
+  const sp = k ? (k.sport || '') : (filtre && filtre !== '__aucune' ? filtre : '');
+  document.getElementById('bk-sport-f').innerHTML = `<option value="">${t('pk.sans_discipline')}</option>`
+    + nomsSportsPacks().map(x => `<option value="${echapper(x)}">${echapper(x)}</option>`).join('');
+  document.getElementById('bk-sport-f').value = sp;
+  const elP = document.getElementById('bk-prix');
+  elP.value = k ? (parseFloat(k.prix) || 0) : ''; elP.dataset.touche = k ? '1' : '';
+  document.getElementById('bk-actif').value = String(k ? k.actif !== false : true);
+  document.getElementById('bk-lignes').innerHTML = '';
+  const arts = Array.isArray(k?.articles) && k.articles.length ? k.articles : [{}];
+  arts.forEach(a => document.getElementById('bk-lignes').insertAdjacentHTML('beforeend', bkLigneHtml(a)));
+  bkResume();
+  document.getElementById('bk-modal').classList.add('open');
+  if (!k) document.getElementById('bk-nom').focus();
+}
+
+function bkLigneHtml(a = {}) {
+  const prods = _bt.produits.filter(p => p.actif !== false || p.id === a.produit_id);
+  return `<div class="bk-ligne" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+    <select class="bkl-p" onchange="bkResume()" style="flex:1;min-width:0"><option value="">${t('pk.choisir_article')}</option>${prods.map(p => `<option value="${p.id}"${p.id === a.produit_id ? ' selected' : ''}>${echapper(p.nom)} — ${fmtDH2(parseFloat(p.prix_vente) || 0)} (${t('bq.stock')} ${p.stock})</option>`).join('')}</select>
+    <input class="bkl-q" type="number" min="1" step="1" value="${parseInt(a.quantite, 10) || 1}" oninput="bkResume()" style="width:70px" title="${echapper(t('bq.qte'))}">
+    <button type="button" class="btn btn-sm btn-d" title="${echapper(t('bq.retirer'))}" onclick="this.closest('.bk-ligne').remove();bkResume()">✕</button></div>`;
+}
+function bkAjouterLigne() { document.getElementById('bk-lignes').insertAdjacentHTML('beforeend', bkLigneHtml()); bkResume(); }
+function bkArticles() {
+  return [...document.querySelectorAll('#bk-lignes .bk-ligne')]
+    .map(el => ({ produit_id: el.querySelector('.bkl-p').value, quantite: parseInt(el.querySelector('.bkl-q').value, 10) || 0 }))
+    .filter(a => a.produit_id);
+}
+function bkResume() {
+  const arts = bkArticles(), elP = document.getElementById('bk-prix');
+  const i0 = infoPack({ articles: arts, prix: 0 });
+  if (!elP.dataset.touche) elP.value = arts.length ? Math.round(i0.separe * 100) / 100 : '';   // proposé : somme des articles
+  const prix = parseFloat(elP.value) || 0, eco = i0.separe - prix, marge = prix - i0.cout;
+  document.getElementById('bk-resume').innerHTML = arts.length
+    ? `${t('pk.prix_separe')} : <b>${fmtDH2(i0.separe)}</b> · `
+      + (eco > 0.004 ? `${t('pk.economie')} : <b style="color:var(--green)">${fmtDH2(eco)}</b> · ` : eco < -0.004 ? `<b style="color:var(--amber-text)">${t('pk.plus_cher')}</b> · ` : '')
+      + `${t('pk.marge')} : <b style="color:${marge >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtDH2(marge)}</b> · ${t('pk.disponibles')} : <b>${i0.dispo}</b>`
+    : `<span style="color:var(--text3)">${t('pk.ajoutez_articles')}</span>`;
+}
+
+async function savePack() {
+  const id = document.getElementById('bk-id').value;
+  const nom = document.getElementById('bk-nom').value.trim().replace(/\s+/g, ' ');
+  if (!nom) { showToast(t('pk.nom_requis'), 'e'); document.getElementById('bk-nom').focus(); return; }
+  if ((_bt.packs || []).some(k => k.id !== id && cleArticle(k.nom) === cleArticle(nom))) { showToast(t('pk.nom_existe'), 'e'); return; }
+  const arts = bkArticles();
+  if (!arts.length) { showToast(t('pk.vide'), 'e'); return; }
+  if (arts.some(a => a.quantite < 1)) { showToast(t('bq.qte_invalide'), 'e'); return; }
+  const fus = {};   // même article choisi deux fois : quantités additionnées
+  arts.forEach(a => { fus[a.produit_id] = (fus[a.produit_id] || 0) + a.quantite; });
+  const prixTxt = document.getElementById('bk-prix').value, prix = parseFloat(prixTxt);
+  if (prixTxt === '' || !(prix >= 0)) { showToast(t('pk.prix_requis'), 'e'); document.getElementById('bk-prix').focus(); return; }
+  const obj = { nom, sport: document.getElementById('bk-sport-f').value || null, prix: Math.round(prix * 100) / 100,
+    articles: Object.entries(fus).map(([produit_id, quantite]) => ({ produit_id, quantite })),
+    actif: document.getElementById('bk-actif').value === 'true' };
+  const btn = document.getElementById('bk-save'); btn.disabled = true;
+  const res = id ? await sb.from('boutique_packs').update(obj).eq('id', id).select('id')
+                 : await sb.from('boutique_packs').insert(obj).select('id');
+  btn.disabled = false;
+  if (res.error) { showToast(/relation|schema cache|column|does not exist/i.test(res.error.message) ? t('pk.sql_61') : res.error.message, 'e'); return; }
+  if (!res.data?.length) { showToast(t('pk.non_enregistre'), 'e'); return; }
+  await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `Pack ${nom}${obj.sport ? ' (' + obj.sport + ')' : ''} — ${fmtDH2(obj.prix)}`);
+  showToast(t('msg.saved'), 's');
+  document.getElementById('bk-modal').classList.remove('open');
+  await chargerPacks(); renderPacks(); renderSelectPacks();
+}
+
+async function delPack(id) {
+  const k = (_bt.packs || []).find(x => x.id === id); if (!k) return;
+  if (!confirm(t('pk.suppr_confirm').replace('%s', k.nom))) return;
+  const { data, error } = await sb.from('boutique_packs').delete().eq('id', id).select('id');
+  if (error) { showToast(error.message, 'e'); return; }
+  if (!data?.length) { showToast(t('pk.non_enregistre'), 'e'); return; }
+  await logAudit('DELETE', 'boutique', `Pack ${k.nom}`);
+  await chargerPacks(); renderPacks(); renderSelectPacks();
 }
 
 function bvRetirerLigne(btn) {
@@ -12940,6 +13216,7 @@ function resetVente() {
   document.getElementById('bv-titre').textContent = t('bq.nouvelle');
   document.getElementById('bv-annuler').style.display = 'none';
   bvAjouterLigne(undefined, false);
+  renderSelectPacks();
 }
 
 function editVente(id) {
@@ -12949,6 +13226,7 @@ function editVente(id) {
   document.getElementById('bv-date').value = v.date_vente;
   document.getElementById('bv-lignes').innerHTML = '';
   document.getElementById('bv-ajouter').style.display = 'none';   // une modification porte sur une seule ligne de vente
+  document.getElementById('bv-pack').style.display = 'none';
   document.getElementById('bv-titre').textContent = t('bq.modifier');
   document.getElementById('bv-annuler').style.display = '';
   bvAjouterLigne({ article: (produitDe(v.produit_id)?.nom) || v.article || '', qte: qteVente(v), achat: v.prix_achat, vente: v.prix_vente }, false);
@@ -12986,7 +13264,8 @@ async function saveVente() {
     article: l.p ? l.p.nom : l.article,
     prix_achat: l.achat,
     prix_vente: l.vente,
-    ...(_bt.stockActif ? { produit_id: l.p ? l.p.id : null, quantite: l.qte } : {})
+    ...(_bt.stockActif ? { produit_id: l.p ? l.p.id : null, quantite: l.qte } : {}),
+    ...(l.pack && !id ? { pack: l.pack } : {})
   }));
   const total = lignes.reduce((a, l) => a + l.qte * l.vente, 0);
   // Montant payé : moins que le total = reste à payer (script 57), réparti sur les articles dans l'ordre
@@ -13004,7 +13283,7 @@ async function saveVente() {
   const res = id ? await sb.from('ventes').update(objs[0]).eq('id', id)
                  : await sb.from('ventes').insert(objs).select('id,created_at,created_by');
   btn.disabled = false;
-  if (res.error) { showToast(/montant_paye/.test(res.error.message) ? t('br.sql_57') : /produit_id|quantite|schema cache|relation/i.test(res.error.message) ? t('bq.sql_27') : res.error.message, 'e'); return; }
+  if (res.error) { showToast(/'pack'|\bpack\b/.test(res.error.message) ? t('pk.sql_61') : /montant_paye/.test(res.error.message) ? t('br.sql_57') : /produit_id|quantite|schema cache|relation/i.test(res.error.message) ? t('bq.sql_27') : res.error.message, 'e'); return; }
   await logAudit(id ? 'UPDATE' : 'CREATE', 'boutique', `${lignes.map(l => `${l.qte} × ${l.p ? l.p.nom : l.article}`).join(', ')} — ${fmtDH2(total)}${nomClient ? ' — ' + nomClient : ''}`);
   showToast(t(id ? 'bq.modifiee' : 'bq.enregistree'), 's');
   resetVente();
@@ -13123,7 +13402,7 @@ async function ouvrirRecuVente(rows) {
     numero: (retour ? 'RT' : 'V') + numeroRecuVente(quand).slice(1), date: v0.date_vente, client, passage: !c, vendeur, retour,
     ref: orig?.created_at && !isNaN(new Date(orig.created_at)) ? numeroRecuVente(new Date(orig.created_at)) : '',
     dateVente: orig?.date_vente || '', motif: retour ? (v0.note || '') : '',
-    lignes: rows.map(v => ({ article: v.article || '-', qte: Math.abs(qteVente(v)), pu: parseFloat(v.prix_vente) || 0 }))
+    lignes: rows.map(v => ({ article: (v.article || '-') + (v.pack ? ` (${v.pack})` : ''), qte: Math.abs(qteVente(v)), pu: parseFloat(v.prix_vente) || 0 }))
   };
   r.total = r.lignes.reduce((a, l) => a + l.qte * l.pu, 0);
   r.nb = r.lignes.reduce((a, l) => a + l.qte, 0);
