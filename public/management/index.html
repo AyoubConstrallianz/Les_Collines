@@ -2900,10 +2900,15 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
       <button class="btn btn-sm" onclick="document.getElementById('fi-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
     </div>
     <div id="fi-alerte"></div>
+    <datalist id="fi-clients"></datalist>
     <div class="g3">
+      <div class="fg"><label data-i18n="fi.famille">Famille</label><select id="fi-famille-sel" onchange="fiChoixFamille()"></select></div>
       <div class="fg"><label data-i18n="fm.nom_famille">Nom de la famille</label><input id="fi-nom" placeholder="Famille …" data-i18n-ph="fm.nom_famille_ph"></div>
       <div class="fg"><label data-i18n="clients.date_insc">Date d'inscription</label><input id="fi-date" type="date"></div>
-      <div class="fg"><label data-i18n="fm.tel_commun">Téléphone (commun)</label><input id="fi-tel" placeholder="06 00 00 00 00"></div>
+    </div>
+    <div class="g3">
+      <div class="fg"><label data-i18n="fm.tel_commun">Téléphone (commun)</label><input id="fi-tel" placeholder="06 00 00 00 00">
+        <div style="font-size:11px;color:var(--text3);margin-top:3px" data-i18n="fi.tel_aide">Pour les nouveaux membres seulement</div></div>
     </div>
     <div class="g3">
       <div class="fg"><label data-i18n="clients.formule">Formule</label><select id="fi-formule" onchange="fiRecalculer()">
@@ -2915,11 +2920,15 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
       <div class="fg" style="justify-content:flex-end;gap:4px">
         <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="fi-avec-inscr" checked onchange="fiRecalculer()" style="width:auto"> <span data-i18n="paie.frais_inscr">Frais d'inscription</span></label>
         <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="fi-avec-assur" checked onchange="fiRecalculer()" style="width:auto"> <span data-i18n="paie.frais_assur">Assurance</span></label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="fi-sans-paie" onchange="fiRecalculer()" style="width:auto"> <span data-i18n="fi.sans_paie">Regrouper sans encaisser</span></label>
       </div>
     </div>
     <div class="ct" style="font-size:13px;margin:6px 0" data-i18n="fm.membres">Membres de la famille</div>
     <div id="fi-membres"></div>
-    <button type="button" class="btn btn-sm" onclick="fiAjouterMembre()" style="margin:4px 0 12px" data-i18n="fm.ajouter_membre">+ Ajouter un membre</button>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 12px">
+      <button type="button" class="btn btn-sm" onclick="fiAjouterMembre()" data-i18n="fm.ajouter_membre">+ Ajouter un membre</button>
+      <button type="button" class="btn btn-sm" onclick="fiAjouterMembre('existant')" data-i18n="fi.ajouter_existant">+ Ajouter un adhérent existant</button>
+    </div>
     <div id="fi-recap" style="overflow-x:auto"></div>
     <div class="btns" style="margin-top:12px"><button class="btn btn-p" onclick="saveInscriptionFamille()" id="fi-valider" data-i18n="fm.inscrire">Inscrire la famille et encaisser</button><button class="btn" onclick="document.getElementById('fi-modal').classList.remove('open')" data-i18n="common.annuler">Annuler</button></div>
   </div>
@@ -2967,6 +2976,30 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
     <p style="font-size:12px;color:var(--text2);margin-bottom:10px" data-i18n="frc.aide">Un paiement « Payer la famille » fait une seule facture pour toute la famille ; les autres encaissements ont un reçu par membre.</p>
     <div style="overflow:auto;max-height:60vh"><table id="frc-table"></table></div>
     <div class="btns" style="margin-top:12px"><button class="btn" onclick="document.getElementById('frc-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button></div>
+  </div>
+</div>
+
+<!-- ══ MODAL RELEVÉ GROUPÉ D'UNE FAMILLE ════════════════════ -->
+<div class="mo" id="frl-modal">
+  <div class="mo-box" style="max-width:920px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:.5rem">
+      <div class="mo-title" style="margin-bottom:0" id="frl-titre"></div>
+      <button class="btn btn-sm" onclick="document.getElementById('frl-modal').classList.remove('open')" style="font-size:18px;padding:2px 10px;line-height:1">&times;</button>
+    </div>
+    <div id="frl-membres" class="fi-sports" style="margin-bottom:10px"></div>
+    <div class="toolbar" style="flex-wrap:wrap;gap:6px;align-items:center">
+      <span style="font-size:12px;color:var(--text2)" data-i18n="filtre.du">Du</span> <input id="frl-du" type="date" onchange="afficherReleveFamille()" style="width:auto">
+      <span style="font-size:12px;color:var(--text2)" data-i18n="filtre.au">au</span> <input id="frl-au" type="date" onchange="afficherReleveFamille()" style="width:auto">
+      <button class="btn btn-sm" onclick="document.getElementById('frl-du').value='';document.getElementById('frl-au').value='';afficherReleveFamille()" data-i18n="rel.tout">Tous les paiements</button>
+      <button class="btn btn-sm" onclick="const an=new Date().getFullYear();document.getElementById('frl-du').value=an+'-01-01';document.getElementById('frl-au').value=an+'-12-31';afficherReleveFamille()" data-i18n="rel.annee">Cette année</button>
+    </div>
+    <div style="overflow:auto;max-height:46vh;border:1px solid var(--border);border-radius:var(--r)"><table id="frl-table"></table></div>
+    <div id="frl-totaux" style="margin-top:10px"></div>
+    <div class="mo-footer">
+      <button class="btn" onclick="document.getElementById('frl-modal').classList.remove('open')" data-i18n="common.fermer">Fermer</button>
+      <button class="btn" onclick="imprimerReleveFamilleTicket()" data-i18n="rel.imprimer">🖨️ Imprimer (ticket 75 mm)</button>
+      <button class="btn btn-p" onclick="pdfReleveFamille()" data-i18n="frl.pdf">📄 Relevé PDF (A4)</button>
+    </div>
   </div>
 </div>
 
@@ -3987,6 +4020,33 @@ const I18N = {
     "fm.deplacer_confirm": "%s fait partie de « %a ».\nLe déplacer dans « %b » ?",
     "fm.ajoute": "%s ajouté(e) à la famille",
     "fm.btn_inscription": "+ Inscription famille",
+    "fi.famille": "Famille",
+    "fi.nouvelle": "➕ Nouvelle famille",
+    "fi.membres_n": "membre(s)",
+    "fi.tel_aide": "Pour les nouveaux membres seulement",
+    "fi.sans_paie": "Regrouper sans encaisser",
+    "fi.sans_paie_info": "Aucun encaissement : les adhérents sont seulement regroupés dans la famille. Les paiements se feront ensuite avec « Payer la famille ».",
+    "fi.ajouter_existant": "+ Ajouter un adhérent existant",
+    "fi.ajout_membres": "+ Ajouter des membres",
+    "fi.nouveau": "Nouveau",
+    "fi.existant": "Adhérent existant",
+    "fi.existant_badge": "existant",
+    "fi.adherent": "Adhérent",
+    "fi.deja_membre": "Déjà dans la famille",
+    "fi.discipline_requise": "choisissez au moins une discipline",
+    "fi.doublon": "Le même adhérent est ajouté deux fois",
+    "fi.aucun_membre": "Ajoutez au moins un membre",
+    "fi.deplacer_confirm": "Ces adhérents font déjà partie d'une autre famille :\n%s\n\nLes déplacer dans « %b » ?",
+    "fi.enregistrer": "Enregistrer la famille (sans encaissement)",
+    "fi.regroupee": "Famille « %s » enregistrée : %n membres",
+    "frl.btn": "📄 Relevé groupé",
+    "frl.titre": "Relevé groupé",
+    "frl.pdf": "📄 Relevé PDF (A4)",
+    "frl.facture": "Facture groupée",
+    "frl.membre": "Membre",
+    "frl.par_membre": "Total par membre",
+    "frl.total_famille": "Total famille",
+    "frl.aucun_membre": "Cochez au moins un membre",
     "fm.inscription_titre": "Inscription famille (pack famille)",
     "fm.nom_famille": "Nom de la famille",
     "fm.nom_famille_ph": "Ex : Famille ALAOUI",
@@ -14918,56 +14978,166 @@ function famillePreviewForm() {
 }
 
 // ── Inscription famille ──
-function ouvrirInscriptionFamille() {
-  if (!SPORTS_CACHE.length) { sb.from('sports').select('*').order('nom').then(({ data }) => { SPORTS_CACHE = data || []; ouvrirInscriptionFamille(); }); return; }
+// Chaque membre est un nouvel adhérent (fiche créée) ou un adhérent existant (rattaché à la famille).
+// La famille peut être nouvelle ou déjà enregistrée : ses membres actifs sont alors repris automatiquement.
+let _fi = { choix: {}, clients: [] };
+const fiLibClient = c => `${c.prenom || ''} ${c.nom || ''}`.trim() + (c.telephone ? ' — ' + c.telephone : '')
+  + (c.numero_adherent ? ' — N° ' + String(c.numero_adherent).padStart(4, '0') : '');
+const fiSportsDe = c => (c?.sports?.length ? c.sports : (c?.sport ? [c.sport] : []));
+
+async function ouvrirInscriptionFamille(fid) {
+  if (!SPORTS_CACHE.length) { const { data } = await sb.from('sports').select('*').order('nom'); SPORTS_CACHE = data || []; }
   loadParametres().then(() => fiRecalculer());
+  await chargerFamilles();
   document.getElementById('fi-alerte').innerHTML = _fam.ok ? '' : `<div class="al al-e">${t('fm.sql_33')}</div>`;
-  document.getElementById('fi-nom').value = '';
+  // Adhérents existants proposés dans la recherche
+  const { data } = await fetchAllRows(() => sb.from('clients').select('id,prenom,nom,telephone,numero_adherent,famille_id,sports,sport,statut').order('id'));
+  _fi.clients = (data || []).sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr', { sensitivity: 'base' }));
+  _fi.choix = {};
+  document.getElementById('fi-clients').innerHTML = _fi.clients.map(c => {
+    let lib = fiLibClient(c);
+    if (_fi.choix[lib]) lib += ` (ADH-${c.id.substring(0, 8).toUpperCase()})`;   // homonymes
+    _fi.choix[lib] = c; c._lib = lib;
+    return `<option value="${echapper(lib)}">`;
+  }).join('');
+  const sel = document.getElementById('fi-famille-sel');
+  sel.innerHTML = `<option value="">${t('fi.nouvelle')}</option>`
+    + _fam.familles.map(f => `<option value="${f.id}">${echapper(f.nom)} (${membresFamille(f.id).length} ${t('fi.membres_n')})</option>`).join('');
+  sel.value = fid && _fam.familles.some(f => f.id === fid) ? fid : '';
+  const nom = document.getElementById('fi-nom'); nom.value = ''; nom.readOnly = false; nom.dataset.auto = '';
   document.getElementById('fi-tel').value = '';
   document.getElementById('fi-date').value = today();
   document.getElementById('fi-formule').value = 'Mensualité';
+  document.getElementById('fi-sans-paie').checked = false;
   document.getElementById('fi-recu').value = stockage.get('recu_famille_mode') === 'individuel' ? 'individuel' : 'famille';
   document.getElementById('fi-membres').innerHTML = '';
-  fiAjouterMembre(); fiAjouterMembre();
+  if (sel.value) fiChoixFamille(); else { fiAjouterMembre(); fiAjouterMembre(); }
   document.getElementById('fi-modal').classList.add('open');
 }
 
-function fiAjouterMembre() {
+// Famille déjà enregistrée choisie : son nom, et ses membres actifs repris en tête de liste
+function fiChoixFamille() {
+  const fid = document.getElementById('fi-famille-sel').value, nom = document.getElementById('fi-nom');
+  const zone = document.getElementById('fi-membres');
+  zone.querySelectorAll('.fi-membre[data-deja]').forEach(d => d.remove());
+  zone.querySelectorAll('.fi-membre').forEach(d => { if (fiLigneVide(d)) d.remove(); });
+  if (fid) {
+    nom.value = nomFamille(fid); nom.readOnly = true;
+    const actuels = membresFamille(fid).filter(membreActif);
+    actuels.slice().reverse().forEach(m => {
+      const d = fiAjouterMembre('existant', _fi.clients.find(c => c.id === m.id) || m, true);
+      zone.insertBefore(d, zone.firstChild);
+    });
+    if (!zone.children.length) fiAjouterMembre('existant');
+  } else {
+    nom.readOnly = false; nom.value = ''; nom.dataset.auto = '';
+    while (zone.children.length < 2) fiAjouterMembre();
+  }
+  fiRenumeroter(); fiRecalculer();
+}
+const fiLigneVide = d => d.dataset.type === 'existant' ? !d.dataset.cid
+  : !d.querySelector('.fi-prenom').value.trim() && !d.querySelector('.fi-nomm').value.trim() && !d.querySelector('.fi-sports input:checked');
+
+function fiAjouterMembre(type = 'nouveau', client = null, deja = false) {
   const zone = document.getElementById('fi-membres'), n = zone.children.length + 1;
   const d = document.createElement('div');
-  d.className = 'fi-membre';
+  d.className = 'fi-membre'; d.dataset.type = type;
+  if (deja) d.dataset.deja = '1';
   d.innerHTML = `<div class="fi-membre-tete"><strong>${t('fm.membre')} ${n}</strong>
-      <button type="button" class="btn btn-sm" onclick="this.closest('.fi-membre').remove();fiRenumeroter();fiRecalculer()" title="${t('fm.retirer')}">&times;</button></div>
-    <div class="g3" style="margin-bottom:6px">
+      <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        ${deja ? `<span class="badge b-i" style="font-size:10px">${t('fi.deja_membre')}</span>`
+          : `<span class="plan-vues fi-type" style="margin:0"><button type="button" data-v="nouveau" onclick="fiType(this)">${t('fi.nouveau')}</button><button type="button" data-v="existant" onclick="fiType(this)">${t('fi.existant')}</button></span>`}
+        <button type="button" class="btn btn-sm" onclick="this.closest('.fi-membre').remove();fiRenumeroter();fiRecalculer()" title="${t('fm.retirer')}">&times;</button></span></div>
+    <div class="g3 fi-nouveau" style="margin-bottom:6px">
       <div class="fg"><label>${t('clients.prenom')}</label><input class="fi-prenom" oninput="fiRecalculer()"></div>
       <div class="fg"><label>${t('clients.nom')}</label><input class="fi-nomm" oninput="fiNomAuto(this);fiRecalculer()"></div>
       <div class="fg"><label>${t('clients.sexe')}</label><select class="fi-sexe"><option value="Homme">${t('clients.homme')}</option><option value="Femme">${t('clients.femme')}</option></select></div>
     </div>
+    <div class="fi-existant" style="margin-bottom:6px">
+      <div class="fg" style="margin-bottom:0"><label>${t('fi.adherent')}</label><input class="fi-recherche" list="fi-clients" autocomplete="off" placeholder="${echapper(t('fm.recherche_client_ph'))}" oninput="fiChoixClient(this)" ${deja ? 'disabled' : ''}></div>
+      <div class="fi-info" style="font-size:12px;min-height:16px;margin-top:3px"></div>
+    </div>
     <div class="fi-sports">${SPORTS_CACHE.map(s => `<label><input type="checkbox" value="${echapper(s.nom)}" onchange="fiRecalculer()"> ${echapper(s.nom)}</label>`).join('')}</div>`;
   zone.appendChild(d);
+  fiType(null, d, type);
+  if (client) { const inp = d.querySelector('.fi-recherche'); inp.value = client._lib || fiLibClient(client); fiChoixClient(inp, client); }
+  else if (type === 'existant') d.querySelector('.fi-recherche').focus();
+  fiRecalculer();
+  return d;
+}
+
+// Bascule « Nouveau » / « Adhérent existant » d'une ligne
+function fiType(btn, d, v) {
+  d = d || btn.closest('.fi-membre'); v = v || btn.dataset.v;
+  d.dataset.type = v;
+  d.querySelectorAll('.fi-type button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  d.querySelector('.fi-nouveau').style.display = v === 'nouveau' ? '' : 'none';
+  d.querySelector('.fi-existant').style.display = v === 'existant' ? '' : 'none';
+  if (btn) { if (v === 'existant') d.querySelector('.fi-recherche').focus(); fiRecalculer(); }
+}
+
+// Adhérent existant choisi : ses disciplines sont cochées (modifiables)
+function fiChoixClient(input, client) {
+  const d = input.closest('.fi-membre'), c = client || _fi.choix[input.value] || null;
+  const fid = document.getElementById('fi-famille-sel').value, info = d.querySelector('.fi-info');
+  d.dataset.cid = c ? c.id : ''; d._client = c;
+  if (!input.value.trim()) info.innerHTML = '';
+  else if (!c) info.innerHTML = `<span style="color:var(--red)">${t('fm.client_introuvable')}</span>`;
+  else {
+    const autre = c.famille_id && c.famille_id !== fid;
+    const ok = `✓ ${echapper(`${c.prenom} ${c.nom}`)}${c.numero_adherent ? ' · N° ' + String(c.numero_adherent).padStart(4, '0') : ''}${c.statut && c.statut !== 'Actif' ? ' · ' + echapper(c.statut) : ''}`;
+    info.innerHTML = autre ? `<span style="color:var(--amber-text)">${t('fm.deja_famille').replace('%s', echapper(nomFamille(c.famille_id)))}</span>`
+      : `<span style="color:var(--green-text)">${ok}</span>`;
+    const sp = fiSportsDe(c);
+    d.querySelectorAll('.fi-sports input').forEach(i => { i.checked = sp.includes(i.value); });
+    d.dataset.sportsAvant = JSON.stringify(sp);
+    const champ = document.getElementById('fi-nom');
+    if (!champ.readOnly && (!champ.value.trim() || champ.dataset.auto === '1')) fiNomAuto({ value: c.nom || '' });
+  }
   fiRecalculer();
 }
+
 function fiRenumeroter() { document.querySelectorAll('#fi-membres .fi-membre-tete strong').forEach((el, i) => { el.textContent = `${t('fm.membre')} ${i + 1}`; }); }
 // Nom de la famille proposé à partir du nom du premier membre
 function fiNomAuto(input) {
   const champ = document.getElementById('fi-nom');
+  if (champ.readOnly) return;
   if (!champ.value.trim() || champ.dataset.auto === '1') { champ.value = input.value.trim() ? `${t('fm.famille')} ${formatNom(input.value)}` : ''; champ.dataset.auto = '1'; }
 }
 
 function fiMembres() {
-  return [...document.querySelectorAll('#fi-membres .fi-membre')].map(d => ({
-    prenom: d.querySelector('.fi-prenom').value.trim(), nom: d.querySelector('.fi-nomm').value.trim(),
-    sexe: d.querySelector('.fi-sexe').value, sports: [...d.querySelectorAll('.fi-sports input:checked')].map(i => i.value)
-  }));
+  return [...document.querySelectorAll('#fi-membres .fi-membre')].map(d => {
+    const sports = [...d.querySelectorAll('.fi-sports input:checked')].map(i => i.value);
+    if (d.dataset.type === 'existant') {
+      const c = d.dataset.cid ? d._client : null;
+      return { existant: true, deja: !!d.dataset.deja, c, prenom: c?.prenom || '', nom: c?.nom || '', sports, sportsAvant: JSON.parse(d.dataset.sportsAvant || '[]') };
+    }
+    return { existant: false, prenom: d.querySelector('.fi-prenom').value.trim(), nom: d.querySelector('.fi-nomm').value.trim(),
+      sexe: d.querySelector('.fi-sexe').value, sports };
+  });
+}
+// Membres comptés pour le tarif famille : ceux du formulaire + les autres membres actifs de la famille choisie
+function fiNbFamille(membres) {
+  const fid = document.getElementById('fi-famille-sel')?.value;
+  const ids = new Set(membres.filter(m => m.existant && m.c).map(m => m.c.id));
+  return membres.length + (fid ? membresFamille(fid).filter(c => membreActif(c) && !ids.has(c.id)).length : 0);
 }
 
 // Montants de l'inscription famille : pour chaque poste, « À payer » (calculé) et « Payé » (suit « À payer »
 // tant qu'il n'est pas saisi à la main). Payé inférieur : le reste est suivi dans « Restes à payer » (montant_du).
+// Adhérent existant : pas de frais d'inscription proposés (modifiables).
 const FI_POSTES = ['abo', 'ins', 'ass'];
 function fiRecalculer() {
   const zone = document.getElementById('fi-recap'); if (!zone) return;
   const membres = fiMembres(), formule = document.getElementById('fi-formule').value;
-  const famille = membres.length >= 2;
+  const nb = fiNbFamille(membres), famille = nb >= 2;
+  const sansPaie = document.getElementById('fi-sans-paie').checked;
+  document.getElementById('fi-valider').textContent = t(sansPaie ? 'fi.enregistrer' : 'fm.inscrire');
+  if (sansPaie) {
+    zone.innerHTML = `<div class="al al-i" style="margin-bottom:8px;font-size:12px">${t('fi.sans_paie_info')}</div>`
+      + `<div class="al ${famille ? 'al-s' : 'al-i'}" style="font-size:12px">${famille ? t('fm.tarif_famille_ok').replace('%n', nb) : t('fm.tarif_famille_min')}</div>`;
+    return;
+  }
   const avecInscr = document.getElementById('fi-avec-inscr').checked, avecAssur = document.getElementById('fi-avec-assur').checked;
   // Valeurs saisies à la main conservées tant que le montant calculé du poste ne change pas
   const avant = [...zone.querySelectorAll('tbody tr')].map(tr => Object.fromEntries(FI_POSTES.map(k => {
@@ -14983,14 +15153,14 @@ function fiRecalculer() {
   };
   const lignes = membres.map((m, i) => {
     const abo = montantAbonnement(m.sports, formule, famille);
-    const ins = m.sports.reduce((a, s) => Math.max(a, parseFloat(SPORTS_CACHE.find(x => x.nom === s)?.tarif_inscription) || 0), 0);
+    const ins = m.existant ? 0 : m.sports.reduce((a, s) => Math.max(a, parseFloat(SPORTS_CACHE.find(x => x.nom === s)?.tarif_inscription) || 0), 0);
     const ass = montantAssurance() || 0;
-    return `<tr><td><strong>${echapper(`${formatPrenom(m.prenom)} ${formatNom(m.nom)}`.trim()) || `${t('fm.membre')} ${i + 1}`}</strong><div style="font-size:11px;color:var(--text3)">${echapper(m.sports.join(', ')) || '—'}</div></td>
+    return `<tr><td><strong>${echapper(`${formatPrenom(m.prenom)} ${formatNom(m.nom)}`.trim()) || `${t('fm.membre')} ${i + 1}`}</strong>${m.existant ? ` <span class="badge b-i" style="font-size:9px">${t('fi.existant_badge')}</span>` : ''}<div style="font-size:11px;color:var(--text3)">${echapper(m.sports.join(', ')) || '—'}</div></td>
       ${cellules(i, 'abo', abo, true)}${cellules(i, 'ins', ins, avecInscr)}${cellules(i, 'ass', ass, avecAssur)}
       <td class="fi-tot" style="font-weight:700;white-space:nowrap"></td><td class="fi-reste" style="font-weight:700;white-space:nowrap;color:var(--red)"></td></tr>`;
   }).join('');
   const sous = `<th style="font-size:10px">${t('reste.a_payer')}</th><th style="font-size:10px">${t('fm.paye')}</th>`;
-  zone.innerHTML = `<div class="al ${famille ? 'al-s' : 'al-i'}" style="margin-bottom:8px;font-size:12px">${famille ? t('fm.tarif_famille_ok').replace('%n', membres.length) : t('fm.tarif_famille_min')}</div>
+  zone.innerHTML = `<div class="al ${famille ? 'al-s' : 'al-i'}" style="margin-bottom:8px;font-size:12px">${famille ? t('fm.tarif_famille_ok').replace('%n', nb) : t('fm.tarif_famille_min')}</div>
     <table class="tbl-compacte"><thead><tr><th rowspan="2">${t('fm.membre')}</th><th colspan="2" style="text-align:center">${t('clients.abonnement')}</th><th colspan="2" style="text-align:center">${t('paie.frais_inscr')}</th><th colspan="2" style="text-align:center">${t('paie.frais_assur')}</th><th rowspan="2">${t('fm.paye')}</th><th rowspan="2">${t('paie.reste')}</th></tr>
     <tr>${sous}${sous}${sous}</tr></thead>
     <tbody>${lignes}</tbody><tfoot><tr><td colspan="7" style="text-align:end;font-weight:800">${t('fm.total_famille')}</td><td id="fi-total-gen" style="font-weight:800;white-space:nowrap"></td><td id="fi-reste-gen" style="font-weight:800;white-space:nowrap;color:var(--red)"></td></tr></tfoot></table>`;
@@ -15023,33 +15193,69 @@ function fiTotal() {
 
 async function saveInscriptionFamille() {
   const membres = fiMembres();
-  const nom = document.getElementById('fi-nom').value.trim();
+  const fidExistant = document.getElementById('fi-famille-sel').value;
+  const nom = fidExistant ? nomFamille(fidExistant) : document.getElementById('fi-nom').value.trim();
   if (!nom) { showToast(t('fm.nom_requis'), 'e'); return; }
-  if (membres.length < 2) { showToast(t('fm.deux_membres'), 'e'); return; }
-  const incomplet = membres.findIndex(m => !m.prenom || !m.nom || !m.sports.length);
-  if (incomplet >= 0) { showToast(`${t('fm.membre')} ${incomplet + 1} : ${t('fm.membre_incomplet')}`, 'e'); return; }
+  if (!membres.length) { showToast(t('fi.aucun_membre'), 'e'); return; }
+  if (fiNbFamille(membres) < 2) { showToast(t('fm.deux_membres'), 'e'); return; }
+  for (let i = 0; i < membres.length; i++) {
+    const m = membres[i], pre = `${t('fm.membre')} ${i + 1} : `;
+    if (m.existant && !m.c) { showToast(pre + t('fm.client_introuvable'), 'e'); return; }
+    if (!m.existant && (!m.prenom || !m.nom || !m.sports.length)) { showToast(pre + t('fm.membre_incomplet'), 'e'); return; }
+    if (m.existant && !m.sports.length) { showToast(pre + t('fi.discipline_requise'), 'e'); return; }
+  }
+  const idsExistants = membres.filter(m => m.existant).map(m => m.c.id);
+  if (new Set(idsExistants).size !== idsExistants.length) { showToast(t('fi.doublon'), 'e'); return; }
+  const aDeplacer = membres.filter(m => m.existant && m.c.famille_id && m.c.famille_id !== fidExistant);
+  if (aDeplacer.length && !confirm(t('fi.deplacer_confirm').replace('%s', aDeplacer.map(m => `• ${m.c.prenom} ${m.c.nom} (${nomFamille(m.c.famille_id)})`).join('\n')).replace('%b', nom))) return;
+  const sansPaie = document.getElementById('fi-sans-paie').checked;
   const formule = document.getElementById('fi-formule').value, mode = document.getElementById('fi-mode').value;
   const date = document.getElementById('fi-date').value || today(), tel = document.getElementById('fi-tel').value.trim() || null;
   const unRecu = document.getElementById('fi-recu').value !== 'individuel', codeFam = nouveauCodeGroupe();
-  const montants = [...document.querySelectorAll('#fi-recap tbody tr')].map(fiMontantsLigne);
+  const montants = sansPaie ? [] : [...document.querySelectorAll('#fi-recap tbody tr')].map(fiMontantsLigne);
   const btn = document.getElementById('fi-valider'); btn.disabled = true;
   try {
-    const { data: fam, error: e1 } = await sb.from('familles').insert({ nom }).select().single();
-    if (e1) throw new Error(/relation|schema cache|familles/i.test(e1.message) ? t('fm.sql_33') : e1.message);
-    const { data: crees, error: e2 } = await sb.from('clients').insert(membres.map(m => ({
-      prenom: formatPrenom(m.prenom), nom: formatNom(m.nom), sexe: m.sexe, sports: m.sports, sport: m.sports[0],
-      telephone: tel, date_inscription: date, statut: 'Actif', famille_id: fam.id, famille_actif: true, updated_at: new Date().toISOString()
-    }))).select();
-    if (e2) { await sb.from('familles').delete().eq('id', fam.id); throw new Error(e2.message); }
+    let fam;
+    if (fidExistant) fam = { id: fidExistant };
+    else {
+      const { data, error: e1 } = await sb.from('familles').insert({ nom }).select().single();
+      if (e1) throw new Error(/relation|schema cache|familles/i.test(e1.message) ? t('fm.sql_33') : e1.message);
+      fam = data;
+    }
+    // Nouveaux adhérents : fiches créées
+    const nouveaux = membres.filter(m => !m.existant);
+    let crees = [];
+    if (nouveaux.length) {
+      const { data, error: e2 } = await sb.from('clients').insert(nouveaux.map(m => ({
+        prenom: formatPrenom(m.prenom), nom: formatNom(m.nom), sexe: m.sexe, sports: m.sports, sport: m.sports[0],
+        telephone: tel, date_inscription: date, statut: 'Actif', famille_id: fam.id, famille_actif: true, updated_at: new Date().toISOString()
+      }))).select();
+      if (e2) { if (!fidExistant) await sb.from('familles').delete().eq('id', fam.id); throw new Error(e2.message); }
+      crees = data || [];
+    }
+    // Adhérents existants : rattachés à la famille (disciplines mises à jour seulement si elles ont changé)
+    const erreurs = [];
+    for (const m of membres.filter(x => x.existant)) {
+      const maj = { famille_id: fam.id, famille_actif: true, updated_at: new Date().toISOString() };
+      const avant = m.sportsAvant.filter(s => SPORTS_CACHE.some(x => x.nom === s));
+      if (avant.length !== m.sports.length || avant.some(s => !m.sports.includes(s))) { maj.sports = m.sports; maj.sport = m.sports[0]; }
+      if (m.deja && !maj.sports) continue;   // déjà dans cette famille, rien à changer
+      const { error } = await sb.from('clients').update(maj).eq('id', m.c.id);
+      if (error) erreurs.push(`${m.c.prenom} : ${/famille_/.test(error.message) ? t('fm.sql_33') : error.message}`);
+      else Object.assign(m.c, maj);
+    }
+    // Clients dans l'ordre du formulaire (même ordre que le tableau des montants)
+    let k = 0;
+    const clientsOrdre = membres.map(m => m.existant ? m.c : crees[k++]).filter(Boolean);
     // Un encaissement (et un reçu) par membre : abonnement au tarif famille + inscription + assurance
     // Un reçu pour la famille = facture groupée (même code dans la note) ; sinon un reçu par membre
     const note = unRecu ? `${t('fam.badge')} — ${nom} · Facture groupée ${codeFam} · payé par ${nom}` : `${t('fam.badge')} — ${nom}`;
-    let nbRecus = 0, erreurs = [], zeroRefuse = false;
+    let nbRecus = 0, zeroRefuse = false;
     const idsRecus = [];
     // Montant payé ; s'il est inférieur au montant à payer, le reste est suivi (montant_du, script 39)
     const ligneM = (type, x) => x && (x.paye > 0 || x.du > 0) && { type, montant: x.paye, ...(x.du > x.paye ? { montant_du: x.du } : {}) };
-    for (let i = 0; i < crees.length; i++) {
-      const m = montants[i] || {}, c = crees[i];
+    for (let i = 0; i < clientsOrdre.length && !sansPaie; i++) {
+      const m = montants[i] || {}, c = clientsOrdre[i];
       let lignes = [ligneM(formule, m.abo), ligneM('Inscription', m.ins), ligneM('Assurance', m.ass)]
         .filter(Boolean).map(l => ({ ...l, client_id: c.id, date_paiement: date, mode, note, created_by: ME.id }));
       if (!lignes.length) continue;
@@ -15063,9 +15269,10 @@ async function saveInscriptionFamille() {
       if (r.error) erreurs.push(`${c.prenom} : ${/montant_du/.test(r.error.message) ? t('paie.sql_partiel') : r.error.message}`); else { nbRecus++; idsRecus.push(r.ids); }
     }
     if (zeroRefuse) showToast(t('inscr.zero_refuse'), 'e');
-    await logAudit('CREATE', 'clients', `Inscription famille ${nom} : ${crees.length} membres`);
+    await logAudit(fidExistant ? 'UPDATE' : 'CREATE', 'clients', `Inscription famille ${nom} : ${crees.length} nouveau(x), ${idsExistants.length} adhérent(s) existant(s)${sansPaie ? ', sans encaissement' : ''}`);
     if (erreurs.length) showToast(erreurs.join(' · '), 'e');
-    else showToast(unRecu ? t('rc.inscrite_famille').replace('%n', crees.length) : t('fm.inscrite').replace('%n', crees.length).replace('%r', nbRecus), 's');
+    else if (sansPaie || !idsRecus.length) showToast(t('fi.regroupee').replace('%s', nom).replace('%n', fiNbFamille(membres)), 's');
+    else showToast(unRecu ? t('rc.inscrite_famille').replace('%n', clientsOrdre.length) : t('fm.inscrite').replace('%n', clientsOrdre.length).replace('%r', nbRecus), 's');
     document.getElementById('fi-modal').classList.remove('open');
     if (idsRecus.length) { if (unRecu) ouvrirRecu(idsRecus.flat()); else ouvrirRecusEnSuite(idsRecus); }
     await chargerFamilles();
@@ -15301,6 +15508,7 @@ async function afficherFamilleFiche(c, idx) {
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
       ${canPay ? `<button class="btn btn-sm btn-p" onclick="document.getElementById('client-fiche-modal').classList.remove('open');ouvrirPaiementFamille('${c.famille_id}')">${t('fm.payer_famille')}</button>` : ''}
       ${canW ? `<button class="btn btn-sm" onclick="ouvrirAjoutMembre('${c.famille_id}')">${t('fm.ajout_existant')}</button>` : ''}
+      <button class="btn btn-sm" onclick="document.getElementById('client-fiche-modal').classList.remove('open');ouvrirReleveFamille('${c.famille_id}')">${t('frl.btn')}</button>
       ${canW ? (membreActif(moi)
         ? `<button class="btn btn-sm btn-d" onclick="changerAbonnementMembre('${c.id}', false, ${idx})">${t('fm.arreter')}</button>`
         : `<button class="btn btn-sm" onclick="changerAbonnementMembre('${c.id}', true, ${idx})">${t('fm.reprendre')}</button>`) : ''}
@@ -15384,6 +15592,7 @@ function renderFamillesListe() {
       <td><div style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="ouvrirDetailsFamille('${x.f.id}')">${t('fd.details')}</button>
         <button class="btn btn-sm" onclick="ouvrirRecusFamille('${x.f.id}')">${t('frc.btn')}</button>
+        <button class="btn btn-sm" onclick="ouvrirReleveFamille('${x.f.id}')">${t('frl.btn')}</button>
         ${canPay && x.actifs.length ? `<button class="btn btn-sm btn-p" onclick="ouvrirPaiementFamille('${x.f.id}')">${t('fm.payer_famille')}</button>` : ''}
         ${canW ? `<button class="btn btn-sm" onclick="ouvrirAjoutMembre('${x.f.id}')">${t('pf.ajout_membre')}</button>` : ''}
       </div></td></tr>`).join('')
@@ -15512,9 +15721,245 @@ async function ouvrirDetailsFamille(fid) {
   document.getElementById('fd-actions').innerHTML = `
     ${canPay && actifs.length ? `<button class="btn btn-p" onclick="document.getElementById('fd-modal').classList.remove('open');ouvrirPaiementFamille('${fid}')">${t('fm.payer_famille')}</button>` : ''}
     ${canW ? `<button class="btn" onclick="document.getElementById('fd-modal').classList.remove('open');ouvrirAjoutMembre('${fid}')">${t('pf.ajout_membre')}</button>` : ''}
+    ${canW ? `<button class="btn" onclick="document.getElementById('fd-modal').classList.remove('open');ouvrirInscriptionFamille('${fid}')">${t('fi.ajout_membres')}</button>` : ''}
     <button class="btn" onclick="document.getElementById('fd-modal').classList.remove('open');ouvrirRecusFamille('${fid}')">${t('frc.btn')}</button>
+    <button class="btn" onclick="document.getElementById('fd-modal').classList.remove('open');ouvrirReleveFamille('${fid}')">${t('frl.btn')}</button>
     <button class="btn" onclick="document.getElementById('fd-modal').classList.remove('open')">${t('common.fermer')}</button>`;
   document.getElementById('fd-modal').classList.add('open');
+}
+
+// ── Relevé groupé d'une famille : toutes les transactions de tous les membres, sur une période ──
+let _frl = { fid: null, nom: '', membres: [], paies: [] };
+async function ouvrirReleveFamille(fid) {
+  await chargerFamilles();
+  const f = _fam.familles.find(x => x.id === fid); if (!f) return;
+  const membres = membresFamille(fid), ids = membres.map(m => m.id);
+  let paies = [], infos = [];
+  if (ids.length) {
+    const [rp, rc] = await Promise.all([
+      fetchAllRows(() => sb.from('paiements').select('*').in('client_id', ids).order('id')),
+      sb.from('clients').select('id,prenom,nom,numero_adherent,sports,sport').in('id', ids)
+    ]);
+    if (rp.error) showToast(rp.error.message, 'e');
+    paies = rp.data || []; infos = rc.data || [];
+  }
+  _frl = { fid, nom: f.nom, paies,
+    membres: membres.map(m => ({ ...m, ...(infos.find(x => x.id === m.id) || {}) }))
+      .sort((a, b) => `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`, 'fr', { sensitivity: 'base' })) };
+  document.getElementById('frl-titre').textContent = `${t('frl.titre')} — ${f.nom}`;
+  document.getElementById('frl-membres').innerHTML = _frl.membres.map(m =>
+    `<label><input type="checkbox" class="frl-m" value="${m.id}" checked onchange="afficherReleveFamille()"> ${echapper(`${m.prenom} ${m.nom}`)}${membreActif(m) ? '' : ` <span style="color:var(--text3)">(${t('fm.arrete')})</span>`}</label>`).join('');
+  document.getElementById('frl-du').value = '';
+  document.getElementById('frl-au').value = '';
+  afficherReleveFamille();
+  document.getElementById('frl-modal').classList.add('open');
+}
+
+// Lignes du relevé groupé (membres cochés, période choisie), de la plus ancienne à la plus récente
+function lignesReleveFamille() {
+  const coches = new Set([...document.querySelectorAll('#frl-membres .frl-m:checked')].map(i => i.value));
+  const du = document.getElementById('frl-du').value, au = document.getElementById('frl-au').value;
+  const parId = {}; _frl.paies.forEach(x => { parId[x.id] = x; });
+  const membreDe = id => _frl.membres.find(m => m.id === id) || {};
+  const sportsDe = m => (m.sports?.length ? m.sports : (m.sport ? [m.sport] : []));
+  const noteDe = x => {
+    const code = codeGroupe(x.note); if (code) return `${t('frl.facture')} ${code}`;
+    const n = String(x.note || '');
+    return n && n !== "Frais d'inscription" && !/^Assurance/.test(n) && !n.startsWith(t('fam.badge')) ? n : '';
+  };
+  const lignes = _frl.paies.filter(x => coches.has(x.client_id) && (!du || (x.date_paiement || '') >= du) && (!au || (x.date_paiement || '') <= au))
+    .sort((a, b) => (a.date_paiement || '').localeCompare(b.date_paiement || '') || (a.created_at || '').localeCompare(b.created_at || ''))
+    .map(x => {
+      const m = membreDe(x.client_id), sp = sportsDe(m);
+      return { date: x.date_paiement, mid: x.client_id, membre: `${m.prenom || ''} ${m.nom || ''}`.trim() || '—',
+        numero: x.numero_recu || '', mode: x.mode || '', note: noteDe(x), montant: parseFloat(x.montant) || 0,
+        libelle: x.type === 'Complément' ? `${t('paie.t_complement')}${parId[x.reste_de] ? ' — ' + libelleEncaissement(parId[x.reste_de], sp) : ''}` : libelleEncaissement(x, sp) };
+    });
+  const resteDe = paies => Object.values(calculerRestes(paies)).reduce((a, r) => a + (r.reste || 0), 0);
+  const parMembre = _frl.membres.filter(m => coches.has(m.id)).map(m => {
+    const l = lignes.filter(x => x.mid === m.id);
+    return { m, n: l.length, total: l.reduce((a, x) => a + x.montant, 0), reste: resteDe(_frl.paies.filter(x => x.client_id === m.id)) };
+  });
+  const periode = du && au ? `Du ${dateFr(du)} au ${dateFr(au)}` : du ? `Depuis le ${dateFr(du)}` : au ? `Jusqu'au ${dateFr(au)}` : 'Tous les paiements';
+  return { lignes, du, au, periode, parMembre, total: lignes.reduce((a, l) => a + l.montant, 0), restes: parMembre.reduce((a, x) => a + x.reste, 0) };
+}
+
+function afficherReleveFamille() {
+  const { lignes, parMembre, total, restes } = lignesReleveFamille();
+  const e = s => echapper(s ?? '');
+  const modeTr = { 'Espèces': t('paie.m_especes'), 'Virement': t('paie.m_virement'), 'Chèque': t('paie.m_cheque') };
+  document.getElementById('frl-table').innerHTML = `<thead><tr><th>${t('common.date')}</th><th>${t('frl.membre')}</th><th>${t('fiche.n_recu')}</th><th>${t('fiche.libelle')}</th><th>${t('paie.mode')}</th><th style="text-align:end">${t('paie.montant')}</th></tr></thead>
+    <tbody>${lignes.length ? lignes.map(l => `<tr><td style="white-space:nowrap">${dateFr(l.date)}</td><td style="font-weight:600">${e(l.membre)}</td>
+      <td style="white-space:nowrap;color:var(--text2)">${e(l.numero) || '—'}</td>
+      <td>${e(l.libelle)}${l.note ? `<div style="font-size:11px;color:var(--text3)">${e(l.note)}</div>` : ''}</td><td>${e(modeTr[l.mode] || l.mode || '—')}</td>
+      <td style="text-align:end;white-space:nowrap;font-weight:600;color:var(--green)">${fmt(l.montant)}</td></tr>`).join('')
+      : `<tr class="empty-row"><td colspan="6">${t('rel.vide')}</td></tr>`}</tbody>`;
+  document.getElementById('frl-totaux').innerHTML = parMembre.length ? `<table class="tbl-compacte" style="margin-left:auto;width:auto;min-width:360px">
+    <thead><tr><th>${t('frl.par_membre')}</th><th style="text-align:center">${t('rel.paiements')}</th><th style="text-align:end">${t('fm.paye')}</th><th style="text-align:end">${t('paie.reste')}</th></tr></thead>
+    <tbody>${parMembre.map(x => `<tr><td>${e(`${x.m.prenom} ${x.m.nom}`)}</td><td style="text-align:center">${x.n}</td><td style="text-align:end;white-space:nowrap">${fmt(x.total)}</td>
+      <td style="text-align:end;white-space:nowrap;color:var(--red)">${x.reste > 0 ? fmt(x.reste) : '—'}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td style="font-weight:800">${t('frl.total_famille')}</td><td style="text-align:center;font-weight:800">${lignes.length}</td>
+      <td style="text-align:end;font-weight:800;white-space:nowrap;color:var(--green)">${fmt(total)}</td><td style="text-align:end;font-weight:800;white-space:nowrap;color:var(--red)">${restes > 0 ? fmt(restes) : '—'}</td></tr></tfoot></table>`
+    : `<div class="al al-w" style="margin:0">${t('frl.aucun_membre')}</div>`;
+}
+
+// Relevé groupé en PDF A4 (en-tête du reçu, tableau de toutes les transactions, totaux par membre)
+async function pdfReleveFamille() {
+  if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  const R = lignesReleveFamille();
+  if (!R.parMembre.length) { showToast(t('frl.aucun_membre'), 'e'); return; }
+  if (!R.lignes.length) { showToast(t('rel.vide'), 'e'); return; }
+  // Polices standard du PDF : pas de flèche « → »
+  const px = s => String(s ?? '').replace(/\s*→\s*/g, ' au ');
+  R.lignes = R.lignes.map(l => ({ ...l, libelle: px(l.libelle), note: px(l.note), membre: px(l.membre) }));
+  const onglet = window.open('', '_blank');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, H = 297, M = 15, bas = H - 20;
+  const bleu = [37, 99, 235], gris = [100, 116, 139], noir = [15, 23, 42], rouge = [220, 38, 38];
+  const maint = new Date(), imprime = `${dateFr(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
+
+  // En-tête association
+  const logo = await chargerLogoRecu();
+  if (logo) doc.addImage(logo, 'PNG', M, 12, 22, 22);
+  const xT = logo ? M + 27 : M;
+  doc.setTextColor(...noir); doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.text(RECU_ASSO.nom, xT, 18.5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...gris);
+  doc.text(RECU_ASSO.adresse, xT, 24); doc.text(`Tél. ${RECU_ASSO.tel}  |  ${RECU_ASSO.email}`, xT, 28.5);
+  doc.setTextColor(...bleu); doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+  doc.text('RELEVÉ DES PAIEMENTS', W - M, 18.5, { align: 'right' });
+  doc.setTextColor(...noir); doc.setFontSize(10); doc.text(`Famille : ${_frl.nom}`, W - M, 25, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...gris);
+  doc.text(`${R.periode}  ·  imprimé le ${imprime}`, W - M, 35, { align: 'right' });
+  doc.setDrawColor(...bleu); doc.setLineWidth(0.6); doc.line(M, 39, W - M, 39);
+
+  // Membres concernés
+  const membresTxt = R.parMembre.map(x => {
+    const num = x.m.numero_adherent ? ` (N° ${String(x.m.numero_adherent).padStart(4, '0')})` : '';
+    const sp = x.m.sports?.length ? x.m.sports : (x.m.sport ? [x.m.sport] : []);
+    return `${x.m.prenom} ${x.m.nom}${num}${sp.length ? ' — ' + sp.join(', ') : ''}`;
+  });
+  doc.setFontSize(9); const lm = membresTxt.flatMap(s => doc.splitTextToSize(s, W - 2 * M - 10));
+  const hB = 11 + lm.length * 4.6;
+  doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2);
+  doc.roundedRect(M, 44, W - 2 * M, hB, 2, 2, 'FD');
+  doc.setFontSize(8); doc.setTextColor(...gris); doc.text(`MEMBRES (${R.parMembre.length})`, M + 5, 50);
+  doc.setFontSize(9.5); doc.setTextColor(...noir); doc.text(lm, M + 5, 55.5, { lineHeightFactor: 1.35 });
+  let y = 44 + hB + 7;
+
+  // Tableau des transactions
+  const C = [{ t: 'Date', x: M + 2, w: 19 }, { t: 'Membre', x: M + 22, w: 33 }, { t: 'N° reçu', x: M + 56, w: 24 },
+    { t: 'Libellé', x: M + 81, w: 62 }, { t: 'Mode', x: M + 144, w: 17 }];
+  const xMnt = W - M - 2;
+  const entete = () => {
+    doc.setFillColor(...bleu); doc.rect(M, y, W - 2 * M, 8, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+    C.forEach(c => doc.text(c.t, c.x, y + 5.4)); doc.text('Montant', xMnt, y + 5.4, { align: 'right' });
+    y += 8; doc.setFont('helvetica', 'normal');
+  };
+  entete();
+  R.lignes.forEach((l, i) => {
+    doc.setFontSize(8.5);
+    const mem = doc.splitTextToSize(l.membre, C[1].w - 1), lib = doc.splitTextToSize(l.libelle, C[3].w - 1);
+    doc.setFontSize(7.5); const note = l.note ? doc.splitTextToSize(l.note, C[3].w - 1) : [];
+    const h = Math.max(mem.length, lib.length + note.length * 0.85) * 3.9 + 3.4;
+    if (y + h > bas) { doc.addPage(); y = 18; entete(); }
+    if (i % 2) { doc.setFillColor(248, 250, 252); doc.rect(M, y, W - 2 * M, h, 'F'); }
+    const yb = y + 4.6;
+    doc.setFontSize(8.5); doc.setTextColor(...noir);
+    doc.text(dateFr(l.date), C[0].x, yb);
+    doc.setFont('helvetica', 'bold'); doc.text(mem, C[1].x, yb); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...gris); doc.text(doc.splitTextToSize(l.numero || '—', C[2].w - 1)[0], C[2].x, yb);
+    doc.setTextColor(...noir); doc.text(lib, C[3].x, yb);
+    if (note.length) { doc.setFontSize(7.5); doc.setTextColor(...gris); doc.text(note, C[3].x, yb + lib.length * 3.9); doc.setFontSize(8.5); }
+    doc.setTextColor(...gris); doc.text(l.mode || '—', C[4].x, yb);
+    doc.setTextColor(...noir); doc.setFont('helvetica', 'bold'); doc.text(montantPdf(l.montant), xMnt, yb, { align: 'right' }); doc.setFont('helvetica', 'normal');
+    y += h;
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.15); doc.line(M, y, W - M, y);
+  });
+
+  // Totaux par membre et total de la famille
+  const hTot = 14 + R.parMembre.length * 6 + 26;
+  if (y + hTot > bas) { doc.addPage(); y = 18; } else y += 8;
+  const xN = W - M - 72, xP = W - M - 30, xR = W - M - 2;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...gris);
+  doc.text('TOTAL PAR MEMBRE', M, y); doc.text('Paiements', xN, y, { align: 'center' }); doc.text('Payé', xP, y, { align: 'right' }); doc.text('Reste', xR, y, { align: 'right' });
+  y += 2; doc.setDrawColor(...noir); doc.setLineWidth(0.3); doc.line(M, y, W - M, y); y += 5;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+  R.parMembre.forEach(x => {
+    doc.setTextColor(...noir); doc.text(`${x.m.prenom} ${x.m.nom}`, M, y); doc.text(String(x.n), xN, y, { align: 'center' });
+    doc.text(montantPdf(x.total), xP, y, { align: 'right' });
+    doc.setTextColor(...(x.reste > 0 ? rouge : gris)); doc.text(x.reste > 0 ? montantPdf(x.reste) : '—', xR, y, { align: 'right' });
+    y += 6;
+  });
+  doc.setFillColor(239, 246, 255); doc.rect(M, y - 1, W - 2 * M, 10, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...bleu);
+  doc.text('TOTAL PAYÉ PAR LA FAMILLE', M + 3, y + 5.6); doc.text(String(R.lignes.length), xN, y + 5.6, { align: 'center' });
+  doc.text(montantPdf(R.total), xP, y + 5.6, { align: 'right' });
+  doc.setTextColor(...(R.restes > 0 ? rouge : gris)); doc.text(R.restes > 0 ? montantPdf(R.restes) : '—', xR, y + 5.6, { align: 'right' });
+  y += 16;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...noir);
+  doc.text(doc.splitTextToSize(`Arrêté le présent relevé à la somme de : ${montantEnLettres(R.total)}.`, W - 2 * M), M, y);
+  if (R.restes > 0) { doc.setTextColor(...rouge); doc.text(`Reste à payer : ${montantPdf(R.restes)}.`, M, y + 5.5); }
+
+  const n = doc.getNumberOfPages();
+  for (let k = 1; k <= n; k++) {
+    doc.setPage(k);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.2); doc.line(M, H - 13, W - M, H - 13);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...gris);
+    doc.text(`${RECU_ASSO.nom} - ${RECU_ASSO.adresse}`, M, H - 8.5);
+    doc.text(`Page ${k} / ${n}`, W - M, H - 8.5, { align: 'right' });
+  }
+  doc.setProperties({ title: `Relevé famille ${_frl.nom}`, author: RECU_ASSO.nom });
+  const url = URL.createObjectURL(doc.output('blob'));
+  if (onglet) onglet.location.href = url;
+  else doc.save(`releve-${_frl.nom.replace(/[^\w-]+/g, '-')}.pdf`);
+  logAudit('PRINT', 'paiements', `Relevé groupé ${_frl.nom} — ${R.periode} (${R.lignes.length} paiement(s), ${R.parMembre.length} membre(s))`);
+}
+
+// Relevé groupé sur ticket 75 mm
+function imprimerReleveFamilleTicket() {
+  const R = lignesReleveFamille();
+  if (!R.parMembre.length) { showToast(t('frl.aucun_membre'), 'e'); return; }
+  if (!R.lignes.length) { showToast(t('rel.vide'), 'e'); return; }
+  const e = s => echapper(s ?? ''), mt = v => montantPdf(v);
+  const maint = new Date(), imprime = `${dateFr(isoLocal(maint))} ${String(maint.getHours()).padStart(2, '0')}:${String(maint.getMinutes()).padStart(2, '0')}`;
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Relevé famille</title><style>
+    @page { size: 75mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: #000; }
+    body { width: 75mm; padding: 5mm 3.5mm 0; font: 11px/1.5 Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { display: block; width: 100%; margin: 0 auto 3mm; }
+    .c { text-align: center; } .pt { font-size: .85em; }
+    .sep { border-top: 1px dashed #000; margin: 3mm 0; }
+    .titre { font-size: 1.25em; font-weight: 800; letter-spacing: .5px; }
+    .kv { display: flex; justify-content: space-between; gap: 2mm; } .kv b { text-align: right; white-space: nowrap; }
+    .li { padding: 1mm 0; border-bottom: 1px dotted #999; }
+    .total { display: flex; justify-content: space-between; font-size: 1.25em; font-weight: 900; padding: .5mm 0; }
+    .avance { white-space: pre; line-height: 1.6; text-align: center; }
+  </style></head><body>
+    <img class="logo" src="${location.origin}/images/logo-ticket.png" alt="">
+    <div class="c pt">${e(RECU_ASSO.adresse)}<br>Tél. ${e(RECU_ASSO.tel)}</div>
+    <div class="sep"></div>
+    <div class="c titre">RELEVÉ FAMILLE</div>
+    <div class="c"><b>${e(_frl.nom)}</b></div>
+    <div class="c pt">${e(R.periode)}</div>
+    <div class="kv pt"><span>Imprimé le</span><span>${imprime}</span></div>
+    <div class="sep"></div>
+    ${R.lignes.map(l => `<div class="li"><div class="kv"><span><b>${dateFr(l.date)}</b> · ${e(l.membre)}</span><b>${mt(l.montant)}</b></div>
+      <div class="pt">${e(l.libelle)}${l.numero ? ` · ${e(l.numero)}` : ''}${l.mode ? ` · ${e(l.mode)}` : ''}</div></div>`).join('')}
+    <div class="sep"></div>
+    ${R.parMembre.map(x => `<div class="kv"><span>${e(`${x.m.prenom} ${x.m.nom}`)}</span><b>${mt(x.total)}</b></div>${x.reste > 0 ? `<div class="kv pt"><span>&nbsp;&nbsp;reste à payer</span><span>${mt(x.reste)}</span></div>` : ''}`).join('')}
+    <div class="sep"></div>
+    <div class="kv pt"><span>Nombre de paiements</span><span>${R.lignes.length}</span></div>
+    <div class="total"><span>TOTAL PAYÉ</span><span>${mt(R.total)}</span></div>
+    ${R.restes > 0 ? `<div class="total"><span>RESTE À PAYER</span><span>${mt(R.restes)}</span></div>` : ''}
+    <div class="sep"></div>
+    <div class="c pt">Merci de votre confiance !</div>
+    <div class="avance">\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.</div>
+  </body></html>`;
+  imprimerThermique(html);
+  logAudit('PRINT', 'paiements', `Relevé groupé ${_frl.nom} — ${R.periode} (ticket, ${R.lignes.length})`);
 }
 
 // ════════════════════════════════════════════════════════════
