@@ -3834,6 +3834,8 @@ const I18N = {
     "fin.associes_court": "Versements / avances associés",
     "fin.versements_assoc": "Versements associés (bénéfice, capital)",
     "fin.avances_assoc": "Avances associés en cours",
+    "db.sj_dont_avances": "dont avances associés",
+    "db.sj_dont_retours": "dont avances remboursées",
     "fin.caisse_sub": "Tous les encaissements (espèces, virements, chèques) et la boutique, moins les charges, les salaires et les versements / avances des associés. Paiements d'avance compris.",
     "fin.voir_detail": "Voir le détail de ce mois",
     "fin.a_venir": "à venir",
@@ -5493,6 +5495,8 @@ const I18N = {
     "fin.associes_court": "دفعات / تسبيقات الشركاء",
     "fin.versements_assoc": "دفعات الشركاء (الربح، رأس المال)",
     "fin.avances_assoc": "تسبيقات الشركاء الجارية",
+    "db.sj_dont_avances": "منها تسبيقات الشركاء",
+    "db.sj_dont_retours": "منها تسبيقات مستردة",
     "fin.caisse_sub": "كل المداخيل (نقداً، تحويلات، شيكات) والمتجر، ناقص التكاليف والأجور ودفعات / تسبيقات الشركاء. بما فيها الأداءات المسبقة.",
     "fin.voir_detail": "عرض تفاصيل هذا الشهر",
     "fin.a_venir": "قادم",
@@ -16767,6 +16771,14 @@ async function openBilanMensuel() {
   await chargerBilan();
 }
 
+// Avances des associés (prises / remboursées) entre deux dates — vide si le compte ne voit pas les associés ou si la table manque
+async function avancesAssocies(du, au) {
+  if (!PERMS.associes?.lire) return [];
+  const r = await fetchAllRows(() => sb.from('versements_associes').select('id,montant,date_versement,nature,mode,note,created_at,associe_id,associes(prenom,nom)')
+    .in('nature', ['Avance', 'Retour avance']).gte('date_versement', du).lte('date_versement', au).order('id')).catch(() => ({ data: [] }));
+  return r.error ? [] : r.data || [];
+}
+
 // ── Solde du jour (tableau de bord) : même calcul que le Rapport journalier pour aujourd'hui ──
 // Entrées = paiements enregistrés aujourd'hui + ventes boutique du jour ; sorties = charges du jour + salaires enregistrés aujourd'hui
 async function loadSoldeJour() {
@@ -16785,12 +16797,18 @@ async function loadSoldeJour() {
   const ch = x => parseFloat(x.montant) || 0;   // charge négative = remboursement (retour fournisseur) : entrée
   const rrj = await fetchAllRows(() => sb.from('ventes_reglements').select('id,montant').eq('date_reglement', auj).order('id')).catch(() => ({ data: [] }));
   // Boutique : montant payé le jour de la vente (script 57) + règlements de restes reçus aujourd'hui
-  const entrees = som(rp, x => parseFloat(x.montant) || 0) + som(rv, x => mv(x) > 0 ? payeVente(x) : 0) + som(rrj, x => parseFloat(x.montant) || 0) + som(rc, x => Math.max(0, -ch(x)));
-  const sorties = som(rc, x => Math.max(0, ch(x))) + som(rs, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, -mv(x)));
+  const entrees0 = som(rp, x => parseFloat(x.montant) || 0) + som(rv, x => mv(x) > 0 ? payeVente(x) : 0) + som(rrj, x => parseFloat(x.montant) || 0) + som(rc, x => Math.max(0, -ch(x)));
+  // Avances des associés prises aujourd'hui (sortie) et avances remboursées aujourd'hui (entrée) : comptes qui voient les associés
+  const ra = await avancesAssocies(auj, auj);
+  const avPrises = ra.filter(x => x.nature === 'Avance').reduce((a, x) => a + (parseFloat(x.montant) || 0), 0);
+  const avRendues = ra.filter(x => x.nature === 'Retour avance').reduce((a, x) => a + (parseFloat(x.montant) || 0), 0);
+  const entrees = entrees0 + avRendues;
+  const sorties = som(rc, x => Math.max(0, ch(x))) + som(rs, x => parseFloat(x.montant) || 0) + som(rv, x => Math.max(0, -mv(x))) + avPrises;
   const solde = entrees - sorties;
   el.textContent = fmt(solde);
   el.style.color = solde < 0 ? 'var(--red)' : solde > 0 ? 'var(--green)' : 'var(--text3)';
-  sub.innerHTML = `${t('db.sj_entrees')} : <b style="color:var(--green-text);white-space:nowrap">${fmt(entrees)}</b><br>${t('db.sj_sorties')} : <b style="color:var(--red-text);white-space:nowrap">${fmt(sorties)}</b><br>${t('db.sj_detail')}`;
+  const dont = (v, cle) => v ? ` <span style="font-size:11px;color:var(--text3);white-space:nowrap">(${t(cle)} ${fmt(v)})</span>` : '';
+  sub.innerHTML = `${t('db.sj_entrees')} : <b style="color:var(--green-text);white-space:nowrap">${fmt(entrees)}</b>${dont(avRendues, 'db.sj_dont_retours')}<br>${t('db.sj_sorties')} : <b style="color:var(--red-text);white-space:nowrap">${fmt(sorties)}</b>${dont(avPrises, 'db.sj_dont_avances')}<br>${t('db.sj_detail')}`;
 }
 
 // ── Rapport journalier : entrées, sorties et solde jour par jour ──
@@ -16883,6 +16901,13 @@ async function chargerRapportJour() {
       quoi: estAvance(x) ? t('av.avance_sur_salaire') : `${t('rj.salaire')} ${x.mois ? nomMoisFin(x.mois) : ''}`.trim(), mode: x.mode || '',
       note: estAvance(x) ? `${x.detail.nb_mois || 1} ${t('av.mois')}` : x.detail?.retenues?.length ? `${t('av.retenue')} ${fmt(x.detail.retenues.reduce((a, r) => a + (parseFloat(r.montant) || 0), 0))}` : '', montant: v });
   });
+  // Avances des associés : avance prise = sortie, avance remboursée = entrée (au jour du versement)
+  (await avancesAssocies(du, au)).forEach(x => {
+    const v = parseFloat(x.montant) || 0, o = jour(x.date_versement); if (!v) return;
+    const ligne = { heure: heure(x.created_at), qui: `${x.associes?.prenom || ''} ${x.associes?.nom || ''}`.trim() || '—', mode: x.mode || 'Espèces', note: x.note || '', montant: v };
+    if (x.nature === 'Retour avance') { o.entrees += v; o.lignesE.push({ ...ligne, quoi: t('vs.nat_retour') }); }
+    else { o.sorties += v; o.avances = (o.avances || 0) + v; o.lignesS.push({ ...ligne, quoi: t('vs.nat_avance') }); }
+  });
   Object.values(J).forEach(o => { o.lignesE.sort((a, b) => a.heure.localeCompare(b.heure)); o.lignesS.sort((a, b) => a.heure.localeCompare(b.heure)); });
   _rj = { jours: J, ouvert: Object.keys(J).length === 1 ? Object.keys(J)[0] : null, du, au, parSaisie };
   afficherRapportJour();
@@ -16890,11 +16915,11 @@ async function chargerRapportJour() {
 function rjBasculer(k) { _rj.ouvert = _rj.ouvert === k ? null : k; afficherRapportJour(); }
 function afficherRapportJour() {
   const J = _rj.jours, jours = Object.keys(J).sort().reverse();
-  const tot = jours.reduce((a, k) => ({ e: a.e + J[k].entrees, s: a.s + J[k].sorties, b: a.b + (J[k].boutique || 0) }), { e: 0, s: 0, b: 0 });
+  const tot = jours.reduce((a, k) => ({ e: a.e + J[k].entrees, s: a.s + J[k].sorties, b: a.b + (J[k].boutique || 0), av: a.av + (J[k].avances || 0) }), { e: 0, s: 0, b: 0, av: 0 });
   const sol = tot.e - tot.s;
   document.getElementById('rj-totaux').innerHTML = `
     <div class="sc"><div class="sc-label">${t('rj.entrees')}</div><div class="sc-val" style="color:var(--green)">${fmt(tot.e)}</div>${tot.b ? `<div class="sc-sub">${t('rj.dont_boutique')} : ${fmt(tot.b)}</div>` : ''}</div>
-    <div class="sc"><div class="sc-label">${t('rj.sorties')}</div><div class="sc-val" style="color:var(--red)">${fmt(tot.s)}</div></div>
+    <div class="sc"><div class="sc-label">${t('rj.sorties')}</div><div class="sc-val" style="color:var(--red)">${fmt(tot.s)}</div>${tot.av ? `<div class="sc-sub">${t('db.sj_dont_avances')} ${fmt(tot.av)}</div>` : ''}</div>
     <div class="sc"><div class="sc-label">${t('rj.solde')}</div><div class="sc-val" style="color:${sol < 0 ? 'var(--red)' : 'var(--green)'}">${fmt(sol)}</div></div>`;
   const nomJour = k => { const [y, m, d] = k.split('-').map(Number); const s = new Date(y, m - 1, d).toLocaleDateString(LANG === 'ar' ? 'ar-MA' : 'fr-FR', { weekday: 'long' }); return s.charAt(0).toUpperCase() + s.slice(1); };
   const e = s => echapper(s ?? '');
@@ -16909,7 +16934,7 @@ function afficherRapportJour() {
       return `<tr style="cursor:pointer${ouvert ? ';background:var(--bg3)' : ''}" onclick="rjBasculer('${k}')">
         <td style="white-space:nowrap"><span style="display:inline-block;width:12px;color:var(--text3)">${ouvert ? '▾' : '▸'}</span> <strong>${dateFr(k)}</strong> <span style="font-size:11px;color:var(--text3)">${nomJour(k)}</span>${k > today() ? ` <span class="badge b-w" style="font-size:10px">${t('fin.a_venir')}</span>` : ''}</td>
         <td style="text-align:end;color:var(--green);font-weight:600">${o.entrees ? fmt(o.entrees) : '—'}${o.boutique ? `<div style="font-size:10px;font-weight:400;color:var(--text3)">${t('rj.dont_boutique')} ${fmt(o.boutique)}</div>` : ''}</td>
-        <td style="text-align:end;color:var(--red);font-weight:600">${o.sorties ? fmt(o.sorties) : '—'}</td>
+        <td style="text-align:end;color:var(--red);font-weight:600">${o.sorties ? fmt(o.sorties) : '—'}${o.avances ? `<div style="font-size:10px;font-weight:400;color:var(--text3)">${t('db.sj_dont_avances')} ${fmt(o.avances)}</div>` : ''}</td>
         <td style="text-align:end;font-weight:700;color:${s < 0 ? 'var(--red)' : 'var(--text)'}">${fmt(s)}</td>
         <td style="text-align:center;color:var(--text2)">${o.lignesE.length + o.lignesS.length}</td></tr>`
         + (ouvert ? `<tr><td colspan="5" style="background:var(--bg2);padding:8px 14px">${detail(o.lignesE, 'var(--green)', t('rj.entrees'))}${detail(o.lignesS, 'var(--red)', t('rj.sorties'))}</td></tr>` : '');
