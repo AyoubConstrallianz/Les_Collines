@@ -16195,6 +16195,7 @@ async function saveVersement() {
   showToast(t('vs.enregistre'), 's');
   document.getElementById('vs-modal').classList.remove('open');
   activite === 'club' ? loadAssocies() : loadBilanBoutique();
+  loadSoldeJour();
 }
 
 async function delVersement(id, activite) {
@@ -16204,6 +16205,7 @@ async function delVersement(id, activite) {
   if (error) { showToast(error.message, 'e'); return; }
   await logAudit('DELETE', 'associes', `Versement ${activite} ${fmtDH2(v?.montant)}`);
   activite === 'club' ? loadAssocies() : loadBilanBoutique();
+  loadSoldeJour();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -16774,9 +16776,16 @@ async function openBilanMensuel() {
 // Avances des associés (prises / remboursées) entre deux dates — vide si le compte ne voit pas les associés ou si la table manque
 async function avancesAssocies(du, au) {
   if (!PERMS.associes?.lire) return [];
-  const r = await fetchAllRows(() => sb.from('versements_associes').select('id,montant,date_versement,nature,mode,note,created_at,associe_id,associes(prenom,nom)')
-    .in('nature', ['Avance', 'Retour avance']).gte('date_versement', du).lte('date_versement', au).order('id')).catch(() => ({ data: [] }));
-  return r.error ? [] : r.data || [];
+  const lire = champs => fetchAllRows(() => sb.from('versements_associes').select(champs)
+    .gte('date_versement', du).lte('date_versement', au).order('id')).catch(e => ({ data: [], error: e }));
+  let r = await lire('*,associes(prenom,nom)');
+  if (r.error) {   // lecture du nom de l'associé impossible : avances sans le nom, noms repris de la page Associés si chargée
+    r = await lire('*');
+    const noms = (_assoc?.liste || []);
+    (r.data || []).forEach(x => { const a = noms.find(y => y.id === x.associe_id); if (a) x.associes = { prenom: a.prenom, nom: a.nom }; });
+  }
+  if (r.error) console.warn('Avances associés :', r.error.message || r.error);
+  return (r.data || []).filter(x => x.nature === 'Avance' || x.nature === 'Retour avance');
 }
 
 // ── Solde du jour (tableau de bord) : même calcul que le Rapport journalier pour aujourd'hui ──
