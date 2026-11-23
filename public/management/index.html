@@ -601,6 +601,7 @@ html[data-theme="dark"] .pl-tab.on{color:#0b0c0f}
 .bf-resume .ok{border-color:var(--green)}
 .bf-resume .ecart{border-color:var(--amber)}
 #bf-lignes input{padding:6px 8px;font-size:13px}
+#bp-nom,.bvl-article,#bf-lignes td:first-child input{text-transform:uppercase}
 /* Vente boutique : plusieurs articles */
 .bv-entete,.bv-ligne{display:grid;grid-template-columns:minmax(0,2.6fr) 76px minmax(0,1fr) minmax(0,1fr) 34px;gap:8px;align-items:start}
 .bv-entete{font-size:12px;color:var(--text2);font-weight:500;padding:0 2px 4px}
@@ -12764,6 +12765,7 @@ let _bt = { ventes: [], clients: [], produits: [], mouvements: [], onglet: 'vent
 
 const echapper = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const cleArticle = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+const majArticle = s => String(s || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('fr-FR');   // noms d'articles en majuscules (script 64)
 const nomClientVente = v => {
   const c = v.client_id && _bt.clients.find(x => x.id === v.client_id);
   return c ? `${c.prenom} ${c.nom}` : (v.client_nom || '');
@@ -13263,7 +13265,7 @@ async function saveVente() {
   };
   const objs = lignes.map(l => ({
     ...base,
-    article: l.p ? l.p.nom : l.article,
+    article: l.p ? l.p.nom : majArticle(l.article),
     prix_achat: l.achat,
     prix_vente: l.vente,
     ...(_bt.stockActif ? { produit_id: l.p ? l.p.id : null, quantite: l.qte } : {}),
@@ -13692,7 +13694,7 @@ function ouvrirProduit(id) {
 
 async function saveProduit() {
   const id = document.getElementById('bp-id').value;
-  const nom = document.getElementById('bp-nom').value.trim().replace(/\s+/g, ' ');
+  const nom = majArticle(document.getElementById('bp-nom').value);
   if (!nom) { showToast(t('bq.nom_requis'), 'e'); return; }
   if (_bt.produits.some(p => p.id !== id && cleArticle(p.nom) === cleArticle(nom))) { showToast(t('bq.nom_existe'), 'e'); return; }
   const obj = { nom, categorie: document.getElementById('bp-cat').value.trim() || null,
@@ -13993,7 +13995,7 @@ async function saveFacture() {
   if (!montant || montant <= 0) { showToast(t('bf.montant_requis'), 'e'); document.getElementById('bf-montant').focus(); return; }
   const lignes = _bf.lignes.filter(l => String(l.article || '').trim()).map(l => {
     const pr = _bt.produits.find(x => cleArticle(x.nom) === cleArticle(l.article));
-    return { produit_id: pr?.id || null, article: String(l.article).trim().replace(/\s+/g, ' '), categorie: String(l.categorie || '').trim() || null,
+    return { produit_id: pr?.id || null, article: majArticle(l.article), categorie: String(l.categorie || '').trim() || null,
       quantite: parseInt(l.quantite, 10) || 0, prix_achat: parseFloat(l.prix_achat) || 0, prix_vente: parseFloat(l.prix_vente) || 0 };
   });
   if (!lignes.length) { showToast(t('bf.article_requis'), 'e'); return; }
