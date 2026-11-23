@@ -3832,6 +3832,8 @@ const I18N = {
     "fin.caisse_tous": "Caisse réelle (tous modes)",
     "fin.capital_court": "Capital des associés",
     "fin.associes_court": "Versements / avances associés",
+    "fin.versements_assoc": "Versements associés (bénéfice, capital)",
+    "fin.avances_assoc": "Avances associés en cours",
     "fin.caisse_sub": "Tous les encaissements (espèces, virements, chèques) et la boutique, moins les charges, les salaires et les versements / avances des associés. Paiements d'avance compris.",
     "fin.voir_detail": "Voir le détail de ce mois",
     "fin.a_venir": "à venir",
@@ -5489,6 +5491,8 @@ const I18N = {
     "fin.caisse_tous": "الصندوق الفعلي (كل الطرق)",
     "fin.capital_court": "رأس مال الشركاء",
     "fin.associes_court": "دفعات / تسبيقات الشركاء",
+    "fin.versements_assoc": "دفعات الشركاء (الربح، رأس المال)",
+    "fin.avances_assoc": "تسبيقات الشركاء الجارية",
     "fin.caisse_sub": "كل المداخيل (نقداً، تحويلات، شيكات) والمتجر، ناقص التكاليف والأجور ودفعات / تسبيقات الشركاء. بما فيها الأداءات المسبقة.",
     "fin.voir_detail": "عرض تفاصيل هذا الشهر",
     "fin.a_venir": "قادم",
@@ -16572,8 +16576,8 @@ async function loadFinances() {
     fetchAllRows(() => sb.from('paiements').select('id,montant,date_paiement,type,mode,reste_de').order('id')),
     fetchAllRows(() => sb.from('charges').select('montant,date_charge,categorie,mode').order('id')),
     fetchAllRows(() => sb.from('salaires_paie').select('montant,mois,mode').order('id')),
-    fetchAllRows(() => sb.from('versements_associes').select('montant,date_versement,mode,nature,activite').order('id')),
-    sb.from('associes').select('capital,actif'),
+    fetchAllRows(() => sb.from('versements_associes').select('montant,date_versement,mode,nature,activite,associe_id').order('id')),
+    sb.from('associes').select('id,prenom,nom,capital,actif'),
     fetchAllRows(() => sb.from('ventes').select('*').order('id'))
   ]);
   const rbr = await fetchAllRows(() => sb.from('ventes_reglements').select('montant,date_reglement').order('id')).catch(() => ({ data: [] }));
@@ -16584,9 +16588,9 @@ async function loadFinances() {
   const typeOrig = {}; (rp.data || []).forEach(x => { typeOrig[x.id] = x.type; });
   const esp = m => !m || !/^(virement|ch[eè]que)$/i.test(String(m).trim());   // même règle que la caisse de la page Associés
   const M = {};
-  const mois = m => M[m] ??= { recettes: 0, depenses: 0, boutique: 0, verse: 0, types: {}, modesR: {}, cats: {}, modesD: {} };
+  const mois = m => M[m] ??= { recettes: 0, depenses: 0, boutique: 0, verse: 0, avance: 0, types: {}, modesR: {}, cats: {}, modesD: {} };
   // Totaux de la caisse réelle (tous modes) pour le détail de la carte
-  const T = { modes: {}, boutique: 0, depenses: 0, verse: 0 };
+  const T = { modes: {}, boutique: 0, depenses: 0, verse: 0, versements: 0, avances: 0, avParAssoc: {} };
   const add = (o, k, v) => { o[k] = (o[k] || 0) + v; };
   (rp.data || []).forEach(x => {
     const m = String(x.date_paiement || '').slice(0, 7); if (!m) return;
@@ -16613,7 +16617,13 @@ async function loadFinances() {
   (rv.error ? [] : rv.data || []).forEach(x => {
     const m = String(x.date_versement || '').slice(0, 7); if (!m) return;
     const v = mV(x); mois(m).verse += v; T.verse += v;
+    // Avances (avance prise − avance remboursée) séparées des versements (bénéfice, capital)
+    if (x.nature === 'Avance' || x.nature === 'Retour avance') {
+      mois(m).avance += v; T.avances += v;
+      if (x.associe_id) T.avParAssoc[x.associe_id] = (T.avParAssoc[x.associe_id] || 0) + v;
+    } else T.versements += v;
   });
+  T.assoc = ra.data || [];
   // Boutique : ventes (un retour est négatif)
   // (vente payée en partie : seul le montant payé ; les règlements du reste au mois où ils sont reçus)
   (rb.error ? [] : rb.data || []).forEach(x => {
@@ -16687,7 +16697,11 @@ function renderFinances() {
     sub.innerHTML = `<div style="margin-top:4px;line-height:1.6">`
       + Object.entries(T.modes).sort((a, b) => b[1] - a[1]).map(([k, v]) => l(MODES[k] || k, v)).join('')
       + l(t('rj.boutique'), T.boutique) + l(t('fin.capital_court'), _fin.capital)
-      + l(t('fin.depenses_col'), T.depenses, '−') + l(t('fin.associes_court'), T.verse, '−')
+      + l(t('fin.depenses_col'), T.depenses, '−') + l(t('fin.versements_assoc'), T.versements, '−')
+      + l(t('fin.avances_assoc'), T.avances, T.avances < 0 ? '+' : '−')
+      + Object.entries(T.avParAssoc || {}).filter(([, v]) => Math.abs(v) >= 0.01).map(([id, v]) => {
+          const a = (T.assoc || []).find(x => x.id === id);
+          return `<div style="display:flex;justify-content:space-between;gap:8px;padding-inline-start:14px;font-size:11px;color:var(--text3)"><span>${echapper(a ? (a.prenom || '') + ' ' + (a.nom || '') : '—')}</span><span style="white-space:nowrap">${fmt(v)}</span></div>`; }).join('')
       + `</div><div style="margin-top:4px">${t('fin.caisse_sub')}</div>`;
   }
 
@@ -16735,7 +16749,7 @@ function renderFinances() {
     </div>
     ${!voirCaisse ? '' : `<div style="margin-top:10px;font-size:12px;color:var(--text2)">${t('fin.esp_detail')} <strong style="color:var(--green-text)">${fmt(o.recettes)}</strong>
       + ${t('rj.boutique')} <strong style="color:var(--green-text)">${fmt(o.boutique)}</strong>
-      − ${t('fin.esp_sorties')} <strong>${fmt(o.depenses)}</strong> − ${t('fin.associes_court')} <strong>${fmt(o.verse)}</strong>
+      − ${t('fin.esp_sorties')} <strong>${fmt(o.depenses)}</strong> − ${t('fin.versements_assoc')} <strong>${fmt(o.verse - (o.avance || 0))}</strong> − ${t('fin.avances_assoc')} <strong>${fmt(o.avance || 0)}</strong>
       = <strong style="${cl(o.esp)}">${fmt(o.esp)}</strong> · ${t('fin.caisse_fin')} : <strong style="${cl(o.caisseFin)}">${fmt(o.caisseFin)}</strong></div>`}
   </div>`;
 }
