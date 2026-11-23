@@ -1834,6 +1834,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
                 <button class="btn btn-p" id="bp-facture" onclick="boutiqueOnglet('factures');ouvrirFacture()" data-i18n="bq.entree_facture">+ Entrée par facture</button>
                 <button class="btn" id="bp-new" onclick="ouvrirProduit()" data-i18n="bq.nouvel_article">+ Nouvel article</button>
                 <button class="btn" id="bp-liste" onclick="imprimerListeArticles()" data-i18n="bq.liste_imprimer">🧾 Liste des articles</button>
+                <button class="btn" id="bp-prix-a3" onclick="imprimerListePrixA3()" data-i18n="pk.liste_prix">🖨️ Liste des prix (A3)</button>
               </div>
             </div>
             <p style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="bq.note_stock">Les entrées de stock se font uniquement par une facture fournisseur. « Inventaire » enregistre le stock compté dans la case « Stock inventaire », sans modifier le stock calculé.</p>
@@ -1848,6 +1849,7 @@ html[data-theme="dark"] #rf-lignes input{background:var(--bg3)}
               <div class="ct" style="margin:0" data-i18n="pk.titre">Packs par discipline</div>
               <div class="toolbar" style="margin:0;gap:8px">
                 <select id="bk-sport" onchange="renderPacks()"></select>
+                <button class="btn" id="bk-prix-a3" onclick="imprimerListePrixA3()" data-i18n="pk.liste_prix">🖨️ Liste des prix (A3)</button>
                 <button class="btn btn-p" id="bk-new" onclick="ouvrirPack()" data-i18n="pk.nouveau">+ Nouveau pack</button>
               </div>
             </div>
@@ -4329,6 +4331,8 @@ const I18N = {
     "bq.enregistree": "Vente enregistrée",
     "bq.ajouter_article": "+ Ajouter un article",
     "pk.onglet": "📦 Packs",
+    "pk.liste_prix": "🖨️ Liste des prix (A3)",
+    "pk.liste_vide": "Aucun article ni pack avec un prix de vente à afficher.",
     "pk.titre": "Packs par discipline",
     "pk.nouveau": "+ Nouveau pack",
     "pk.note": "Un pack regroupe plusieurs articles du stock à un prix fixé. « Vendre » ajoute ses articles à la vente : le stock de chaque article diminue et le client reçoit un seul reçu.",
@@ -13665,6 +13669,140 @@ function imprimerListeArticles() {
   </body></html>`;
   imprimerThermique(html);
   logAudit('PRINT', 'produits', `Liste des articles (${n})`);
+}
+
+// Liste des prix en A3 (affiche de la boutique) : articles par catégorie, puis packs par discipline, sur deux colonnes
+async function imprimerListePrixA3() {
+  if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
+  const fr = (a, b) => String(a || '').localeCompare(String(b || ''), 'fr', { sensitivity: 'base' });
+  const articles = (_bt.produits || []).filter(p => p.actif !== false && (parseFloat(p.prix_vente) || 0) > 0)
+    .sort((a, b) => (!a.categorie - !b.categorie) || fr(a.categorie, b.categorie) || fr(a.nom, b.nom));
+  const packs = (_bt.packs || []).filter(k => k.actif !== false).map(k => ({ k, i: infoPack(k) }))
+    .filter(x => x.i.ok.length && !x.i.manque && x.i.prix > 0)
+    .sort((a, b) => (!a.k.sport - !b.k.sport) || fr(a.k.sport, b.k.sport) || fr(a.k.nom, b.k.nom));
+  if (!articles.length && !packs.length) { showToast(t('pk.liste_vide'), 'e'); return; }
+  // Onglet ouvert tout de suite (sinon bloqué comme fenêtre surgissante), rempli quand le PDF est prêt
+  const onglet = window.open('', '_blank');
+  let logo = null;
+  try { logo = await loadImageAsync('/images/logo-ticket.png'); } catch (_) {}
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a3' });
+  const W = 297, H = 420, M = 16, G = 12, CW = (W - 2 * M - G) / 2, bas = H - 18;
+  const bleu = [37, 99, 235], vert = [22, 163, 74], gris = [100, 116, 139], noir = [15, 23, 42], bord = [203, 213, 225];
+  const le = dateFr(today());
+  let y = M;
+
+  const enTete = premiere => {
+    y = M;
+    if (premiere) {
+      if (logo) { const lw = 80, lh = lw * logo.naturalHeight / logo.naturalWidth; doc.addImage(logo, 'PNG', (W - lw) / 2, y, lw, lh); y += lh + 4; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(36); doc.setTextColor(...noir);
+      doc.text('LISTE DES PRIX', W / 2, y + 13, { align: 'center' }); y += 20;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(13); doc.setTextColor(...gris);
+      doc.text(`Boutique ${RECU_ASSO.nom} — prix en dirhams, au ${le}`, W / 2, y + 3, { align: 'center' }); y += 9;
+    } else {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(...noir);
+      doc.text('LISTE DES PRIX (suite)', W / 2, y + 6, { align: 'center' }); y += 11;
+    }
+    doc.setDrawColor(...bleu); doc.setLineWidth(0.8); doc.line(M, y, W - M, y); y += 8;
+  };
+
+  // Blocs à placer : { h, draw(x, y) } ; un titre de groupe reste collé à sa première ligne
+  const bandeau = (txt, couleur) => ({ h: 12, draw: (x, yy) => {
+    doc.setFillColor(...couleur); doc.rect(x, yy + 1, CW, 9, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(255, 255, 255);
+    doc.text(doc.splitTextToSize(txt.toUpperCase(), CW - 6)[0], x + 3, yy + 7.4);
+  } });
+  const ligneArticle = p => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(12.5);
+    const noms = doc.splitTextToSize(p.nom || '-', CW - 42);
+    return { h: Math.max(9, noms.length * 5.4 + 3.8), draw: (x, yy) => {
+      const prix = montantPdf(p.prix_vente), yb = yy + 6.4 + (noms.length - 1) * 5.4;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(12.5); doc.setTextColor(...noir);
+      doc.text(noms, x + 2, yy + 6.4);
+      const debut = x + 2 + doc.getTextWidth(noms[noms.length - 1]) + 2;
+      doc.setFont('helvetica', 'bold');
+      const fin = x + CW - 2 - doc.getTextWidth(prix) - 2;
+      doc.text(prix, x + CW - 2, yb, { align: 'right' });
+      if (fin > debut) {   // pointillés entre le nom et le prix
+        doc.setDrawColor(...bord); doc.setLineWidth(0.35); doc.setLineDashPattern([0.4, 1.4], 0);
+        doc.line(debut, yb, fin, yb); doc.setLineDashPattern([], 0);
+      }
+    } };
+  };
+  const blocPack = ({ k, i }) => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+    const noms = doc.splitTextToSize(k.nom || '-', CW - 62);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
+    const contenu = doc.splitTextToSize(i.ok.map(l => `${l.qte} × ${l.p.nom}`).join('  +  '), CW - 10);
+    const remise = i.separe - i.prix > 0.005;
+    const yContenu = Math.max(9.5 + noms.length * 6, remise ? 22 : 0);   // sous le prix barré, sans chevauchement
+    const h = yContenu + (contenu.length - 1) * 4.6 + 7;
+    return { h, draw: (x, yy) => {
+      doc.setDrawColor(...bord); doc.setLineWidth(0.3); doc.roundedRect(x, yy + 1, CW, h - 3, 2, 2, 'S');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(...noir);
+      doc.text(noms, x + 4, yy + 8.5);
+      doc.setFontSize(18); doc.setTextColor(...vert);
+      doc.text(montantPdf(i.prix), x + CW - 4, yy + 10, { align: 'right' });
+      if (remise) {   // prix des articles achetés séparément, barré
+        const avant = `au lieu de ${montantPdf(i.separe)}`;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...gris);
+        doc.text(avant, x + CW - 4, yy + 16, { align: 'right' });
+        const lw = doc.getTextWidth(avant) - doc.getTextWidth('au lieu de ');
+        doc.setDrawColor(...gris); doc.setLineWidth(0.3); doc.line(x + CW - 4 - lw, yy + 14.8, x + CW - 4, yy + 14.8);
+      }
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(...gris);
+      doc.text(contenu, x + 4, yy + yContenu, { lineHeightFactor: 1.25 });
+    } };
+  };
+  const coller = (a, b) => ({ h: a.h + b.h, draw: (x, yy) => { a.draw(x, yy); b.draw(x, yy + a.h); } });
+
+  // Section sur deux colonnes équilibrées ; nouvelle page quand la place manque
+  const section = (titre, blocs) => {
+    if (!blocs.length) return;
+    if (y + 14 + blocs[0].h > bas) { doc.addPage(); enTete(false); }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.setTextColor(...noir);
+    doc.text(titre, M, y + 8); y += 14;
+    let i = 0;
+    while (i < blocs.length) {
+      const dispo = bas - y, reste = blocs.slice(i).reduce((s, b) => s + b.h, 0);
+      const cible = reste <= 2 * dispo ? reste / 2 : dispo;
+      const c0 = [], c1 = []; let h0 = 0, h1 = 0;
+      while (i < blocs.length && (!c0.length || (h0 + blocs[i].h / 2 <= cible && h0 + blocs[i].h <= dispo))) { c0.push(blocs[i]); h0 += blocs[i].h; i++; }
+      while (i < blocs.length && h1 + blocs[i].h <= dispo) { c1.push(blocs[i]); h1 += blocs[i].h; i++; }
+      let yy = y; c0.forEach(b => { b.draw(M, yy); yy += b.h; });
+      yy = y; c1.forEach(b => { b.draw(M + CW + G, yy); yy += b.h; });
+      y += Math.max(h0, h1) + 8;
+      if (i < blocs.length) { doc.addPage(); enTete(false); }
+    }
+  };
+  const grouper = (liste, cle, titre, couleur, bloc) => {
+    const blocs = []; let avant = null;
+    liste.forEach(x => {
+      const b = bloc(x), g = cle(x) || '';
+      if (!blocs.length || g !== avant) blocs.push(coller(bandeau(titre(g), couleur), b)); else blocs.push(b);
+      avant = g;
+    });
+    return blocs;
+  };
+
+  enTete(true);
+  section('ARTICLES', grouper(articles, p => p.categorie, g => g || 'Autres articles', bleu, ligneArticle));
+  section('PACKS', grouper(packs, x => x.k.sport, g => g || 'Toutes disciplines', vert, blocPack));
+
+  const n = doc.getNumberOfPages();
+  for (let k = 1; k <= n; k++) {
+    doc.setPage(k);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.3); doc.line(M, H - 13, W - M, H - 13);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
+    doc.text(`${RECU_ASSO.nom} — ${RECU_ASSO.adresse} — Tél. ${RECU_ASSO.tel}`, M, H - 8);
+    if (n > 1) doc.text(`Page ${k} / ${n}`, W - M, H - 8, { align: 'right' });
+  }
+  doc.setProperties({ title: `Liste des prix ${le}`, author: RECU_ASSO.nom });
+  const url = URL.createObjectURL(doc.output('blob'));
+  if (onglet) onglet.location.href = url;
+  else doc.save(`liste-des-prix-${today()}.pdf`);
+  logAudit('PRINT', 'produits', `Liste des prix A3 (${articles.length} article(s), ${packs.length} pack(s))`);
 }
 
 // Case « Stock inventaire » : quantité comptée (bouton Inventaire) et écart avec le stock calculé
