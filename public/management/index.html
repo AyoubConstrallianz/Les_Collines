@@ -13671,7 +13671,8 @@ function imprimerListeArticles() {
   logAudit('PRINT', 'produits', `Liste des articles (${n})`);
 }
 
-// Liste des prix en A3 (affiche de la boutique) : articles par catégorie, puis packs par discipline, sur deux colonnes
+// Liste des prix en A3 (affiche de la boutique) aux couleurs du logo : bandeau noir, logo citron, corps clair
+//   Articles par catégorie, puis packs par discipline, sur deux colonnes équilibrées
 async function imprimerListePrixA3() {
   if (!window.jspdf) { showToast(t('recu.pdf_ko'), 'e'); return; }
   const fr = (a, b) => String(a || '').localeCompare(String(b || ''), 'fr', { sensitivity: 'base' });
@@ -13684,85 +13685,114 @@ async function imprimerListePrixA3() {
   // Onglet ouvert tout de suite (sinon bloqué comme fenêtre surgissante), rempli quand le PDF est prêt
   const onglet = window.open('', '_blank');
   let logo = null;
-  try { logo = await loadImageAsync('/images/logo-ticket.png'); } catch (_) {}
+  try { logo = await loadImageAsync('/images/logo-couleur.png'); } catch (_) {}
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a3' });
-  const W = 297, H = 420, M = 16, G = 12, CW = (W - 2 * M - G) / 2, bas = H - 18;
-  const bleu = [37, 99, 235], vert = [22, 163, 74], gris = [100, 116, 139], noir = [15, 23, 42], bord = [203, 213, 225];
+  const W = 297, H = 420, M = 20, G = 14, CW = (W - 2 * M - G) / 2, hPied = 15, bas = H - hPied - 10;
+  // Palette du logo : noir, citron, blanc ; gris neutres pour le texte secondaire
+  const NOIR = [0, 0, 0], CARTE = [22, 22, 22], CITRON = [217, 229, 25], ENCRE = [24, 24, 24],
+    GRIS = [118, 118, 118], GRIS_C = [168, 168, 168], FILET = [214, 214, 210], BLANC = [255, 255, 255];
   const le = dateFr(today());
-  let y = M;
+  let y = 0;
 
-  const enTete = premiere => {
-    y = M;
-    if (premiere) {
-      if (logo) { const lw = 80, lh = lw * logo.naturalHeight / logo.naturalWidth; doc.addImage(logo, 'PNG', (W - lw) / 2, y, lw, lh); y += lh + 4; }
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(36); doc.setTextColor(...noir);
-      doc.text('LISTE DES PRIX', W / 2, y + 13, { align: 'center' }); y += 20;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(13); doc.setTextColor(...gris);
-      doc.text(`Boutique ${RECU_ASSO.nom} — prix en dirhams, au ${le}`, W / 2, y + 3, { align: 'center' }); y += 9;
-    } else {
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(...noir);
-      doc.text('LISTE DES PRIX (suite)', W / 2, y + 6, { align: 'center' }); y += 11;
-    }
-    doc.setDrawColor(...bleu); doc.setLineWidth(0.8); doc.line(M, y, W - M, y); y += 8;
+  // Texte avec espacement des lettres (alignement calculé ici : jsPDF n'en tient pas compte)
+  const tx = (txt, x, yy, { cs = 0, align = 'left' } = {}) => {
+    const w = doc.getTextWidth(txt) + cs * Math.max(txt.length - 1, 0);
+    doc.text(txt, align === 'center' ? x - w / 2 : align === 'right' ? x - w : x, yy, cs ? { charSpace: cs } : {});
+    return w;
+  };
+  const police = (style, taille, couleur) => { doc.setFont('helvetica', style); doc.setFontSize(taille); doc.setTextColor(...couleur); };
+  // Prix : montant en gras, « DH » plus petit à droite ; renvoie la largeur occupée
+  const prixTxt = (v, xd, yb, taille, couleur, coulDh) => {
+    const num = montantPdf(v).replace(/ DH$/, '');
+    police('normal', taille * 0.55, coulDh); const wDh = tx('DH', xd, yb, { align: 'right' });
+    police('bold', taille, couleur); const wNum = tx(num, xd - wDh - 1.2, yb, { align: 'right' });
+    return wNum + wDh + 1.2;
   };
 
-  // Blocs à placer : { h, draw(x, y) } ; un titre de groupe reste collé à sa première ligne
-  const bandeau = (txt, couleur) => ({ h: 12, draw: (x, yy) => {
-    doc.setFillColor(...couleur); doc.rect(x, yy + 1, CW, 9, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(255, 255, 255);
-    doc.text(doc.splitTextToSize(txt.toUpperCase(), CW - 6)[0], x + 3, yy + 7.4);
+  const enTete = premiere => {
+    if (premiere) {
+      const hHaut = 104;
+      doc.setFillColor(...NOIR); doc.rect(0, 0, W, hHaut, 'F');
+      let yy = 14;
+      if (logo) { const lw = 200, lh = lw * logo.naturalHeight / logo.naturalWidth; doc.addImage(logo, 'PNG', (W - lw) / 2, yy, lw, lh); yy += lh + 9; }
+      else { police('bold', 34, CITRON); tx('LES COLLINES', W / 2, yy + 22, { align: 'center', cs: 2 }); yy += 36; }
+      doc.setFillColor(...CITRON); doc.rect(W / 2 - 16, yy, 32, 0.9, 'F');
+      police('bold', 25, BLANC); tx('LISTE DES PRIX', W / 2, yy + 13, { align: 'center', cs: 1.6 });
+      police('normal', 9.5, GRIS_C); tx(`BOUTIQUE   ·   TARIFS AU ${le}`, W / 2, yy + 21, { align: 'center', cs: 0.7 });
+      y = hHaut + 16;
+    } else {
+      const hHaut = 30;
+      doc.setFillColor(...NOIR); doc.rect(0, 0, W, hHaut, 'F');
+      if (logo) { const lw = 92, lh = lw * logo.naturalHeight / logo.naturalWidth; doc.addImage(logo, 'PNG', M - 3, (hHaut - lh) / 2, lw, lh); }
+      police('bold', 11, BLANC); tx('LISTE DES PRIX', W - M, 15, { align: 'right', cs: 1 });
+      police('normal', 8.5, GRIS_C); tx(`SUITE   ·   TARIFS AU ${le}`, W - M, 20.5, { align: 'right', cs: 0.5 });
+      y = hHaut + 14;
+    }
+  };
+
+  // Titre de groupe (catégorie ou discipline) : petites capitales espacées suivies d'un filet ; reste collé à sa première ligne
+  const bandeau = txt => ({ h: 14, draw: (x, yy) => {
+    police('bold', 10.5, ENCRE);
+    const w = tx(doc.splitTextToSize(txt.toUpperCase(), CW - 30)[0], x, yy + 8.5, { cs: 0.7 });
+    doc.setFillColor(...CITRON); doc.rect(x, yy + 10.6, Math.min(w, 14), 0.9, 'F');
+    doc.setDrawColor(...FILET); doc.setLineWidth(0.25); doc.line(x + w + 4, yy + 7, x + CW, yy + 7);
   } });
   const ligneArticle = p => {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(12.5);
-    const noms = doc.splitTextToSize(p.nom || '-', CW - 42);
-    return { h: Math.max(9, noms.length * 5.4 + 3.8), draw: (x, yy) => {
-      const prix = montantPdf(p.prix_vente), yb = yy + 6.4 + (noms.length - 1) * 5.4;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(12.5); doc.setTextColor(...noir);
-      doc.text(noms, x + 2, yy + 6.4);
-      const debut = x + 2 + doc.getTextWidth(noms[noms.length - 1]) + 2;
-      doc.setFont('helvetica', 'bold');
-      const fin = x + CW - 2 - doc.getTextWidth(prix) - 2;
-      doc.text(prix, x + CW - 2, yb, { align: 'right' });
+    police('normal', 12, ENCRE);
+    const noms = doc.splitTextToSize(p.nom || '-', CW - 44);
+    return { h: Math.max(9.5, noms.length * 5.3 + 4.2), draw: (x, yy) => {
+      const yb = yy + 6.6 + (noms.length - 1) * 5.3;
+      police('normal', 12, ENCRE); doc.text(noms, x, yy + 6.6, { lineHeightFactor: 1.25 });
+      const debut = x + doc.getTextWidth(noms[noms.length - 1]) + 2.5;
+      const fin = x + CW - prixTxt(p.prix_vente, x + CW, yb, 12.5, ENCRE, GRIS) - 2.5;
       if (fin > debut) {   // pointillés entre le nom et le prix
-        doc.setDrawColor(...bord); doc.setLineWidth(0.35); doc.setLineDashPattern([0.4, 1.4], 0);
+        doc.setDrawColor(...FILET); doc.setLineWidth(0.4); doc.setLineDashPattern([0.3, 1.5], 0);
         doc.line(debut, yb, fin, yb); doc.setLineDashPattern([], 0);
       }
     } };
   };
+  // Pack : carte noire, nom en blanc, prix en citron, prix séparé barré
   const blocPack = ({ k, i }) => {
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-    const noms = doc.splitTextToSize(k.nom || '-', CW - 62);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
-    const contenu = doc.splitTextToSize(i.ok.map(l => `${l.qte} × ${l.p.nom}`).join('  +  '), CW - 10);
+    police('bold', 14, BLANC);
+    const noms = doc.splitTextToSize(k.nom || '-', CW - 72);
+    police('normal', 9.5, GRIS_C);
+    const contenu = doc.splitTextToSize(i.ok.map(l => `${l.qte} × ${l.p.nom}`).join('   +   '), CW - 14);
     const remise = i.separe - i.prix > 0.005;
-    const yContenu = Math.max(9.5 + noms.length * 6, remise ? 22 : 0);   // sous le prix barré, sans chevauchement
-    const h = yContenu + (contenu.length - 1) * 4.6 + 7;
-    return { h, draw: (x, yy) => {
-      doc.setDrawColor(...bord); doc.setLineWidth(0.3); doc.roundedRect(x, yy + 1, CW, h - 3, 2, 2, 'S');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(...noir);
-      doc.text(noms, x + 4, yy + 8.5);
-      doc.setFontSize(18); doc.setTextColor(...vert);
-      doc.text(montantPdf(i.prix), x + CW - 4, yy + 10, { align: 'right' });
-      if (remise) {   // prix des articles achetés séparément, barré
-        const avant = `au lieu de ${montantPdf(i.separe)}`;
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...gris);
-        doc.text(avant, x + CW - 4, yy + 16, { align: 'right' });
-        const lw = doc.getTextWidth(avant) - doc.getTextWidth('au lieu de ');
-        doc.setDrawColor(...gris); doc.setLineWidth(0.3); doc.line(x + CW - 4 - lw, yy + 14.8, x + CW - 4, yy + 14.8);
+    const yContenu = Math.max(18 + noms.length * 6.2, remise ? 31 : 0);
+    const hc = yContenu + (contenu.length - 1) * 4.5 + 7;
+    return { h: hc + 5, draw: (x, yy) => {
+      doc.setFillColor(...CARTE); doc.roundedRect(x, yy, CW, hc, 2.5, 2.5, 'F');
+      doc.setFillColor(...CITRON); doc.rect(x, yy + 7, 1.4, 10, 'F');
+      police('bold', 14, BLANC); doc.text(noms, x + 7, yy + 12, { lineHeightFactor: 1.25 });
+      prixTxt(i.prix, x + CW - 7, yy + 14, 22, CITRON, CITRON);
+      if (remise) {
+        police('normal', 9, GRIS_C);
+        const montant = montantPdf(i.separe), wM = tx(montant, x + CW - 7, yy + 21.5, { align: 'right' });
+        tx('au lieu de ', x + CW - 7 - wM, yy + 21.5, { align: 'right' });
+        doc.setDrawColor(...GRIS_C); doc.setLineWidth(0.3); doc.line(x + CW - 7 - wM, yy + 20.4, x + CW - 7, yy + 20.4);
       }
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(...gris);
-      doc.text(contenu, x + 4, yy + yContenu, { lineHeightFactor: 1.25 });
+      doc.setDrawColor(60, 60, 60); doc.setLineWidth(0.2); doc.line(x + 7, yy + yContenu - 6.5, x + CW - 7, yy + yContenu - 6.5);
+      police('normal', 9.5, GRIS_C); doc.text(contenu, x + 7, yy + yContenu, { lineHeightFactor: 1.35 });
     } };
   };
   const coller = (a, b) => ({ h: a.h + b.h, draw: (x, yy) => { a.draw(x, yy); b.draw(x, yy + a.h); } });
 
+  // Titre de section : pastille noire numérotée, titre espacé, nombre d'éléments à droite, filet
+  const titreSection = (num, titre, info) => {
+    doc.setFillColor(...NOIR); doc.roundedRect(M, y, 12, 12, 1.5, 1.5, 'F');
+    police('bold', 10, CITRON); tx(num, M + 6, y + 7.8, { align: 'center' });
+    police('bold', 22, ENCRE); tx(titre, M + 17, y + 9.6, { cs: 1.1 });
+    police('normal', 9, GRIS); tx(info, W - M, y + 9.6, { align: 'right', cs: 0.5 });
+    doc.setDrawColor(...ENCRE); doc.setLineWidth(0.5); doc.line(M, y + 16, W - M, y + 16);
+    y += 24;
+  };
+
   // Section sur deux colonnes équilibrées ; nouvelle page quand la place manque
-  const section = (titre, blocs) => {
+  const section = (num, titre, info, blocs) => {
     if (!blocs.length) return;
-    if (y + 14 + blocs[0].h > bas) { doc.addPage(); enTete(false); }
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.setTextColor(...noir);
-    doc.text(titre, M, y + 8); y += 14;
+    if (y + 24 + blocs[0].h > bas) { doc.addPage(); enTete(false); }
+    titreSection(num, titre, info);
     let i = 0;
     while (i < blocs.length) {
       const dispo = bas - y, reste = blocs.slice(i).reduce((s, b) => s + b.h, 0);
@@ -13772,31 +13802,37 @@ async function imprimerListePrixA3() {
       while (i < blocs.length && h1 + blocs[i].h <= dispo) { c1.push(blocs[i]); h1 += blocs[i].h; i++; }
       let yy = y; c0.forEach(b => { b.draw(M, yy); yy += b.h; });
       yy = y; c1.forEach(b => { b.draw(M + CW + G, yy); yy += b.h; });
-      y += Math.max(h0, h1) + 8;
+      y += Math.max(h0, h1) + 10;
       if (i < blocs.length) { doc.addPage(); enTete(false); }
     }
   };
-  const grouper = (liste, cle, titre, couleur, bloc) => {
+  const grouper = (liste, cle, titre, bloc) => {
     const blocs = []; let avant = null;
     liste.forEach(x => {
       const b = bloc(x), g = cle(x) || '';
-      if (!blocs.length || g !== avant) blocs.push(coller(bandeau(titre(g), couleur), b)); else blocs.push(b);
+      blocs.push(!blocs.length || g !== avant ? coller(bandeau(titre(g)), b) : b);
       avant = g;
     });
     return blocs;
   };
 
   enTete(true);
-  section('ARTICLES', grouper(articles, p => p.categorie, g => g || 'Autres articles', bleu, ligneArticle));
-  section('PACKS', grouper(packs, x => x.k.sport, g => g || 'Toutes disciplines', vert, blocPack));
+  const pl = (n, mot) => `${n} ${mot}${n > 1 ? 'S' : ''}`;
+  let num = 0;
+  if (articles.length) section(String(++num).padStart(2, '0'), 'ARTICLES', pl(articles.length, 'ARTICLE'),
+    grouper(articles, p => p.categorie, g => g || 'Autres articles', ligneArticle));
+  if (packs.length) section(String(++num).padStart(2, '0'), 'PACKS', pl(packs.length, 'PACK'),
+    grouper(packs, x => x.k.sport, g => g || 'Toutes disciplines', blocPack));
 
+  // Pied de page : bande noire, coordonnées, numéro de page en citron
   const n = doc.getNumberOfPages();
   for (let k = 1; k <= n; k++) {
     doc.setPage(k);
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.3); doc.line(M, H - 13, W - M, H - 13);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gris);
-    doc.text(`${RECU_ASSO.nom} — ${RECU_ASSO.adresse} — Tél. ${RECU_ASSO.tel}`, M, H - 8);
-    if (n > 1) doc.text(`Page ${k} / ${n}`, W - M, H - 8, { align: 'right' });
+    doc.setFillColor(...NOIR); doc.rect(0, H - hPied, W, hPied, 'F');
+    doc.setFillColor(...CITRON); doc.rect(0, H - hPied, W, 0.8, 'F');
+    police('normal', 8, GRIS_C);
+    tx(`${RECU_ASSO.nom}   ·   ${RECU_ASSO.adresse}   ·   Tél. ${RECU_ASSO.tel}`.toUpperCase(), M, H - 6, { cs: 0.25 });
+    if (n > 1) { police('bold', 8.5, CITRON); tx(`${String(k).padStart(2, '0')} / ${String(n).padStart(2, '0')}`, W - M, H - 6, { align: 'right', cs: 1 }); }
   }
   doc.setProperties({ title: `Liste des prix ${le}`, author: RECU_ASSO.nom });
   const url = URL.createObjectURL(doc.output('blob'));
